@@ -13,7 +13,7 @@
     <tr>
     <td class="hea">
         <img src="/static/new_above.png" title="New rule above">
-        <img src="/static/new.png" title="New rule below">
+        <img src="/static/new_below.png" title="New rule below">
         <img src="/static/move_up.png" title="Move rule up">
         <img src="/static/move_down.png" title="Move rule down">
         <img src="/static/disable.png" title="Disable rule">

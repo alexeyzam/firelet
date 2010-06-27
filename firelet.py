@@ -52,10 +52,15 @@ networks = loadcsv('networks')
 messages = []
 def say(s, type='info'):
     """type can be: info, warning, alert"""
+    if type == 'error':
+        type = 'alert'
     ts = datetime.now().strftime("%H:%M:%S")
     messages.append((type, ts, s))
     if len(messages) > 10:
         messages.pop(0)
+
+def pg(name, default=''):
+    return request.POST.get(name, default).strip()
 
 # web services
 
@@ -134,22 +139,45 @@ class WebApp(object):
     def hosts():
         return dict(hosts=hosts)
 
+
     @bottle.route('/hosts', method='POST')
     def hosts():
         global hosts
         action = request.POST.get('action', '').strip()
-        name = request.POST.get('name', '').strip()
         if action == 'delete':
             try:
-                from random import random
-                if random() > 0.9:
-                    raise Exception, "test"
+                name = request.POST.get('name', '').strip()
                 hosts =  [ h for h in hosts if h[0] != name ]
                 say("Host %s deleted." % name, type="success")
                 return
             except Exception, e:
                 say("Unable to delete %s - %s" % (name, e), type="alert")
                 abort(500)
+        elif action == 'new':
+            hostname = pg('hostname')
+            iface = pg('iface')
+            ip_addr = pg('ip_addr')
+            print hostname, iface, ip_addr
+            if hostname == "test":
+                say('Host %s added.' % hostname, type="success")
+                return {'ok': True}
+
+            say('Unable to add %s.' % hostname, type="alert")
+            return {'ok': False, 'hostname':'Incorrect', 'iface':'b', 'ip_addr':'c'}
+
+    @bottle.route('/hosts_new', method='POST')
+    def hosts_new():
+        global hosts
+        hostname = pg('hostname')
+        iface = pg('iface')
+        ip_addr = pg('ip_addr')
+        print hostname, iface, ip_addr
+        if hostname == "test":
+            say('Host %s added.' % hostname, type="success")
+            return {'ok': True}
+
+        return {'ok': False, 'hostname':'Incorrect', 'iface':'b', 'ip_addr':'c'}
+
 
 
     @bottle.route('/networks')
@@ -221,7 +249,7 @@ class WebApp(object):
     def check():
         say('Configuration check started...')
         from time import sleep
-        sleep(4cc)
+        sleep(4)
         say('Configuration check successful.', type="success")
         return
 
@@ -277,6 +305,7 @@ def main():
                         datefmt='%a, %d %b %Y %H:%M:%S')
         log.debug("Debug mode")
         bottle_debug(True)
+        reload = True
     else:
         debug_mode = False
         log.basicConfig(level=log.INFO,
@@ -284,8 +313,11 @@ def main():
                     datefmt='%a, %d %b %Y %H:%M:%S',
                     filename=conf.logfile,
                     filemode='w')
+        reload = False
 
-    run(host=conf.listen_address, port=conf.listen_port)
+    say("Firelet started.", type="success")
+
+    run(host=conf.listen_address, port=conf.listen_port, reloader=reload)
 
 #    # wait here until the daemon is killed
 #

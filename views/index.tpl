@@ -12,18 +12,18 @@
 
 /* root element for tabs  */
 ul.css-tabs {
-	margin:0 !important;
-	padding:0;
-	height:30px;
-	border-bottom:1px solid #666;
+    margin:0 !important;
+    padding:0;
+    height:30px;
+    border-bottom:1px solid #666;
 }
 
 /* single tab */
 ul.css-tabs li {
-	float:left;
-	padding:0;
-	margin:0;
-	list-style-type:none;
+    float:left;
+    padding:0;
+    margin:0;
+    list-style-type:none;
 }
 
 /* link inside the tab. uses a background image */
@@ -46,8 +46,8 @@ ul.css-tabs a {
 }
 
 ul.css-tabs a:hover {
-	background-color:#F7F7F7;
-	color:#333;
+    background-color:#F7F7F7;
+    color:#333;
 }
 
 /* selected tab */
@@ -228,6 +228,21 @@ div#savereset {
     -webkit-box-shadow: 0 0 50px #ccc;
 }
 
+div#new_form {
+    background-color:#fff;
+    display:none;
+    width:350px;
+    padding:15px;
+    text-align:left;
+    border:2px solid #333;
+
+    opacity:0.8;
+    -moz-border-radius:6px;
+    -webkit-border-radius:6px;
+    -moz-box-shadow: 0 0 50px #ccc;
+    -webkit-box-shadow: 0 0 50px #ccc;
+}
+
 </style>
 </head>
 <body>
@@ -290,7 +305,7 @@ $(function() {
     refresh_msg();
 });
 
-
+// Save and reset buttons
 
 $("div#savereset img[title]").tooltip({
     tip: '.tooltip',
@@ -319,6 +334,8 @@ $('img#reset').click(function() {
 
 $(function() {
 
+$(function() {
+
     var triggers = $(".modalInput").overlay({
         mask: {
             color: '#ebecff',
@@ -335,13 +352,20 @@ $(function() {
         var input = $("input", this).val();
         // do something with the answer
         triggers.eq(1).html(input);
-        $.post("save",{msg: input}  );
+        $.post("save",{msg: input});
         // do not submit the form
         return e.preventDefault();
         triggers.hide();
     });
 
 });
+
+});
+
+// New item button
+
+
+// New item form
 
 
 </script>
