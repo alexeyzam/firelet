@@ -6,9 +6,7 @@
 
 <script src="http://cdn.jquerytools.org/1.2.3/full/jquery.tools.min.js"></script>
 
-
-
-    <style media="screen" type="text/css">
+<style media="screen" type="text/css">
 
 /* root element for tabs  */
 ul.css-tabs {
@@ -182,7 +180,6 @@ table td.hea:hover {
 }
 
 
-
 table td img {
     margin: 1px;
 }
@@ -242,6 +239,13 @@ div#new_form {
     -moz-box-shadow: 0 0 50px #ccc;
     -webkit-box-shadow: 0 0 50px #ccc;
 }
+
+input {
+    background: #fafafa;
+    border: 1px solid #333
+}
+
+input:hover { background: #fff}
 
 </style>
 </head>

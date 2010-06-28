@@ -10,27 +10,26 @@
 /* Form validation error message */
 
 .error {
-	/* supply height to ensure consistent positioning for every browser */
-    z-index: 355;
-	height:15px;
-	background-color: #red;
-	border:1px solid #E1E16D;
-	font-size:11px;
-	color:#000;
-	padding:3px 10px;
-	margin-left:20px;
+    z-index: 30055;
+    height:15px;
+    background-color: #eeeeff;
+    border:1px solid #000;
+    font-size:11px;
+    color:#000;
+    padding:3px 10px;
+    margin-left:20px;
 
 
-	/* CSS3 spicing for mozilla and webkit */
-	-moz-border-radius:4px;
-	-webkit-border-radius:4px;
-	-moz-border-radius-bottomleft:0;
-	-moz-border-radius-topleft:0;
-	-webkit-border-bottom-left-radius:0;
-	-webkit-border-top-left-radius:0;
+    /* CSS3 spicing for mozilla and webkit */
+    -moz-border-radius:4px;
+    -webkit-border-radius:4px;
+    -moz-border-radius-bottomleft:0;
+    -moz-border-radius-topleft:0;
+    -webkit-border-bottom-left-radius:0;
+    -webkit-border-top-left-radius:0;
 
-	-moz-box-shadow:0 0 6px #ddd;
-	-webkit-box-shadow:0 0 6px #ddd;
+    -moz-box-shadow:0 0 6px #ddd;
+    -webkit-box-shadow:0 0 6px #ddd;
 }
 </style>
 
@@ -64,15 +63,15 @@
 
           <p>
              <label>hostname *</label>
-             <input type="text" name="hostname" pattern="[a-zA-Z_]{2,}" maxlength="30" />
+             <input type="text" name="hostname" pattern="[a-zA-Z0-9_]{2,512}" maxlength="30" />
           </p>
           <p>
              <label>interface *</label>
-             <input type="text" name="iface" pattern="[a-zA-Z0-9]{2,}" maxlength="30" />
+             <input type="text" name="iface" pattern="[a-zA-Z0-9]{2,32}" maxlength="30" />
           </p>
           <p>
              <label>IP address *</label>
-             <input type="text" name="ip_addr" pattern="[0-9.:]{2,}" maxlength="30" />
+             <input type="text" name="ip_addr" pattern="[0-9.:]{7,}" maxlength="30" />
           </p>
 
 
@@ -89,6 +88,7 @@
           <button type="reset">Reset</button>
        </fieldset>
     </form>
+    <p>Enter and Esc keys are supported.</p>
 </div>
 
 
@@ -136,8 +136,8 @@ var over = $("img[rel]").overlay({
 // initialize validator for new_form
 
 $("form#new_form").validator().submit(function(e) {
-	var form = $(this);
-	// client-side validation OK
+    var form = $(this);
+    // client-side validation OK
     if (!e.isDefaultPrevented()) {
     ff = $('form#new_form').serializeArray();
 
@@ -146,7 +146,7 @@ $("form#new_form").validator().submit(function(e) {
             console.log(json);
             if (json.ok === true) {
                 console.log('qq');
-                over.eq(1).overlay().close();
+                over.eq(0).overlay().close();
             } else {
                 form.data("validator").invalidate(json);
             }
@@ -155,8 +155,8 @@ $("form#new_form").validator().submit(function(e) {
 
 
 
-		e.preventDefault();		// prevent default form submission logic
-	}
+        e.preventDefault();     // prevent default form submission logic
+    }
 });
 
 

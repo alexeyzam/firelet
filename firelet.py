@@ -19,7 +19,7 @@ from sys import argv, exit
 def loadcsv(n):
     try:
         f = open("firewall/%s.csv" % n)
-        r = tuple(csv.reader(f, delimiter=' '))
+        r = list(csv.reader(f, delimiter=' '))
         f.close()
     except IOError:
         return []
@@ -153,17 +153,6 @@ class WebApp(object):
             except Exception, e:
                 say("Unable to delete %s - %s" % (name, e), type="alert")
                 abort(500)
-        elif action == 'new':
-            hostname = pg('hostname')
-            iface = pg('iface')
-            ip_addr = pg('ip_addr')
-            print hostname, iface, ip_addr
-            if hostname == "test":
-                say('Host %s added.' % hostname, type="success")
-                return {'ok': True}
-
-            say('Unable to add %s.' % hostname, type="alert")
-            return {'ok': False, 'hostname':'Incorrect', 'iface':'b', 'ip_addr':'c'}
 
     @bottle.route('/hosts_new', method='POST')
     def hosts_new():
@@ -172,11 +161,14 @@ class WebApp(object):
         iface = pg('iface')
         ip_addr = pg('ip_addr')
         print hostname, iface, ip_addr
-        if hostname == "test":
+        if hostname.startswith("test"):
+            print repr(hosts)
+            hosts.append((hostname, iface, ip_addr))
             say('Host %s added.' % hostname, type="success")
             return {'ok': True}
 
-        return {'ok': False, 'hostname':'Incorrect', 'iface':'b', 'ip_addr':'c'}
+        say('Unable to add %s.' % hostname, type="alert")
+        return {'ok': False, 'hostname':'Must start with "test"'}
 
 
 

@@ -1,4 +1,26 @@
-Sun, 27 Jun 2010 15:44:01 INFO     Shutting down threadpool
-Sun, 27 Jun 2010 15:44:01 INFO     All workers stopped
-Sun, 27 Jun 2010 15:44:01 INFO     Shutting down threadpool
-Sun, 27 Jun 2010 15:44:01 INFO     All workers stopped
+Mon, 28 Jun 2010 15:51:07 INFO     kill_hung_threads status: 10 threads (0 working, 10 idle, 0 starting) ave time N/A, max time 0.00sec, killed 0 workers
+Mon, 28 Jun 2010 15:56:10 INFO     kill_hung_threads status: 10 threads (0 working, 10 idle, 0 starting) ave time N/A, max time 0.00sec, killed 0 workers
+Mon, 28 Jun 2010 16:01:14 INFO     kill_hung_threads status: 10 threads (0 working, 10 idle, 0 starting) ave time N/A, max time 0.00sec, killed 0 workers
+Mon, 28 Jun 2010 16:06:17 INFO     kill_hung_threads status: 10 threads (0 working, 10 idle, 0 starting) ave time N/A, max time 0.00sec, killed 0 workers
+Mon, 28 Jun 2010 16:11:20 INFO     kill_hung_threads status: 10 threads (0 working, 10 idle, 0 starting) ave time N/A, max time 0.00sec, killed 0 workers
+Mon, 28 Jun 2010 16:16:23 INFO     kill_hung_threads status: 10 threads (0 working, 10 idle, 0 starting) ave time N/A, max time 0.00sec, killed 0 workers
+Mon, 28 Jun 2010 16:21:26 INFO     kill_hung_threads status: 10 threads (0 working, 10 idle, 0 starting) ave time N/A, max time 0.00sec, killed 0 workers
+Mon, 28 Jun 2010 16:26:29 INFO     kill_hung_threads status: 10 threads (0 working, 10 idle, 0 starting) ave time N/A, max time 0.00sec, killed 0 workers
+Mon, 28 Jun 2010 16:31:33 INFO     kill_hung_threads status: 10 threads (0 working, 10 idle, 0 starting) ave time N/A, max time 0.00sec, killed 0 workers
+Mon, 28 Jun 2010 16:36:36 INFO     kill_hung_threads status: 10 threads (0 working, 10 idle, 0 starting) ave time N/A, max time 0.00sec, killed 0 workers
+Mon, 28 Jun 2010 16:41:39 INFO     kill_hung_threads status: 10 threads (0 working, 10 idle, 0 starting) ave time N/A, max time 0.00sec, killed 0 workers
+Mon, 28 Jun 2010 16:46:42 INFO     kill_hung_threads status: 10 threads (0 working, 10 idle, 0 starting) ave time N/A, max time 0.00sec, killed 0 workers
+Mon, 28 Jun 2010 16:51:45 INFO     kill_hung_threads status: 10 threads (0 working, 10 idle, 0 starting) ave time N/A, max time 0.00sec, killed 0 workers
+Mon, 28 Jun 2010 16:56:48 INFO     kill_hung_threads status: 10 threads (0 working, 10 idle, 0 starting) ave time N/A, max time 0.00sec, killed 0 workers
+Mon, 28 Jun 2010 17:01:51 INFO     kill_hung_threads status: 10 threads (0 working, 10 idle, 0 starting) ave time N/A, max time 0.00sec, killed 0 workers
+Mon, 28 Jun 2010 17:06:18 INFO     kill_hung_threads status: 10 threads (0 working, 10 idle, 0 starting) ave time N/A, max time 0.00sec, killed 0 workers
+Mon, 28 Jun 2010 17:11:16 INFO     kill_hung_threads status: 10 threads (0 working, 10 idle, 0 starting) ave time N/A, max time 0.00sec, killed 0 workers
+Mon, 28 Jun 2010 17:16:16 INFO     kill_hung_threads status: 10 threads (0 working, 10 idle, 0 starting) ave time N/A, max time 0.00sec, killed 0 workers
+Mon, 28 Jun 2010 17:21:19 INFO     kill_hung_threads status: 10 threads (0 working, 10 idle, 0 starting) ave time N/A, max time 0.00sec, killed 0 workers
+Mon, 28 Jun 2010 17:26:22 INFO     kill_hung_threads status: 10 threads (0 working, 10 idle, 0 starting) ave time N/A, max time 0.00sec, killed 0 workers
+Mon, 28 Jun 2010 17:31:26 INFO     kill_hung_threads status: 10 threads (0 working, 10 idle, 0 starting) ave time N/A, max time 0.00sec, killed 0 workers
+Mon, 28 Jun 2010 17:35:57 INFO     kill_hung_threads status: 10 threads (2 working, 8 idle, 0 starting) ave time 0.00sec, max time 0.00sec, killed 0 workers
+Mon, 28 Jun 2010 17:36:03 INFO     Shutting down threadpool
+Mon, 28 Jun 2010 17:36:03 INFO     All workers stopped
+Mon, 28 Jun 2010 17:36:03 INFO     Shutting down threadpool
+Mon, 28 Jun 2010 17:36:03 INFO     All workers stopped
