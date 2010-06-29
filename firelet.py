@@ -49,6 +49,8 @@ hostgroups = loadcsv('hostgroups')
 services = loadcsv('services')
 networks = loadcsv('networks')
 
+protocols = ('IP','TCP', 'UDP', 'OSPF', 'IS-IS', 'SCTP', 'AH', 'ESP')
+
 messages = []
 def say(s, type='info'):
     """type can be: info, warning, alert"""
@@ -283,36 +285,59 @@ class WebApp(object):
 
         say('Configuration deployment started...')
         try:
+            say('Compiling firewall rules...')
             # build dictionaries to perform resolution
             addr = dict(((name + ":" + iface),ipa) for name,iface,ipa in hosts) # host to ip_addr
             net = dict((name, (n, mask)) for name, n, mask in networks) # network name
             hgs = dict((entry[0], (entry[1:])) for entry in hostgroups) # host groups
             hg_flat = dict((hg, resolveitems(hgs[hg], addr, net, hgs)) for hg in hgs) # flattened to hg: hosts or networks
 
-            proto_port = dict((name, (proto, ports)) for name, proto, ports in services) # protocol
+            proto_port = dict((name, ((proto, ports))) for name, proto, ports in services) # protocol
             proto_port['*'] = (('IPv4', None), ('IPv6', None))
 
             def res(n):
                 if n in addr:
-                    return addr[n]
+                    return (addr[n], )
+                elif n in net:
+                    return net[n]
                 elif n in hg_flat:
-                    return hg_flat[src]
+                    return hg_flat[src][0]
                 else:
                     raise Exception, "Host %s is not defined." % n
+
+            for rule in rules:
+                assert rule[0] in ('y', 'n')
+
+            from itertools import product
 
             print
             for ena, name, src, src_serv, dst, dst_serv, action, log_val, desc in rules:
                 srcs = res(src)
                 dsts = res(dst)
+                dst_servs = proto_port[dst_serv]
+
                 src_servs = proto_port[src_serv]
                 dst_servs = proto_port[dst_serv]
-                for src in [srcs]:
-                    for dst in [dsts]:
-                        if ena == 'n':
-                            continue
-                        assert ena == 'y', 'TODO'
-                        print src, src_servs, dst, dst_servs, action, log_val
 
+
+#                for q in (srcs, src_servs, dsts, dst_servs):
+#                    print type(q),
+#
+#                    if not isinstance(q, list) and not isinstance(q, tuple):
+#                        q = tuple(q)
+#                print
+
+                for src, src_serv, dst, dst_serv in product(srcs, src_servs, dsts, dst_servs):
+                    if ena == 'n':
+                        continue
+                    if src_serv[0].endswith('6') ^ dst_serv[0].endswith('6'): # xor
+                        continue
+                    print src, src_serv, dst, dst_serv, action, log_val
+                    for q in (src, src_serv, dst, dst_serv, action, log_val):
+                        print type(q),
+                    print
+
+            print
             print
 
 
