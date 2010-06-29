@@ -1,3 +1,5 @@
-WebServers Gandalf
-SSHnodes Smeagol
+WebServers Gandalf:eth0
+SSHnodes Smeagol:eth0
 Servers WebServers SSHnodes
+Clients Fangorn:eth1
+AllSystems Servers Clients

@@ -9,7 +9,7 @@
 </style>
 <table id="items">
     <thead>
-        <tr><th></th><th>Name</th><th>Protocol</th><th>Ports</th></tr>
+        <tr><th></th><th>Name</th><th>Network</th><th>Netmask</th></tr>
     </thead>
 % for network in networks:
     <tr>

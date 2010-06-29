@@ -247,7 +247,84 @@ class WebApp(object):
 
     @bottle.route('/deploy', method='POST')
     def deploy():
+
+        def resolveitems(items, addr, net, hgs):
+            """Flatten host groups tree"""
+
+            def flatten1(item):
+                if item in addr:
+                    return addr[item]
+                elif item in net:
+                    return net[item]
+                elif item in hgs.keys():
+                    return resolveitems(hgs[item], addr, net, hgs)
+                else:
+                    raise Exception, "Hostgroup %s not defined." % item
+
+            def flatten1(item):
+                try:
+                    return addr[item]
+                except:
+                    try:
+                        return net[item]
+                    except:
+                        try:
+                            return resolveitems(hgs[item], addr, net, hgs)
+                        except:
+                            raise Exception, "Hostgroup %s not defined." % item
+
+            def flatten1(item):
+                a, n, l = addr.get(item), net.get(item), resolveitems(hgs.get(item), addr, net, hgs)
+                return filter(lambda i:i, (a, n, l))[0] # ugly
+
+            if not items:
+                return None
+            return map(flatten1, items)
+
         say('Configuration deployment started...')
+        try:
+            # build dictionaries to perform resolution
+            addr = dict(((name + ":" + iface),ipa) for name,iface,ipa in hosts) # host to ip_addr
+            net = dict((name, (n, mask)) for name, n, mask in networks) # network name
+            hgs = dict((entry[0], (entry[1:])) for entry in hostgroups) # host groups
+            hg_flat = dict((hg, resolveitems(hgs[hg], addr, net, hgs)) for hg in hgs) # flattened to hg: hosts or networks
+
+            proto_port = dict((name, (proto, ports)) for name, proto, ports in services) # protocol
+            proto_port['*'] = (('IPv4', None), ('IPv6', None))
+
+            def res(n):
+                if n in addr:
+                    return addr[n]
+                elif n in hg_flat:
+                    return hg_flat[src]
+                else:
+                    raise Exception, "Host %s is not defined." % n
+
+            print
+            for ena, name, src, src_serv, dst, dst_serv, action, log_val, desc in rules:
+                srcs = res(src)
+                dsts = res(dst)
+                src_servs = proto_port[src_serv]
+                dst_servs = proto_port[dst_serv]
+                for src in [srcs]:
+                    for dst in [dsts]:
+                        if ena == 'n':
+                            continue
+                        assert ena == 'y', 'TODO'
+                        print src, src_servs, dst, dst_servs, action, log_val
+
+            print
+
+
+
+
+        except Exception, e:
+            say("Compilation failed: %s" % e,  type="alert")
+            return
+
+
+
+
         say('Configuration deployed.', type="success")
         return
 

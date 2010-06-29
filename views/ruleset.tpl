@@ -9,6 +9,12 @@
 </style>
 
 <table id="items">
+    <thead>
+        <tr>
+            <th></th><th>Enabled</th><th>Name</th><th>Source</th><th>Src service</th>
+            <th>Destination</th><th>Dst service</th><th>Action</th><th>Log</th><th>Description</th>
+        </tr>
+    </thead>
 % for rule in rules:
     <tr>
     <td class="hea">

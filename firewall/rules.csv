@@ -1,2 +1,2 @@
-a a a a
-b 1 2 3 4
+y BG_https Bilbo:eth0 * Gandalf:eth1 HTTPS ACCEPT 0 "That's fine"
+y NoSmeagol Smeagol:eth0 * Gandalf:eth0 * DROP 3 "No way"

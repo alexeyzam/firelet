@@ -1,4 +1,5 @@
 Bilbo eth0 10.0.0.1
 Smeagol eth0 10.0.0.2
-Fangorn eth0 10.0.0.3
-Gandalf eth0 10.0.0.4 2
+Fangorn eth1 10.0.0.3
+Gandalf eth0 10.0.0.4
+Gandalf eth1 10.0.8.8
