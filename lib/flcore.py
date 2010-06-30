@@ -121,6 +121,7 @@ def compile(rules, hosts, hostgroups, services, networks):
                 compiled.append("-A FORWARD%s%s%s%s%s --log-level %d --log-prefix %s -j LOG" %   (proto, src, sports, dst, dports, log_val, name))
             compiled.append("-A FORWARD%s%s%s%s%s -j %s" %   (proto, src, sports, dst, dports, action))
 
+
     return compiled
 
 """

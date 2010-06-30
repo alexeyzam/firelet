@@ -24,4 +24,5 @@ def test_compilation():
 '-A FORWARD -j DROP']
 
 
+
     assert compiled == r, "Compilation incorrect"
