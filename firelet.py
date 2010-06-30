@@ -20,9 +20,10 @@ hostgroups = loadcsv('hostgroups')
 services = loadcsv('services')
 networks = loadcsv('networks')
 
-protocols = ('IP','TCP', 'UDP', 'OSPF', 'IS-IS', 'SCTP', 'AH', 'ESP')
+
 
 messages = []
+
 def say(s, type='info'):
     """type can be: info, warning, alert"""
     if type == 'error':
