@@ -20,16 +20,17 @@ hostgroups = loadcsv('hostgroups')
 services = loadcsv('services')
 networks = loadcsv('networks')
 
-protocols = ('IP','TCP', 'UDP', 'OSPF', 'IS-IS', 'SCTP', 'AH', 'ESP')
+
 
 messages = []
+
 def say(s, type='info'):
     """type can be: info, warning, alert"""
     if type == 'error':
         type = 'alert'
     ts = datetime.now().strftime("%H:%M:%S")
     messages.append((type, ts, s))
-    if len(messages) > 10:
+    if len(messages) > 20:
         messages.pop(0)
 
 def pg(name, default=''):
@@ -224,7 +225,12 @@ class WebApp(object):
         say('Compiling firewall rules...')
         try:
             comp_rules = compile(rules, hosts, hostgroups, services, networks)
-            print repr(comp_rules)
+            print
+            print
+            for r in comp_rules:
+                print repr(r) + ','
+                say(r)
+            print
         except Exception, e:
             say("Compilation failed: %s" % e,  type="alert")
             return

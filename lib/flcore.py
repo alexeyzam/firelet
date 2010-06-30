@@ -1,5 +1,7 @@
 import csv
 
+protocols = ['IP','TCP', 'UDP', 'OSPF', 'IS-IS', 'SCTP', 'AH', 'ESP']
+
 
 # CSV files handling
 
@@ -38,8 +40,9 @@ def _resolveitems(items, addr, net, hgs):
     """Flatten host groups tree, used in compile()"""
 
     def flatten1(item):
-        a, n, l = addr.get(item), net.get(item), _resolveitems(hgs.get(item), addr, net, hgs)
-        return filter(lambda i:i, (a, n, l))[0] # ugly
+        li = addr.get(item), net.get(item), _resolveitems(hgs.get(item), addr, net, hgs)  # should we convert network to string here?
+        return filter(None, li)[0]
+
 
     if not items:
         return None
@@ -56,15 +59,21 @@ def compile(rules, hosts, hostgroups, services, networks):
     hg_flat = dict((hg, _resolveitems(hgs[hg], addr, net, hgs)) for hg in hgs) # flattened to hg: hosts or networks
 
     proto_port = dict((name, (proto, ports)) for name, proto, ports in services) # protocol
-    proto_port['*'] = (('IPv4', None), ('IPv6', None))
+    proto_port['*'] = (None, '') # special case for "any"
+
+
+    # port format: "2:4,5:10,10:33,40,50"
 
     def res(n):
         if n in addr:
             return (addr[n], )
         elif n in net:
-            return net[n]
+            return (net[n][0] + '/' + net[n][1], )
+            return ('/'.join(net[n]), )
         elif n in hg_flat:
-            return hg_flat[src][0]
+            return hg_flat[src][0][0]
+        elif n == '*':
+            return [None]
         else:
             raise Exception, "Host %s is not defined." % n
 
@@ -75,20 +84,74 @@ def compile(rules, hosts, hostgroups, services, networks):
 
     compiled = []
     for ena, name, src, src_serv, dst, dst_serv, action, log_val, desc in rules:
+        if ena == 'n':
+            continue
+        assert action in ('ACCEPT', 'DROP'),  'TODO'
         srcs = res(src)
         dsts = res(dst)
-        dst_servs = proto_port[dst_serv]
+        sproto, sports = proto_port[src_serv]
+        dproto, dports = proto_port[dst_serv]
+        assert sproto in protocols + [None], "Unknown source protocol: %s" % sproto
+        assert dproto in protocols + [None], "Unknown dest protocol: %s" % dproto
 
-        src_servs = proto_port[src_serv]
-        dst_servs = proto_port[dst_serv]
+        if sproto and dproto and sproto != dproto:
+            continue # mismatch
+        if sproto:
+            proto = " -p %s" % sproto.lower()
+        elif dproto:
+            proto = " -p %s" % dproto.lower()
+        else:
+            proto = ''
 
-        for src, src_serv, dst, dst_serv in product(srcs, src_servs, dsts, dst_servs):
-            if ena == 'n':
-                continue
-            if src_serv[0].endswith('6') ^ dst_serv[0].endswith('6'): # xor
-                continue
-            compiled.append((src, src_serv, dst, dst_serv, action, log_val))
+        if sports:
+            ms = ' -m multiport' if ',' in sports else ''
+            sports = "%s --sport %s" % (ms, sports)
+        if dports:
+            md = ' -m multiport' if ',' in dports else ''
+            dports = "%s --dport %s" % (md, dports)
+
+        # TODO: ensure that 'name' is a-zA-Z0-9_-
+
+        log_val = int(log_val)  #TODO: try/except this
+
+        for src, dst in product(srcs, dsts):
+            src = " -s %s" % src if src else ''
+            dst = " -d %s" % dst if dst else ''
+            if log_val:
+                compiled.append("-A FORWARD%s%s%s%s%s --log-level %d --log-prefix %s -j LOG" %   (proto, src, sports, dst, dports, log_val, name))
+            compiled.append("-A FORWARD%s%s%s%s%s -j %s" %   (proto, src, sports, dst, dports, action))
+
     return compiled
 
+"""
+*raw
+:PREROUTING ACCEPT
+:OUTPUT ACCEPT
+COMMIT
 
+*mangle
+:PREROUTING ACCEPT
+:INPUT ACCEPT
+:FORWARD ACCEPT
+:OUTPUT ACCEPT
+:POSTROUTING ACCEPT
+COMMIT
 
+*nat
+:PREROUTING ACCEPT
+:POSTROUTING ACCEPT
+:OUTPUT ACCEPT
+COMMIT
+
+*filter
+:INPUT ACCEPT
+:FORWARD ACCEPT
+:OUTPUT ACCEPT
+-A INPUT -s 4.4.4.4/32 -p tcp -m multiport --sports 0:65535 -m multiport --dports 2:4,5:10,10:33 -j ACCEPT
+-A INPUT -s 4.4.4.4/32 -p tcp -m multiport --sports 0:65535 -m multiport --dports 2:4,5:10,10:33 -j ACCEPT
+-A INPUT -s 4.4.4.4/32 -p tcp -m tcp --dport 2:4 -j ACCEPT
+-A INPUT -s 3.3.3.3/32 -j ACCEPT
+-A INPUT -s 3.3.3.0/30 -j ACCEPT
+-A INPUT -s 3.3.3.3/32 -j ACCEPT
+COMMIT
+"""

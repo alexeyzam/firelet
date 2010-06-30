@@ -301,7 +301,7 @@ input:hover { background: #fff}
 
 function refresh_msg()
 {
-    setTimeout("refresh_msg()",3000);
+    setTimeout("refresh_msg()",2000);
     $("div#msgpane").load("/messages");
 }
 
