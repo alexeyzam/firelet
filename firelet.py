@@ -5,46 +5,17 @@ import bottle
 from bottle import route, send_file, run, view, request
 from bottle import debug as bottle_debug
 from collections import defaultdict
-from confreader import ConfReader
 from datetime import datetime
-import mailer
-import csv
 from subprocess import Popen, PIPE
+from sys import argv, exit
 from time import time, sleep, localtime
 
-from sys import argv, exit
+from lib.confreader import ConfReader
+from lib import mailer
+from lib.flcore import *
 
-
-
-def loadcsv(n):
-    try:
-        f = open("firewall/%s.csv" % n)
-        r = list(csv.reader(f, delimiter=' '))
-        f.close()
-    except IOError:
-        return []
-    return r
-
-def savecsv(filename, stuff):
-    f = open(filename, 'wb')
-    writer = csv.writer(f,  delimiter=' ')
-    writer.writerows(stuff)
-    f.close()
-
-def loadrules():
-    return loadcsv('rules')
-
-def saverules(rules):
-    savecsv('firewall/rules.csv', rules)
-
-def loadhosts():
-    return loadcsv('hosts')
-
-def savehosts(h):
-    savecsv('firewall/blades.csv', h)
-
-rules = loadrules()
-hosts = loadhosts()
+rules = loadcsv('rules')
+hosts = loadcsv('hosts')
 hostgroups = loadcsv('hostgroups')
 services = loadcsv('services')
 networks = loadcsv('networks')
@@ -226,7 +197,7 @@ class WebApp(object):
         return dict(sn=True)
 
     @bottle.route('/save', method='POST')
-    def save():
+    def savebtn():
         msg = request.POST.get('msg', '').strip()
         say('Saving configuration...')
         say("Msg: %s" % msg)
@@ -235,12 +206,12 @@ class WebApp(object):
         return
 
     @bottle.route('/reset', method='POST')
-    def reset():
+    def resetbtn():
         say('Configuration reset.', type="success")
         return
 
     @bottle.route('/check', method='POST')
-    def check():
+    def checkbtn():
         say('Configuration check started...')
         from time import sleep
         sleep(4)
@@ -248,108 +219,15 @@ class WebApp(object):
         return
 
     @bottle.route('/deploy', method='POST')
-    def deploy():
-
-        def resolveitems(items, addr, net, hgs):
-            """Flatten host groups tree"""
-
-            def flatten1(item):
-                if item in addr:
-                    return addr[item]
-                elif item in net:
-                    return net[item]
-                elif item in hgs.keys():
-                    return resolveitems(hgs[item], addr, net, hgs)
-                else:
-                    raise Exception, "Hostgroup %s not defined." % item
-
-            def flatten1(item):
-                try:
-                    return addr[item]
-                except:
-                    try:
-                        return net[item]
-                    except:
-                        try:
-                            return resolveitems(hgs[item], addr, net, hgs)
-                        except:
-                            raise Exception, "Hostgroup %s not defined." % item
-
-            def flatten1(item):
-                a, n, l = addr.get(item), net.get(item), resolveitems(hgs.get(item), addr, net, hgs)
-                return filter(lambda i:i, (a, n, l))[0] # ugly
-
-            if not items:
-                return None
-            return map(flatten1, items)
-
+    def deploybtn():
         say('Configuration deployment started...')
+        say('Compiling firewall rules...')
         try:
-            say('Compiling firewall rules...')
-            # build dictionaries to perform resolution
-            addr = dict(((name + ":" + iface),ipa) for name,iface,ipa in hosts) # host to ip_addr
-            net = dict((name, (n, mask)) for name, n, mask in networks) # network name
-            hgs = dict((entry[0], (entry[1:])) for entry in hostgroups) # host groups
-            hg_flat = dict((hg, resolveitems(hgs[hg], addr, net, hgs)) for hg in hgs) # flattened to hg: hosts or networks
-
-            proto_port = dict((name, ((proto, ports))) for name, proto, ports in services) # protocol
-            proto_port['*'] = (('IPv4', None), ('IPv6', None))
-
-            def res(n):
-                if n in addr:
-                    return (addr[n], )
-                elif n in net:
-                    return net[n]
-                elif n in hg_flat:
-                    return hg_flat[src][0]
-                else:
-                    raise Exception, "Host %s is not defined." % n
-
-            for rule in rules:
-                assert rule[0] in ('y', 'n')
-
-            from itertools import product
-
-            print
-            for ena, name, src, src_serv, dst, dst_serv, action, log_val, desc in rules:
-                srcs = res(src)
-                dsts = res(dst)
-                dst_servs = proto_port[dst_serv]
-
-                src_servs = proto_port[src_serv]
-                dst_servs = proto_port[dst_serv]
-
-
-#                for q in (srcs, src_servs, dsts, dst_servs):
-#                    print type(q),
-#
-#                    if not isinstance(q, list) and not isinstance(q, tuple):
-#                        q = tuple(q)
-#                print
-
-                for src, src_serv, dst, dst_serv in product(srcs, src_servs, dsts, dst_servs):
-                    if ena == 'n':
-                        continue
-                    if src_serv[0].endswith('6') ^ dst_serv[0].endswith('6'): # xor
-                        continue
-                    print src, src_serv, dst, dst_serv, action, log_val
-                    for q in (src, src_serv, dst, dst_serv, action, log_val):
-                        print type(q),
-                    print
-
-            print
-            print
-
-
-
-
+            comp_rules = compile(rules, hosts, hostgroups, services, networks)
+            print repr(comp_rules)
         except Exception, e:
             say("Compilation failed: %s" % e,  type="alert")
             return
-
-
-
-
         say('Configuration deployed.', type="success")
         return
 
