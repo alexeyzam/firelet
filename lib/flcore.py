@@ -1,6 +1,64 @@
 import csv
+from collections import defaultdict
 
 protocols = ['IP','TCP', 'UDP', 'OSPF', 'IS-IS', 'SCTP', 'AH', 'ESP']
+
+# Objects
+
+def NetworkObj(object):
+    """Can be a host, a network or a hostgroup"""
+    pass
+
+
+def Host(NetworkObj):
+    def __init__(self, name, addr, mask):
+        self.name = name
+        self.ip_addr = addr
+        self.netmask = mask
+
+
+def Network(NetworkObj):
+    def __init__(self, name, addr, mask):
+        self.name = name
+        self.ip_addr = addr
+        self.netmask = mask
+
+    def __contains__(self, item):
+        """Check if a host or a network falls inside this network"""
+        pass
+
+
+def HostGroup():
+
+    def __init__(self, childs=[]):
+        self.childs = childs
+        print 'init'
+
+    def _resolveitems(self, items, hgs):
+        """Flatten host groups tree"""
+        def _flatten(item):
+            return _resolveitems(hgs.get(item),  hgs)
+        if not items:
+            return None
+        return map(_flatten, items)
+
+    def networks(self):
+        """Flatten the hostgroup and return its networks"""
+        return self._resolveitems(self.childs)
+        pass
+
+    def hosts(self):
+        """Flatten the hostgroup and return its hosts"""
+        pass
+
+hg = HostGroup()
+print '-' * 33
+#print repr(hg.networks())
+print '-' * 33
+
+
+
+
 
 
 # CSV files handling
@@ -121,8 +179,27 @@ def compile(rules, hosts, hostgroups, services, networks):
                 compiled.append("-A FORWARD%s%s%s%s%s --log-level %d --log-prefix %s -j LOG" %   (proto, src, sports, dst, dports, log_val, name))
             compiled.append("-A FORWARD%s%s%s%s%s -j %s" %   (proto, src, sports, dst, dports, action))
 
-
     return compiled
+
+
+def select_rules(hosts, rset):
+    """Generate set of rules specific for each host"""
+
+    # r[hostname][interface] = [rule, rule, ... ]
+    rd = defaultdict(dict)
+
+    for hostname,iface,ipa in hosts:
+        myrules = [ r for r in rset if ipa in r ]
+        if iface in rd[hostname]:
+            rd[hostname][iface].append(myrules)
+        else:
+            rd[hostname][iface] = [myrules, ]
+
+    return rd
+
+
+
+
 
 """
 *raw

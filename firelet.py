@@ -231,6 +231,8 @@ class WebApp(object):
                 print repr(r) + ','
                 say(r)
             print
+            rd = select_rules(hosts, comp_rules)
+#            say(q for q in repr(rd).split('\n'))
         except Exception, e:
             say("Compilation failed: %s" % e,  type="alert")
             return
