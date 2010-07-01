@@ -1,23 +1,30 @@
 import csv
 from collections import defaultdict
 
+from netaddr import IPAddress, IPNetwork
+
 protocols = ['IP','TCP', 'UDP', 'OSPF', 'IS-IS', 'SCTP', 'AH', 'ESP']
 
 # Objects
 
-def NetworkObj(object):
+class NetworkObj(object):
     """Can be a host, a network or a hostgroup"""
     pass
 
 
-def Host(NetworkObj):
-    def __init__(self, name, addr, mask):
+class Sys(NetworkObj):
+    def __init__(self, name, ifaces={}):
+        self.ifaces = ifaces
+
+
+class Host(NetworkObj):
+    def __init__(self, name, iface, addr):
         self.name = name
+        self.iface = iface
         self.ip_addr = addr
-        self.netmask = mask
 
 
-def Network(NetworkObj):
+class Network(NetworkObj):
     def __init__(self, name, addr, mask):
         self.name = name
         self.ip_addr = addr
@@ -25,37 +32,30 @@ def Network(NetworkObj):
 
     def __contains__(self, item):
         """Check if a host or a network falls inside this network"""
-        pass
+        if isinstance(item, Host):
+            return IPAddress(item.ip_addr) in IPNetwork("%s/%s" % (self.ip_addr, self.netmask))
 
 
-def HostGroup():
+
+
+class HostGroup(NetworkObj):
 
     def __init__(self, childs=[]):
         self.childs = childs
-        print 'init'
 
-    def _resolveitems(self, items, hgs):
-        """Flatten host groups tree"""
-        def _flatten(item):
-            return _resolveitems(hgs.get(item),  hgs)
-        if not items:
-            return None
-        return map(_flatten, items)
+    def _flatten(self, i):
+        if hasattr(i, 'childs'):
+            return sum(map(self._flatten, i.childs), [])
+        return [i]
 
     def networks(self):
         """Flatten the hostgroup and return its networks"""
-        return self._resolveitems(self.childs)
-        pass
+        return [n for n in self._flatten(self) if isinstance(n, Network)]
 
     def hosts(self):
         """Flatten the hostgroup and return its hosts"""
-        pass
-
-hg = HostGroup()
-print '-' * 33
-#print repr(hg.networks())
-print '-' * 33
-
+        return filter(lambda i: type(i) == Host, self._flatten(self)) # better?
+        return [n for n in self._flatten(self) if isinstance(n, Host)]
 
 
 

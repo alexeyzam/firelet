@@ -2,6 +2,20 @@ from lib import mailer
 
 from lib.flcore import *
 
+def test_flattening():
+
+    hg2 = HostGroup(childs=[Host('h', 'b', 'i')])
+    hg3 = HostGroup(childs=[Network('n', 'b', 'c'), hg2])
+    hg = HostGroup(childs=[hg2, hg3])
+    assert ['h', 'h'] == [h.name for h in hg.hosts()]
+    assert ['n'] == [h.name for h in hg.networks()], repr(hg.networks())
+
+def test_contain():
+    assert Host('h', 'eth0', '1.1.1.1') in Network('h', '1.1.1.1', '32')
+    assert Host('h', 'eth0', '1.1.1.1') in Network('h', '1.1.1.0', '24')
+    assert Host('h', 'eth0', '1.1.1.1') in Network('h', '1.1.1.0', '255.255.255.0')
+
+
 def test_compilation():
     rules = loadcsv('rules', d='test')
     hosts = loadcsv('hosts', d='test')
