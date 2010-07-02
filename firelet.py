@@ -20,7 +20,11 @@ hostgroups = loadcsv('hostgroups')
 services = loadcsv('services')
 networks = loadcsv('networks')
 
-
+#TODO: HG, H, N, Rule, Service creation
+#TODO: Rule up/down move
+#TODO: say() as a custom log target
+#TODO: full rule checking upon Save
+#TODO: move fireset editing in flcore
 
 messages = []
 

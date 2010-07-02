@@ -2,6 +2,11 @@ from lib import mailer
 
 from lib.flcore import *
 
+#TODO: migration to network objects
+#TODO: parallel SSH
+#TODO: SSH check and deployment
+#TODO: CLI interface
+
 def test_ip_parsing():
     for x in xrange(0, 256):
         ipaddr = "%d.%d.%d.%d" % (x, x, x, x)
