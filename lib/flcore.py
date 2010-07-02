@@ -3,9 +3,31 @@ from collections import defaultdict
 
 from netaddr import IPAddress, IPNetwork
 
+from socket import inet_ntoa, inet_aton
+from struct import pack, unpack
+
 protocols = ['IP','TCP', 'UDP', 'OSPF', 'IS-IS', 'SCTP', 'AH', 'ESP']
 
-# Objects
+
+# IP address parsing
+
+def dot_to_long(ip):
+    "convert decimal dotted quad string to long integer"
+    return unpack('L',inet_aton(ip))[0]
+
+def long_to_dot(n):
+    "convert long int to dotted quad string"
+    return inet_ntoa(pack('L',n))
+
+def masklen_to_long(n):
+    "return a mask of n bits as a long integer"
+    return (1L<<long(n)) - 1
+
+def masklen_to_long(n):
+    "return a mask of n bits as a long integer"
+    return (2L<<int(n)-1)-1
+
+# Network objects
 
 class NetworkObj(object):
     """Can be a host, a network or a hostgroup"""
@@ -25,15 +47,15 @@ class Host(NetworkObj):
 
 
 class Network(NetworkObj):
-    def __init__(self, name, addr, mask):
+    def __init__(self, name, addr, masklen):
         self.name = name
         self.ip_addr = addr
-        self.netmask = mask
-
+        self.netmasklen = masklen
     def __contains__(self, item):
         """Check if a host or a network falls inside this network"""
         if isinstance(item, Host):
-            return IPAddress(item.ip_addr) in IPNetwork("%s/%s" % (self.ip_addr, self.netmask))
+#            return dot_to_long(item.ip_addr) & masklen_to_long(self.netmasklen) == dot_to_long(self.ip_addr)
+            return IPAddress(item.ip_addr) in IPNetwork("%s/%s" % (self.ip_addr, self.netmasklen))
 
 
 

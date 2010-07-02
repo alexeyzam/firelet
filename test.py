@@ -2,6 +2,12 @@ from lib import mailer
 
 from lib.flcore import *
 
+def test_ip_parsing():
+    for x in xrange(0, 256):
+        ipaddr = "%d.%d.%d.%d" % (x, x, x, x)
+        assert long_to_dot(dot_to_long(ipaddr)) == ipaddr
+
+
 def test_flattening():
 
     hg2 = HostGroup(childs=[Host('h', 'b', 'i')])
@@ -11,9 +17,9 @@ def test_flattening():
     assert ['n'] == [h.name for h in hg.networks()], repr(hg.networks())
 
 def test_contain():
-    assert Host('h', 'eth0', '1.1.1.1') in Network('h', '1.1.1.1', '32')
+    assert Host('h', 'eth0', '1.1.1.1') in Network('h', '1.1.1.0', '28')
     assert Host('h', 'eth0', '1.1.1.1') in Network('h', '1.1.1.0', '24')
-    assert Host('h', 'eth0', '1.1.1.1') in Network('h', '1.1.1.0', '255.255.255.0')
+    assert Host('h', 'eth0', '1.1.1.1') in Network('h', '1.1.1.0', '8')
 
 
 def test_compilation():
