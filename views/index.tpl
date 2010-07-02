@@ -306,7 +306,7 @@ function refresh_msg()
 }
 
 $(function() {
-    $("ul.css-tabs").tabs("div.css-panes > div", {effect: 'ajax'});
+    $("ul.css-tabs").tabs("div.css-panes > div", {effect: 'ajax', history: true});
     refresh_msg();
 });
 
