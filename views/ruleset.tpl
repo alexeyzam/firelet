@@ -18,12 +18,12 @@
     % for rid, rule in rules:
     <tr id="{{rid}}">
         <td class="hea">
-            <img src="/static/new_above.png" title="New rule above">
-            <img src="/static/new_below.png" title="New rule below">
-            <img src="/static/move_up.png" title="Move rule up" class="moveup">
-            <img src="/static/move_down.png" title="Move rule down" class="movedown">
-            <img src="/static/disable.png" title="Disable rule">
-            <img src="/static/delete.png" title="Delete rule" class="delete">
+            <img class="action" src="/static/new_above.png" title="New rule above" action="newabove">
+            <img class="action" src="/static/new_below.png" title="New rule below" action="newbelow">
+            <img class="action" src="/static/move_up.png" title="Move rule up" action="moveup">
+            <img class="action" src="/static/move_down.png" title="Move rule down" action="movedown">
+            <img class="action" src="/static/disable.png" title="Disable rule" action="disable">
+            <img class="action" src="/static/delete.png" title="Delete rule" action="delete">
         </td>
         % for item in rule:
         <td>{{item}}</td>
@@ -52,29 +52,12 @@ $("table#items tr td img").hover(function() {
 });
 
 $(function() {
-    $('img.delete').click(function() {
+    $('img.action').click(function() {
         td = this.parentElement.parentElement;
         name = td.children[1].innerText;
+        action = $(this).attr('action');
         $('.tooltip').hide();
-        $.post("ruleset", { action: 'delete', name: name, rid: td.id},
-            function(data){
-                $('div.css-panes div').load('/ruleset');
-            });
-    });
-    $('img.moveup').click(function() {
-        td = this.parentElement.parentElement;
-        name = td.children[1].innerText;
-        $('.tooltip').hide();
-        $.post("ruleset", { action: 'moveup', name: name, rid: td.id},
-            function(data){
-                $('div.css-panes div').load('/ruleset');
-            });
-    });
-    $('img.movedown').click(function() {
-        td = this.parentElement.parentElement;
-        name = td.children[1].innerText;
-        $('.tooltip').hide();
-        $.post("ruleset", { action: 'movedown', name: name, rid: td.id},
+        $.post("ruleset", { action: action, name: name, rid: td.id},
             function(data){
                 $('div.css-panes div').load('/ruleset');
             });

@@ -80,6 +80,7 @@ class WebApp(object):
         action = request.POST.get('action', '').strip()
         name = request.POST.get('name', '').strip()
         rid = int(request.POST.get('rid', '-1').strip())
+        print "+" * 30, action
         if action == 'delete':
             try:
                 bye = rules.pop(rid)
