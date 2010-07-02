@@ -72,21 +72,34 @@ class WebApp(object):
     @bottle.route('/ruleset')
     @view('ruleset')
     def ruleset():
-        return dict(rules=rules)
+        return dict(rules=enumerate(rules))
 
     @bottle.route('/ruleset', method='POST')
     def ruleset():
         global rules
         action = request.POST.get('action', '').strip()
         name = request.POST.get('name', '').strip()
+        rid = int(request.POST.get('rid', '-1').strip())
         if action == 'delete':
             try:
-                rules =  [ h for h in rules if h[0] != name ]
-                say("Rule %s deleted." % name, type="success")
+                bye = rules.pop(rid)
+                say("Rule %d \"%s\" deleted." % (rid, bye[1]), type="success")
                 return
             except Exception, e:
                 say("Unable to delete %s - %s" % (name, e), type="alert")
                 abort(500)
+        elif action == 'moveup':
+            try:
+                rules[rid], rules[rid - 1] = rules[rid - 1], rules[rid]
+            except Exception, e:
+                say("Cannot move rule %d up." % rid)
+        elif action == 'movedown':
+            try:
+                rules[rid], rules[rid + 1] = rules[rid + 1], rules[rid]
+            except Exception, e:
+                say("Cannot move rule %d down." % rid)
+
+
 
 
     @bottle.route('/hostgroups')

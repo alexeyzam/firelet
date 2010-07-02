@@ -15,21 +15,21 @@
             <th>Destination</th><th>Dst service</th><th>Action</th><th>Log</th><th>Description</th>
         </tr>
     </thead>
-% for rule in rules:
-    <tr>
-    <td class="hea">
-        <img src="/static/new_above.png" title="New rule above">
-        <img src="/static/new_below.png" title="New rule below">
-        <img src="/static/move_up.png" title="Move rule up">
-        <img src="/static/move_down.png" title="Move rule down">
-        <img src="/static/disable.png" title="Disable rule">
-        <img src="/static/delete.png" title="Delete rule" class="delete">
-    </td>
-    % for item in rule:
-    <td>{{item}}</td>
-    % end
+    % for rid, rule in rules:
+    <tr id="{{rid}}">
+        <td class="hea">
+            <img src="/static/new_above.png" title="New rule above">
+            <img src="/static/new_below.png" title="New rule below">
+            <img src="/static/move_up.png" title="Move rule up" class="moveup">
+            <img src="/static/move_down.png" title="Move rule down" class="movedown">
+            <img src="/static/disable.png" title="Disable rule">
+            <img src="/static/delete.png" title="Delete rule" class="delete">
+        </td>
+        % for item in rule:
+        <td>{{item}}</td>
+        % end
     </tr>
-% end
+    % end
 </table>
 
 
@@ -55,10 +55,28 @@ $(function() {
     $('img.delete').click(function() {
         td = this.parentElement.parentElement;
         name = td.children[1].innerText;
-        $.post("ruleset", { action: 'delete', name: name},
+        $('.tooltip').hide();
+        $.post("ruleset", { action: 'delete', name: name, rid: td.id},
             function(data){
-                $(td).remove();
-                $('.tooltip').hide();
+                $('div.css-panes div').load('/ruleset');
+            });
+    });
+    $('img.moveup').click(function() {
+        td = this.parentElement.parentElement;
+        name = td.children[1].innerText;
+        $('.tooltip').hide();
+        $.post("ruleset", { action: 'moveup', name: name, rid: td.id},
+            function(data){
+                $('div.css-panes div').load('/ruleset');
+            });
+    });
+    $('img.movedown').click(function() {
+        td = this.parentElement.parentElement;
+        name = td.children[1].innerText;
+        $('.tooltip').hide();
+        $.post("ruleset", { action: 'movedown', name: name, rid: td.id},
+            function(data){
+                $('div.css-panes div').load('/ruleset');
             });
     });
 });
