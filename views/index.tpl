@@ -4,7 +4,7 @@
     <meta content="text/html; charset=utf-8" http-equiv="content-type">
 <title>Firelet</title>
 
-<script src="http://cdn.jquerytools.org/1.2.3/full/jquery.tools.min.js"></script>
+<script src="static/jquery.tools.min.js"></script>
 
 <style media="screen" type="text/css">
 
@@ -308,6 +308,7 @@ function refresh_msg()
 $(function() {
     $("ul.css-tabs").tabs("div.css-panes > div", {effect: 'ajax', history: true});
     refresh_msg();
+
 });
 
 // Save and reset buttons
