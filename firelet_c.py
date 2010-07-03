@@ -34,26 +34,56 @@ _, a1, a2, a3 = argv + [None] * (4 - len(argv))
 
 def help():
     #TODO
-    print 'help'
+    print """
+    Firelet CLI
+
+    Command:
+
+    save    - save the current configuration
+    reset   - revert the configuration to the last saved state
+    version
+    check
+    deploy
+    rule
+        list
+        add
+        del
+    host
+        list
+        add
+        del
+    hostgroup
+        ...
+    """
     exit(0)
+
+def deletion(table):
+    if not a3: help()
+    try:
+        rid = int(a3)
+        rd.delete(table, rid)
+    except:
+        pass #TODO
+
 
 if len(argv) == 1:
     help()
 
+fs = DumbFireSet()
+
 if a1 == 'save':
-    if a3: help()
-    if a2:
-        raise NotImplementedError
-    help()
+    if a3 or not a2: help()
+    fs.save(str(a2))
 
 elif a1 == 'reset':
-    raise NotImplementedError
+    if a2: help()
+    fs.reset()
 
 elif a1 == 'version':
     if a2 == 'list' or None:
-        pass # list
-    elif argv[2] == 'rollback':
-        pass # rollback to argv[3]
+        print fs.version_list()
+    elif a2 == 'rollback':
+        fs.rollback()
     else:
         help()
 
@@ -63,39 +93,40 @@ elif a1 == 'check':
 
 elif a1 == 'deploy':
     if a2: help()
-    raise NotImplementedError
+    fs.deploy()
 
 elif a1 == 'rule':
     if a2 == 'list' or None:
-        raise NotImplementedError
-    elif a2 == 'add':
+        print fs.rules
+
+    if a2 == 'add':
         raise NotImplementedError
     elif a2 == 'del':
-        raise NotImplementedError
+        deletion('rules')
 
 elif a1 == 'hostgroup':
     if a2 == 'list' or None:
-        raise NotImplementedError
+        print fs.hostgroups
     elif a2 == 'add':
         raise NotImplementedError
     elif a2 == 'del':
-        raise NotImplementedError
+        deletion('hostgroups')
 
 elif a1 == 'host':
     if a2 == 'list' or None:
-        raise NotImplementedError
+        print fs.hosts
     elif a2 == 'add':
         raise NotImplementedError
     elif a2 == 'del':
-        raise NotImplementedError
+        deletion('hosts')
 
 elif a1 == 'service':
     if a2 == 'list' or None:
-        raise NotImplementedError
+        print fs.services
     elif a2 == 'add':
         raise NotImplementedError
     elif a2 == 'del':
-        raise NotImplementedError
+        deletion('services')
 
 
 

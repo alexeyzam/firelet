@@ -1,10 +1,83 @@
 from lib import mailer
 
 from lib.flcore import *
+import shutil
 
 #TODO: migration to network objects
 #TODO: parallel SSH
 #TODO: SSH check and deployment
+
+## FireSet testing
+
+def test_gitfireset():
+    shutil.rmtree('test/firewalltmp', True)
+    shutil.copytree('test/', 'test/firewalltmp')
+    fs = GitFireSet(repodir='test/firewalltmp')
+    return #FIXME
+    assert fs.save_needed() == False
+    fs.save()
+    assert fs.save_needed() == False
+    fs.reset()
+    assert fs.save_needed() == False
+    fs.rollback(2)
+    assert fs.save_needed() == False
+    vl = version_list()
+    # assert
+    for t in ('rules', 'hosts', 'hostgroups', 'services', 'network'):
+        fs.delete(t, 1)
+        tmp = len(fs.__dict__[t])
+        assert fs.save_needed() == True
+        assert tmp == len(fs.__dict__[t]) - 1
+    fs.save()
+    assert fs.save_needed() == False
+    tmp = fs.rules
+    fs.rule_moveup(2)
+    assert fs.save_needed() == True
+    assert tmp != fs.rules
+    fs.rule_movedown(1)
+    assert tmp == fs.rules
+
+
+
+def test_dumbfireset():
+
+    shutil.rmtree('test/firewalltmp', True)
+    shutil.copytree('test/', 'test/firewalltmp')
+    fs = DumbFireSet(repodir='test/firewalltmp')
+    assert fs.save_needed() == False
+    fs.save()
+    assert fs.save_needed() == False
+    fs.reset()
+    assert fs.save_needed() == False
+    fs.rollback(2)
+    assert fs.save_needed() == False
+    vl = fs.version_list()
+    # assert
+    for t in ('rules', 'hosts', 'hostgroups', 'services', 'networks'):
+        tmp = len(fs.__dict__[t])
+        fs.delete(t, 0)
+        assert fs.save_needed() == True, t
+        assert tmp == len(fs.__dict__[t]) + 1, t
+    fs.save()
+    assert fs.save_needed() == False
+    orig_rules = fs.rules[:] # copy
+    fs.rule_moveup(2)
+    assert fs.save_needed() == True
+    assert orig_rules != fs.rules
+    fs.rule_movedown(1)
+    assert orig_rules == fs.rules
+
+    fs.rule_movedown(1)
+    assert orig_rules != fs.rules
+    assert fs.save_needed() == True
+    fs.reset()
+    assert fs.save_needed() == False
+    assert orig_rules == fs.rules
+
+
+
+
+##
 
 def test_ip_parsing():
     for x in xrange(0, 256):

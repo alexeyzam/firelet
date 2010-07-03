@@ -1,12 +1,46 @@
 import csv
+import git
+
 from collections import defaultdict
-
+from git import InvalidGitRepositoryError, NoSuchPathError
 from netaddr import IPAddress, IPNetwork
-
+from os import unlink
 from socket import inet_ntoa, inet_aton
 from struct import pack, unpack
 
 protocols = ['IP','TCP', 'UDP', 'OSPF', 'IS-IS', 'SCTP', 'AH', 'ESP']
+
+# CSV files handling
+
+class Table(list):
+    """A list with pretty-print methods"""
+    def __str__(self):
+        cols = zip(*self)
+        cols_sizes = [(max(map(len,i))) for i in cols] # get the widest entry for each column
+
+        def j((n, li)):
+            return "%d  " % n + "  ".join((item.ljust(pad) for item, pad in zip(li, cols_sizes) ))
+        return '\n'.join(map(j, enumerate(self)))
+
+    def len(self):
+        return len(self)
+
+
+def loadcsv(n, d='firewall'):
+    try:
+        f = open("%s/%s.csv" % (d, n))
+        r = Table(csv.reader(f, delimiter=' '))
+        f.close()
+    except IOError:
+        return []
+    return r
+
+def savecsv(n, stuff, d='firewall'):
+    f = open("%s/%s.csv" % (d, n), 'wb')
+    writer = csv.writer(f,  delimiter=' ')
+    writer.writerows(stuff)
+    f.close()
+
 
 
 # IP address parsing
@@ -80,37 +114,146 @@ class HostGroup(NetworkObj):
         return [n for n in self._flatten(self) if isinstance(n, Host)]
 
 
+class FireSet(object):
+    """A container for the network objects.
+    Upon instancing the objects are loaded.
+    """
+    def __init__(self, repodir='firewall'):
+        raise NotImplementedError
 
+    def save_needed(self):
+        return True
 
+    def save(self):
+        pass
 
-# CSV files handling
+    def reset(self):
+        pass
 
-def loadcsv(n, d='firewall'):
-    try:
-        f = open("%s/%s.csv" % (d, n))
-        r = list(csv.reader(f, delimiter=' '))
-        f.close()
-    except IOError:
+    def rollback(self, n):
+        pass
+
+    def version_list(self):
         return []
-    return r
 
-def savecsv(filename, stuff):
-    f = open(filename, 'wb')
-    writer = csv.writer(f,  delimiter=' ')
-    writer.writerows(stuff)
-    f.close()
+    def delete(self, table, rid):
+        assert table in ('rules', 'hosts', 'hostgroups', 'services', 'network') ,  "TODO"
+        try:
+            self.__dict__[table].pop(rid)
+        except Exception, e:
+            pass #TODO
 
-def loadrules():
-    return loadcsv('rules')
+    def rule_moveup(self, rid):
+        try:
+            rules[rid], rules[rid - 1] = rules[rid - 1], rules[rid]
+        except Exception, e:
+            #            say("Cannot move rule %d up." % rid)
+            pass
 
-def saverules(rules):
-    savecsv('firewall/rules.csv', rules)
+    def rule_movedown(self, rid):
+        try:
+            rules[rid], rules[rid + 1] = rules[rid + 1], rules[rid]
+        except Exception, e:
+            #            say("Cannot move rule %d down." % rid)
+            pass
 
-def loadhosts():
-    return loadcsv('hosts')
 
-def savehosts(h):
-    savecsv('firewall/blades.csv', h)
+class DumbFireSet(FireSet):
+    """Simple FireSet implementation without versioning. The changes are kept in memory."""
+
+    def __init__(self, repodir='firewall'):
+        self._repodir = repodir
+        self.rules = loadcsv('rules', d=self._repodir)
+        self.hosts = loadcsv('hosts', d=self._repodir)
+        self.hostgroups = loadcsv('hostgroups', d=self._repodir)
+        self.services = loadcsv('services', d=self._repodir)
+        self.networks = loadcsv('networks', d=self._repodir)
+
+    def _put_lock(self):
+        open("%s/lock" % self._repodir, 'w').close()
+
+    def save(self):
+        """Mem to disk"""
+        if not self.save_needed(): return
+        for table in ('rules', 'hosts', 'hostgroups', 'services', 'networks'):
+            savecsv(table, self.__dict__[table], d=self._repodir)
+        unlink("%s/lock" % self._repodir)
+
+    def save_needed(self):
+        try:
+            open("%s/lock" % self._repodir, 'r').close()
+            return True
+        except:
+            return False
+
+    def reset(self):
+        """Disk to mem"""
+        if not self.save_needed(): return
+        for table in ('rules', 'hosts', 'hostgroups', 'services', 'networks'):
+            self.__dict__[table] = loadcsv(table, d=self._repodir)
+        unlink("%s/lock" % self._repodir)
+
+    def delete(self, table, rid):
+        assert table in ('rules', 'hosts', 'hostgroups', 'services', 'networks') ,  "TODO"
+        try:
+            self.__dict__[table].pop(rid)
+            self._put_lock()
+        except Exception, e:
+            pass #TODO
+
+    def rule_moveup(self, rid):
+        try:
+            rules = self.rules
+            rules[rid], rules[rid - 1] = rules[rid - 1], rules[rid]
+            self.rules = rules
+            self._put_lock()
+        except Exception, e:
+            print e
+            #            say("Cannot move rule %d up." % rid)
+
+    def rule_movedown(self, rid):
+        try:
+            rules = self.rules
+            rules[rid], rules[rid + 1] = rules[rid + 1], rules[rid]
+            self.rules = rules[:]
+            self._put_lock()
+        except Exception, e:
+            #            say("Cannot move rule %d down." % rid)
+            pass
+
+    def rollback(self, n):
+        pass
+
+    def version_list(self):
+        return (('timestamp', 'version id','author','changelog'), )
+
+
+class GitFireSet(FireSet):
+    """FireSet implementing Git to manage the configuration repository"""
+
+    def __init__(self, repodir='firewall'):
+        self.rules = loadcsv('rules')
+        self.hosts = loadcsv('hosts')
+        self.hostgroups = loadcsv('hostgroups')
+        self.services = loadcsv('services')
+        self.networks = loadcsv('networks')
+
+        try:
+            self._repo = git.Repo(repodir) #TODO full path
+        except InvalidGitRepositoryError:
+            self._repo = git.Repo.create(repodir, mkdir=True)
+        except NoSuchPathError:
+            self._repo = git.Repo.create(repodir, mkdir=True)
+
+    def version_list(self):
+        return self._repo.commits(self, max_count=30)
+
+    def save_needed(self):
+        return self._repo.is_dirty
+
+
+
+
 
 
 # Firewall ruleset processing

@@ -4,5 +4,5 @@ y http_ok Bilbo:eth0 * Fangorn:eth1 HTTP ACCEPT 0 "Web server"
 y ssh_mgmt Gandalf:eth0 * Local10 SSH ACCEPT 2 "Ssh access from Gandalf"
 y irc Bilbo:eth0 * Smeagol:eth0 IRC ACCEPT 0 "IRC is fun"
 y imap Smeagol:eth0 * Bilbo:eth0 EveryIMAP ACCEPT 2 "IMAP, three ports"
-y ntp AllSystems * Servers NTP ACCEPT 0 "ntp"
+y ntp AllSystems * Servers NTP ACCEPT 0 ntp
 y default * * * * DROP 1 "Default drop"
