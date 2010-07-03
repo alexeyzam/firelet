@@ -91,6 +91,12 @@ elif a1 == 'check':
     if a2: help()
     raise NotImplementedError
 
+elif a1 == 'compile':
+    if a2: help()
+    c = fs.compile()
+    for li in c:
+        print li
+
 elif a1 == 'deploy':
     if a2: help()
     fs.deploy()

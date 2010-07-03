@@ -243,12 +243,8 @@ class WebApp(object):
         say('Compiling firewall rules...')
         try:
             comp_rules = compile(rules, hosts, hostgroups, services, networks)
-            print
-            print
             for r in comp_rules:
-                print repr(r) + ','
                 say(r)
-            print
             rd = select_rules(hosts, comp_rules)
 #            say(q for q in repr(rd).split('\n'))
         except Exception, e:
@@ -317,15 +313,8 @@ def main():
 
     run(host=conf.listen_address, port=conf.listen_port, reloader=reload)
 
-#    # wait here until the daemon is killed
-#
 #    log.info("Terminating daemon...")
-#    r.running = False
-#    r.join()
-#    db = (coords_hist, coords_drop_hist, ISPS_hist, ISPs_drop_hist)
-#    savedb(db, 'db.gz')
 #    log.info("Terminated.")
-#    exit()
 
 
 if __name__ == "__main__":

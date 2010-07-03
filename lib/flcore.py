@@ -3,6 +3,7 @@ import git
 
 from collections import defaultdict
 from git import InvalidGitRepositoryError, NoSuchPathError
+from itertools import product
 from netaddr import IPAddress, IPNetwork
 from os import unlink
 from socket import inet_ntoa, inet_aton
@@ -121,6 +122,8 @@ class FireSet(object):
     def __init__(self, repodir='firewall'):
         raise NotImplementedError
 
+    # fireset management methods
+
     def save_needed(self):
         return True
 
@@ -135,6 +138,8 @@ class FireSet(object):
 
     def version_list(self):
         return []
+
+    # editing methods
 
     def delete(self, table, rid):
         assert table in ('rules', 'hosts', 'hostgroups', 'services', 'network') ,  "TODO"
@@ -156,6 +161,113 @@ class FireSet(object):
         except Exception, e:
             #            say("Cannot move rule %d down." % rid)
             pass
+
+    # deployment-related methods
+
+    #
+    # The hostgroups are flattened, then the firewall rules are compiled into a big list of iptables commands.
+    # Firelet connects to the firewalls and fetch the iptables status and the existing interfaces (name, ip_addr, netmask)
+    # Based on this, the list is split in many sets - one for each firewall.
+
+    #TODO: save the new configuration for each host and provide versioning.
+    # Before deployment, compare the old (versioned), current (on the host) and new configuration for each firewall.
+    # If current != versioned warn the user: someone made local changes.
+    # Provide a diff of current VS new to the user before deploying.
+
+    def _flattenhg(self, items, addr, net, hgs):
+        """Flatten host groups tree, used in compile()"""
+        def flatten1(item):
+            li = addr.get(item), net.get(item), self._flattenhg(hgs.get(item), addr, net, hgs)  # should we convert network to string here?
+            return filter(None, li)[0]
+        if not items: return None
+        return map(flatten1, items)
+
+
+    def compile(self):
+        """Compile iptables rules to be deployed in a single, big list. During the compilation many checks are performed."""
+
+        for rule in self.rules:
+            assert rule[0] in ('y', 'n'), 'First field must be "y" or "n" in %s' % repr(rule)
+
+        # build dictionaries to perform resolution
+        addr = dict(((name + ":" + iface),ipa) for name,iface,ipa in self.hosts) # host to ip_addr
+        net = dict((name, (n, mask)) for name, n, mask in self.networks) # network name
+        hgs = dict((entry[0], (entry[1:])) for entry in self.hostgroups) # host groups
+        hg_flat = dict((hg, self._flattenhg(hgs[hg], addr, net, hgs)) for hg in hgs) # flattened to {hg: hosts and networks}
+
+        proto_port = dict((name, (proto, ports)) for name, proto, ports in self.services) # protocol
+        proto_port['*'] = (None, '') # special case for "any"      # port format: "2:4,5:10,10:33,40,50"
+
+        def res(n):
+            if n in addr: return (addr[n], )
+            elif n in net: return (net[n][0] + '/' + net[n][1], )
+            elif n in hg_flat: return hg_flat[src][0][0]
+            elif n == '*':
+                return [None]
+            else:
+                raise Exception, "Host %s is not defined." % n
+
+        compiled = []
+        for ena, name, src, src_serv, dst, dst_serv, action, log_val, desc in self.rules:
+            if ena == 'n':
+                continue
+            assert action in ('ACCEPT', 'DROP'),  'The Action field must be "ACCEPT" or "DROP" in rule "%s"' % name
+            srcs = res(src)
+            dsts = res(dst)
+            sproto, sports = proto_port[src_serv]
+            dproto, dports = proto_port[dst_serv]
+            assert sproto in protocols + [None], "Unknown source protocol: %s" % sproto
+            assert dproto in protocols + [None], "Unknown dest protocol: %s" % dproto
+
+            if sproto and dproto and sproto != dproto:
+                raise Exception, "Source and destination protocol must be the same in rule \"%s\"." % name
+            if dproto:
+                proto = " -p %s" % dproto.lower()
+            elif sproto:
+                proto = " -p %s" % sproto.lower()
+            else:
+                proto = ''
+
+            if sports:
+                ms = ' -m multiport' if ',' in sports else ''
+                sports = "%s --sport %s" % (ms, sports)
+            if dports:
+                md = ' -m multiport' if ',' in dports else ''
+                dports = "%s --dport %s" % (md, dports)
+
+            # TODO: ensure that 'name' is a-zA-Z0-9_-
+
+            try:
+                log_val = int(log_val)  #TODO: try/except this
+            except:
+                raise Exception, "The logging field in rule \"%s\" must be an integer." % name
+
+            for src, dst in product(srcs, dsts):
+                src = " -s %s" % src if src else ''
+                dst = " -d %s" % dst if dst else ''
+                if log_val:
+                    compiled.append("-A FORWARD%s%s%s%s%s --log-level %d --log-prefix %s -j LOG" %   (proto, src, sports, dst, dports, log_val, name))
+                compiled.append("-A FORWARD%s%s%s%s%s -j %s" %   (proto, src, sports, dst, dports, action))
+
+        return compiled
+
+
+    def compile_dict(self, hosts, rset=None):
+        """Generate set of rules specific for each host"""
+        if not rset:
+            rset = self.compile()
+        # r[hostname][interface] = [rule, rule, ... ]
+        rd = defaultdict(dict)
+
+        for hostname,iface,ipa in hosts:
+            myrules = [ r for r in rset if ipa in r ]   #TODO: match subnets as well
+            if iface in rd[hostname]:
+                rd[hostname][iface].append(myrules)
+            else:
+                rd[hostname][iface] = [myrules, ]
+
+        return rd
+
 
 
 class DumbFireSet(FireSet):
@@ -259,108 +371,11 @@ class GitFireSet(FireSet):
 # Firewall ruleset processing
 
 
-def _resolveitems(items, addr, net, hgs):
-    """Flatten host groups tree, used in compile()"""
-
-    def flatten1(item):
-        li = addr.get(item), net.get(item), _resolveitems(hgs.get(item), addr, net, hgs)  # should we convert network to string here?
-        return filter(None, li)[0]
 
 
-    if not items:
-        return None
-    return map(flatten1, items)
 
 
-def compile(rules, hosts, hostgroups, services, networks):
-    """Compile firewall rules to be deployed"""
 
-    # build dictionaries to perform resolution
-    addr = dict(((name + ":" + iface),ipa) for name,iface,ipa in hosts) # host to ip_addr
-    net = dict((name, (n, mask)) for name, n, mask in networks) # network name
-    hgs = dict((entry[0], (entry[1:])) for entry in hostgroups) # host groups
-    hg_flat = dict((hg, _resolveitems(hgs[hg], addr, net, hgs)) for hg in hgs) # flattened to hg: hosts or networks
-
-    proto_port = dict((name, (proto, ports)) for name, proto, ports in services) # protocol
-    proto_port['*'] = (None, '') # special case for "any"
-
-
-    # port format: "2:4,5:10,10:33,40,50"
-
-    def res(n):
-        if n in addr:
-            return (addr[n], )
-        elif n in net:
-            return (net[n][0] + '/' + net[n][1], )
-            return ('/'.join(net[n]), )
-        elif n in hg_flat:
-            return hg_flat[src][0][0]
-        elif n == '*':
-            return [None]
-        else:
-            raise Exception, "Host %s is not defined." % n
-
-    for rule in rules:
-        assert rule[0] in ('y', 'n')
-
-    from itertools import product
-
-    compiled = []
-    for ena, name, src, src_serv, dst, dst_serv, action, log_val, desc in rules:
-        if ena == 'n':
-            continue
-        assert action in ('ACCEPT', 'DROP'),  'TODO'
-        srcs = res(src)
-        dsts = res(dst)
-        sproto, sports = proto_port[src_serv]
-        dproto, dports = proto_port[dst_serv]
-        assert sproto in protocols + [None], "Unknown source protocol: %s" % sproto
-        assert dproto in protocols + [None], "Unknown dest protocol: %s" % dproto
-
-        if sproto and dproto and sproto != dproto:
-            continue # mismatch
-        if sproto:
-            proto = " -p %s" % sproto.lower()
-        elif dproto:
-            proto = " -p %s" % dproto.lower()
-        else:
-            proto = ''
-
-        if sports:
-            ms = ' -m multiport' if ',' in sports else ''
-            sports = "%s --sport %s" % (ms, sports)
-        if dports:
-            md = ' -m multiport' if ',' in dports else ''
-            dports = "%s --dport %s" % (md, dports)
-
-        # TODO: ensure that 'name' is a-zA-Z0-9_-
-
-        log_val = int(log_val)  #TODO: try/except this
-
-        for src, dst in product(srcs, dsts):
-            src = " -s %s" % src if src else ''
-            dst = " -d %s" % dst if dst else ''
-            if log_val:
-                compiled.append("-A FORWARD%s%s%s%s%s --log-level %d --log-prefix %s -j LOG" %   (proto, src, sports, dst, dports, log_val, name))
-            compiled.append("-A FORWARD%s%s%s%s%s -j %s" %   (proto, src, sports, dst, dports, action))
-
-    return compiled
-
-
-def select_rules(hosts, rset):
-    """Generate set of rules specific for each host"""
-
-    # r[hostname][interface] = [rule, rule, ... ]
-    rd = defaultdict(dict)
-
-    for hostname,iface,ipa in hosts:
-        myrules = [ r for r in rset if ipa in r ]
-        if iface in rd[hostname]:
-            rd[hostname][iface].append(myrules)
-        else:
-            rd[hostname][iface] = [myrules, ]
-
-    return rd
 
 
 
