@@ -9,6 +9,11 @@ from os import unlink
 from socket import inet_ntoa, inet_aton
 from struct import pack, unpack
 
+try:
+    import json
+except ImportError:
+    import simplejson as json
+
 protocols = ['IP','TCP', 'UDP', 'OSPF', 'IS-IS', 'SCTP', 'AH', 'ESP']
 
 # CSV files handling

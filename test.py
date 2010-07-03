@@ -132,3 +132,33 @@ def test_select_rules():
                                        'Smeagol': {'eth0': [['-A FORWARD -s 10.0.0.2 -d 10.0.0.4 --log-level 3 --log-prefix NoSmeagol -j LOG', '-A FORWARD -s 10.0.0.2 -d 10.0.0.4 -j DROP', '-A FORWARD -p tcp -s 10.0.0.1 -d 10.0.0.2 --dport 6660:6669 -j ACCEPT', '-A FORWARD -p tcp -s 10.0.0.2 -d 10.0.0.1 -m multiport --dport 143,585,993 --log-level 2 --log-prefix imap -j LOG', '-A FORWARD -p tcp -s 10.0.0.2 -d 10.0.0.1 -m multiport --dport 143,585,993 -j ACCEPT']]}}
 
 
+
+
+# Test JSON lib
+
+def json_loop(obj):
+    return json.loads(json.dumps(obj))
+
+def test_json1():
+    d = {'string':'string', 's2':6, 's3':7.7, 's4':True, 's5':False}
+    assert d == json_loop(d)
+
+def test_json2():
+    d = {'string':'string', 's2':6, 's3':7.7, 's4':True, 's5':False}
+    assert d == json_loop(d)
+    #TODO: should I feel confident about that floating point number?
+    assert json.dumps(d) == '{"s3": 7.7000000000000002, "s2": 6, "string": "string", "s5": false, "s4": true}'
+
+def test_json3():
+    d = {'d1':{'d2':{'d3':{'d4':{'d5':{'this is getting':'boring'}}}}}}
+    assert d == json_loop(d)
+    assert json.dumps(d) == '{"d1": {"d2": {"d3": {"d4": {"d5": {"this is getting": "boring"}}}}}}'
+
+def test_json2():
+    """Keys are casted to strings, integers are not preserved"""
+    d = {1:1, 2:2, 3:3}
+    assert d != json_loop(d)
+
+
+
+
