@@ -1,6 +1,5 @@
 
 from pxssh import pxssh, ExceptionPxssh
-from itertools import dropwhile, takewhile, groupby
 
 def get_confs(li, timeout=10, keep_sessions=False, username='firelet'):
     """Connects to the firewall, get the configuration and return:
@@ -10,16 +9,17 @@ def get_confs(li, timeout=10, keep_sessions=False, username='firelet'):
     try:
         for hostname, ip_addr in li:
             p = pxssh()
+            p.my_hostname = hostname # used for testing - urgh
             p.login(ip_addr, username)
-            assert p.isalive()
+            assert p.isalive(), "Host %s not responding to SSH after login." % hostname
             d[hostname] = [p, ip_addr]
-    except Exception:
+    except Exception, e:
         for p, ip_addr in d.values():
             try:
                 p.logout()  # logout from the existing connections
             except:
                 pass
-        raise Exception
+#        raise Exception, str(e) + 'Unable to login on %s' % actual
 
     for hostname, (p, ip_addr) in d.iteritems():
         p.sendline('sudo /sbin/iptables-save')
@@ -33,18 +33,17 @@ def get_confs(li, timeout=10, keep_sessions=False, username='firelet'):
         ret = [r.rstrip() for r in ret.split('\n')]
         d[hostname].append(ret)
 
-    for name, (p, ip_addr, iptables, y) in d.iteritems():
-        ipt = parse_iptables_save(iptables)
-        d[name][2] = ipt
-
-
+    for name, (p, ip_addr, iptables, ip_a_s) in d.iteritems():
+        d[name][2] = parse_iptables_save(iptables)
+        d[name][3] = parse_ip_addr_show(ip_a_s)
 
     if keep_sessions:
         return d
 
-    for p, ip_addr, x, y in d.values():
+    for name, (p, ip_addr, iptables, y) in d.iteritems():
         try:
             p.logout()  # logout from the existing connections
+            d[name][0] = None
         except:
             pass
 
@@ -53,35 +52,61 @@ def get_confs(li, timeout=10, keep_sessions=False, username='firelet'):
 
 def parse_iptables_save(s):
 
-    def chain(m):
-        return [m.split()[1]]
+    def start(li, tag):
+        for n, item in enumerate(li):
+            if item == tag:
+                return li[n:]
+        return []
 
-    s = (q for q in s)
+    def get_block(li, tag):
+        li = start(li, tag)
+        for n, item in enumerate(li):
+            if item == 'COMMIT':
+                return li[:n]
+        return []
 
-    block = takewhile(lambda x:x != 'COMMIT',
-                       dropwhile(lambda x: x != '*nat', s))
-    rules = dropwhile(lambda x: x[0] in ('*', ':'), block)
-    r2 = groupby(rules, chain)
+    def good(x):
+        return x.startswith(('-A PREROUTING', '-A POSTROUTING', '-A OUTPUT', '-A INPUT', '-A FORWARD'))
 
-    block = takewhile(lambda x:x != 'COMMIT',
-                       dropwhile(lambda x: x != '*filter', s))
-    rules = dropwhile(lambda x: x[0] in ('*', ':'), block)
-    r2 = groupby(rules, chain)
+    i = {'nat':{}, 'filter':{} }
 
-    i = {'nat':{'PREROUTING': [], 'POSTROUTING': [], 'OUTPUT': []},
-         'filter':{'INPUT': [], 'FORWARD': [], 'OUTPUT': []} }
+    block = get_block(s, '*nat')
+    b = filter(good, block)
+    i['nat'] = '\n'.join(b)
+#    for q in ('PREROUTING', 'POSTROUTING', 'OUTPUT'):
+#        i['nat'][q] = '\n'.join(x for x in block if x.startswith('-A %s' % q))
 
-    for chain, rules in r2:
-        i['filter'][chain[0]] = [r for r in rules]
+    block = get_block(s, '*filter')
+    b = filter(good, block)
+    i['filter'] = '\n'.join(b)
+
+#    for q in ('INPUT', 'OUTPUT', 'FORWARD'):
+#        i['filter'][q] = '\n'.join(x for x in block if x.startswith('-A %s' % q))
 
     return i
 
 
+def parse_ip_addr_show(s):
+    """Parse the output of 'ip addr show' and returns a dict:
+    {'iface': (ip_addr_v4, ip_addr_v6)} """
+    iface = ip_addr_v4 = ip_addr_v6 = None
+    d = {}
+    for q in s:
+        if q and not q.startswith('  '):   # new interface definition
+            if iface:
+                d[iface] = (ip_addr_v4, ip_addr_v6)
+            iface = q.split()[1][:-1]  # second field, without trailing column
+            ip_addr_v4 = ip_addr_v6 = None
+        elif q.startswith('    inet '):
+            ip_addr_v4 = q.split()[1]
+        elif q.startswith('    inet6 '):
+            ip_addr_v6 = q.split()[1]
+    if iface:
+        d[iface] = (ip_addr_v4, ip_addr_v6)
 
-def parse_conf(iptables, interfaces):
-    pass
+    return d
 
-d  = get_confs( [('loc','127.0.0.1'),]  )
-print repr(d)
+
+
 
 

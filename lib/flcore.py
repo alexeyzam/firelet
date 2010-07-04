@@ -9,6 +9,7 @@ from os import unlink
 from socket import inet_ntoa, inet_aton
 from struct import pack, unpack
 
+
 try:
     import json
 except ImportError:
@@ -270,6 +271,32 @@ class FireSet(object):
                 compiled.append("-A FORWARD%s%s%s%s%s -j %s" %   (proto, src, sports, dst, dports, action))
 
         return compiled
+
+    def _get_confs(self):
+        from flssh import get_confs
+        #TODO: use management IP addrs
+        hs = ((n, addr) for n, iface, addr in self.hosts)
+        self.confs = get_confs(hs)
+
+    def _check_ifaces(self):
+        """Ensure that the interfaces configured on the hosts match the contents of the host table"""
+        confs = self.confs
+        for name,iface,ipa in self.hosts:
+            if not name in confs:
+                raise Exception, "Host %s not available." % name
+            if not iface in confs[name][3]:
+                raise Exception, "Interface %s missing on host %s" % (iface, name)
+            ip_addr_v4, ip_addr_v6 = confs[name][3][iface]
+            print repr(confs[name][3][iface])
+            print name, iface, ipa
+            assert ipa == ip_addr_v4.split('/')[0] or ipa == ip_addr_v6, "Wrong address on %s on interface %s" % (name, iface)
+
+        #TODO: warn if there are extra interfaces?
+
+#        for hostname, (session, ip_addr, iptables_save, ip_a_s) in self.confs:
+#            for iface, (ip_addr_v4, ip_addr_v6) in ip_a_s:
+#                pass
+
 
 
     def compile_dict(self, hosts=None, rset=None):
