@@ -125,7 +125,7 @@ def test_select_rules():
     shutil.copytree('test/', 'test/firewalltmp')
     fs = DumbFireSet(repodir='test/firewalltmp')
 
-    rd = fs.compile_dict(fs.hosts)
+    rd = fs.compile_dict(hosts=fs.hosts)
 
     assert rd == {'Bilbo': {'eth0': [['-A FORWARD -p tcp -s 10.0.0.1 -d 10.0.8.8 --dport 443 -j ACCEPT', '-A FORWARD -p tcp -s 10.0.0.1 -d 10.0.0.3 --dport 80 -j ACCEPT', '-A FORWARD -p tcp -s 10.0.0.1 -d 10.0.0.2 --dport 6660:6669 -j ACCEPT', '-A FORWARD -p tcp -s 10.0.0.2 -d 10.0.0.1 -m multiport --dport 143,585,993 --log-level 2 --log-prefix imap -j LOG', '-A FORWARD -p tcp -s 10.0.0.2 -d 10.0.0.1 -m multiport --dport 143,585,993 -j ACCEPT']]},
                                        'Fangorn': {'eth1': [['-A FORWARD -p tcp -s 10.0.0.1 -d 10.0.0.3 --dport 80 -j ACCEPT']]}, 'Gandalf': {'eth1': [['-A FORWARD -p tcp -s 10.0.0.1 -d 10.0.8.8 --dport 443 -j ACCEPT']], 'eth0': [['-A FORWARD -s 10.0.0.2 -d 10.0.0.4 --log-level 3 --log-prefix NoSmeagol -j LOG', '-A FORWARD -s 10.0.0.2 -d 10.0.0.4 -j DROP', '-A FORWARD -p tcp -s 10.0.0.4 -d 10.0.0.0/255.0.0.0 --dport 22 --log-level 2 --log-prefix ssh_mgmt -j LOG', '-A FORWARD -p tcp -s 10.0.0.4 -d 10.0.0.0/255.0.0.0 --dport 22 -j ACCEPT', '-A FORWARD -p udp -s 10.0.0.4 -d 10.0.0.4 --dport 123 -j ACCEPT']]},
@@ -137,7 +137,7 @@ def test_select_rules():
 # Test JSON lib
 
 def json_loop(obj):
-    return json.loads(json.dumps(obj))
+    return json.loads(json.dumps(obj, sort_keys=True))
 
 def test_json1():
     d = {'string':'string', 's2':6, 's3':7.7, 's4':True, 's5':False}
@@ -154,11 +154,20 @@ def test_json3():
     assert d == json_loop(d)
     assert json.dumps(d) == '{"d1": {"d2": {"d3": {"d4": {"d5": {"this is getting": "boring"}}}}}}'
 
-def test_json2():
+def test_json4():
+    d = [x for x in xrange(42)]
+    assert d == json_loop(d)
+
+def test_json5():
     """Keys are casted to strings, integers are not preserved"""
     d = {1:1, 2:2, 3:3}
     assert d != json_loop(d)
 
-
-
+def test_json_files():
+    shutil.rmtree('test/firewalltmp', True)
+    shutil.copytree('test/', 'test/firewalltmp')
+    d = {'d1':{'d2':{'d3':{'d4':{'d5':{'this is getting':'boring'}}}}}}
+    savejson('jfile', d, d='test/firewalltmp')
+    nd = loadjson('jfile', d='test/firewalltmp')
+    assert d == nd
 

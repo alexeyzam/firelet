@@ -16,7 +16,7 @@ except ImportError:
 
 protocols = ['IP','TCP', 'UDP', 'OSPF', 'IS-IS', 'SCTP', 'AH', 'ESP']
 
-# CSV files handling
+#files handling
 
 class Table(list):
     """A list with pretty-print methods"""
@@ -31,15 +31,16 @@ class Table(list):
     def len(self):
         return len(self)
 
+# CSV files
 
 def loadcsv(n, d='firewall'):
     try:
         f = open("%s/%s.csv" % (d, n))
         r = Table(csv.reader(f, delimiter=' '))
         f.close()
+        return r
     except IOError:
-        return []
-    return r
+        return [] #FIXME: why?
 
 def savecsv(n, stuff, d='firewall'):
     f = open("%s/%s.csv" % (d, n), 'wb')
@@ -47,6 +48,23 @@ def savecsv(n, stuff, d='firewall'):
     writer.writerows(stuff)
     f.close()
 
+
+# JSON files
+
+def loadjson(n, d='firewall'):
+    try:
+        f = open("%s/%s.json" % (d, n))
+        s = f.read()
+        f.close()
+        return json.loads(s)
+    except IOError:
+        return []
+
+def savejson(n, obj, d='firewall'):
+    s = json.dumps(obj)
+    f = open("%s/%s.json" % (d, n), 'wb')
+    f.write(s)
+    f.close()
 
 
 # IP address parsing
@@ -148,10 +166,7 @@ class FireSet(object):
 
     def delete(self, table, rid):
         assert table in ('rules', 'hosts', 'hostgroups', 'services', 'network') ,  "TODO"
-        try:
-            self.__dict__[table].pop(rid)
-        except Exception, e:
-            pass #TODO
+        return self.__dict__[table].pop(rid) #FIXME: not returning
 
     def rule_moveup(self, rid):
         try:
@@ -257,10 +272,10 @@ class FireSet(object):
         return compiled
 
 
-    def compile_dict(self, hosts, rset=None):
+    def compile_dict(self, hosts=None, rset=None):
         """Generate set of rules specific for each host"""
-        if not rset:
-            rset = self.compile()
+        if not hosts: hosts = self.hosts
+        if not rset: rset = self.compile()
         # r[hostname][interface] = [rule, rule, ... ]
         rd = defaultdict(dict)
 

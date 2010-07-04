@@ -12,13 +12,9 @@ from time import time, sleep, localtime
 
 from lib.confreader import ConfReader
 from lib import mailer
-from lib.flcore import *
+from lib.flcore import FireSet, GitFireSet, DumbFireSet
 
-rules = loadcsv('rules')
-hosts = loadcsv('hosts')
-hostgroups = loadcsv('hostgroups')
-services = loadcsv('services')
-networks = loadcsv('networks')
+fs = DumbFireSet()
 
 #TODO: HG, H, N, Rule, Service creation
 #TODO: Rule up/down move
@@ -72,18 +68,19 @@ class WebApp(object):
     @bottle.route('/ruleset')
     @view('ruleset')
     def ruleset():
-        return dict(rules=enumerate(rules))
+        return dict(rules=enumerate(fs.rules))
 
     @bottle.route('/ruleset', method='POST')
     def ruleset():
-        global rules
+        global fs
         action = request.POST.get('action', '').strip()
         name = request.POST.get('name', '').strip()
         rid = int(request.POST.get('rid', '-1').strip())
         print "+" * 30, action
         if action == 'delete':
             try:
-                bye = rules.pop(rid)
+                bye = fs.delete('rules', rid)
+                print type(bye) #FIXME
                 say("Rule %d \"%s\" deleted." % (rid, bye[1]), type="success")
                 return
             except Exception, e:
@@ -91,33 +88,27 @@ class WebApp(object):
                 abort(500)
         elif action == 'moveup':
             try:
-                rules[rid], rules[rid - 1] = rules[rid - 1], rules[rid]
+                fs.rule_moveup(rid)
             except Exception, e:
                 say("Cannot move rule %d up." % rid)
         elif action == 'movedown':
             try:
-                rules[rid], rules[rid + 1] = rules[rid + 1], rules[rid]
+                fs.rule_movedown(rid)
             except Exception, e:
                 say("Cannot move rule %d down." % rid)
-
-
 
 
     @bottle.route('/hostgroups')
     @view('hostgroups')
     def hostgroups():
-        return dict(hostgroups=hostgroups)
+        return dict(hostgroups=fs.hostgroups)
 
     @bottle.route('/hostgroups', method='POST')
     def hostgroups():
-        global hostgroups
         action = request.POST.get('action', '').strip()
-        name = request.POST.get('name', '').strip()
+        name = request.POST.get('name', '').strip()  #FIXME: move all tables to the new delete-by-rid method
         if action == 'delete':
             try:
-                from random import random
-                if random() > 0.9:
-                    raise Exception, "test"
                 hostgroups =  [ h for h in hostgroups if h[0] != name ]
                 say("Host Group %s deleted." % name, type="success")
                 return
@@ -129,12 +120,11 @@ class WebApp(object):
     @bottle.route('/hosts')
     @view('hosts')
     def hosts():
-        return dict(hosts=hosts)
+        return dict(hosts=fs.hosts)
 
 
     @bottle.route('/hosts', method='POST')
     def hosts():
-        global hosts
         action = request.POST.get('action', '').strip()
         if action == 'delete':
             try:
@@ -148,7 +138,6 @@ class WebApp(object):
 
     @bottle.route('/hosts_new', method='POST')
     def hosts_new():
-        global hosts
         hostname = pg('hostname')
         iface = pg('iface')
         ip_addr = pg('ip_addr')
@@ -167,7 +156,7 @@ class WebApp(object):
     @bottle.route('/networks')
     @view('networks')
     def networks():
-        return dict(networks=networks)
+        return dict(networks=fs.networks)
 
     @bottle.route('/networks', method='POST')
     def networks():
@@ -187,7 +176,7 @@ class WebApp(object):
     @bottle.route('/services')
     @view('services')
     def services():
-        return dict(services=services)
+        return dict(services=fs.services)
 
     @bottle.route('/services', method='POST')
     def services():
@@ -242,10 +231,10 @@ class WebApp(object):
         say('Configuration deployment started...')
         say('Compiling firewall rules...')
         try:
-            comp_rules = compile(rules, hosts, hostgroups, services, networks)
+            comp_rules = fs.compile()
             for r in comp_rules:
                 say(r)
-            rd = select_rules(hosts, comp_rules)
+            rd = fs.compile_dict()
 #            say(q for q in repr(rd).split('\n'))
         except Exception, e:
             say("Compilation failed: %s" % e,  type="alert")
