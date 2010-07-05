@@ -77,6 +77,7 @@ def ruleset():
     name = pg('name', '')
     rid = int(pg('rid', '-1'))
     print "+" * 30, action
+    #TODO: rewrite this using OO  Rule() ?
     if action == 'delete':
         try:
             bye = fs.delete('rules', rid)
@@ -84,7 +85,7 @@ def ruleset():
             say("Rule %d \"%s\" deleted." % (rid, bye[1]), type="success")
             return
         except Exception, e:
-            say("Unable to delete %s - %s" % (name, e), type="alert")
+            say("Unable to delete rule %s - %s" % (name, e), type="alert")
             abort(500)
     elif action == 'moveup':
         try:
@@ -96,6 +97,12 @@ def ruleset():
             fs.rule_movedown(rid)
         except Exception, e:
             say("Cannot move rule %d down." % rid)
+    elif action == 'disable':
+        fs.rule_disable(rid)
+        say("Rule %d disabled." % rid)
+    elif action == 'enable':
+        fs.rule_enable(rid)
+        say("Rule %d enabled." % rid)
 
 
 @bottle.route('/hostgroups')

@@ -184,6 +184,19 @@ class FireSet(object):
             #            say("Cannot move rule %d down." % rid)
             pass
 
+    def rule_disable(self, rid):
+        try:
+            self.rules[rid][0] = 'n'
+        except Exception, e:
+            pass
+
+    def rule_enable(self, rid):
+        try:
+            self.rules[rid][0] = 'y'
+        except Exception, e:
+            pass
+
+
     # deployment-related methods
 
     #

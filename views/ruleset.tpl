@@ -22,7 +22,11 @@
             <img class="action" src="/static/new_below.png" title="New rule below" action="newbelow">
             <img class="action" src="/static/move_up.png" title="Move rule up" action="moveup">
             <img class="action" src="/static/move_down.png" title="Move rule down" action="movedown">
+            %if rule[0] == "y":
             <img class="action" src="/static/disable.png" title="Disable rule" action="disable">
+            %elif rule[0] == "n":
+            <img class="action" src="/static/enable.png" title="Enable rule" action="enable">
+            %end
             <img class="action" src="/static/delete.png" title="Delete rule" action="delete">
         </td>
         % for item in rule:
