@@ -145,15 +145,12 @@ $("form#new_form").validator().submit(function(e) {
         function(json){
             console.log(json);
             if (json.ok === true) {
-                console.log('qq');
                 over.eq(0).overlay().close();
             } else {
                 form.data("validator").invalidate(json);
             }
         }, "json"
     );
-
-
 
         e.preventDefault();     // prevent default form submission logic
     }

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import logging as log
+from beaker.middleware import SessionMiddleware
 import bottle
 from bottle import route, send_file, run, view, request
 from bottle import debug as bottle_debug
@@ -22,246 +23,296 @@ fs = DumbFireSet()
 #TODO: full rule checking upon Save
 #TODO: move fireset editing in flcore
 
-messages = []
+msg_list = []
 
 def say(s, type='info'):
     """type can be: info, warning, alert"""
     if type == 'error':
         type = 'alert'
     ts = datetime.now().strftime("%H:%M:%S")
-    messages.append((type, ts, s))
-    if len(messages) > 20:
-        messages.pop(0)
+    msg_list.append((type, ts, s))
+    if len(msg_list) > 20:
+        msg_list.pop(0)
 
 def pg(name, default=''):
     return request.POST.get(name, default).strip()
 
 # web services
+#
+#class WebApp(object):
+#
+#def __init__(self, conf):
+#    self.conf = conf
+#    self.messages = []
 
-class WebApp(object):
+@bottle.route('/messages')
+@view('messages')
+def messages():
+    return dict(messages=msg_list)
 
-    def __init__(self, conf):
-        self.conf = conf
-        self.messages = []
+@bottle.route('/')
+@view('index')
+def index():
+    s = bottle.request.environ.get('beaker.session')
+    show_logout = True if s and 'username' in s else False
+    msg = None
 
-    def say(s, type='info'):
-        self.messages.append((type, s))
+    try:
+        title = conf.title
+    except:
+        title = 'test'
+    return dict(msg=msg, title=title, show_logout=show_logout)
 
-    @bottle.route('/messages')
-    @view('messages')
-    def messages():
-        return dict(messages=messages)
+# tables interaction
 
+@bottle.route('/ruleset')
+@view('ruleset')
+def ruleset():
+    return dict(rules=enumerate(fs.rules))
 
-
-    @bottle.route('/')
-    @view('index')
-    def index():
-        msg = None
-
+@bottle.route('/ruleset', method='POST')
+def ruleset():
+    global fs
+    action = pg('action', '')
+    name = pg('name', '')
+    rid = int(pg('rid', '-1'))
+    print "+" * 30, action
+    if action == 'delete':
         try:
-            title = conf.title
-        except:
-            title = 'test'
-        return dict(msg=msg, title=title)
-
-    @bottle.route('/ruleset')
-    @view('ruleset')
-    def ruleset():
-        return dict(rules=enumerate(fs.rules))
-
-    @bottle.route('/ruleset', method='POST')
-    def ruleset():
-        global fs
-        action = request.POST.get('action', '').strip()
-        name = request.POST.get('name', '').strip()
-        rid = int(request.POST.get('rid', '-1').strip())
-        print "+" * 30, action
-        if action == 'delete':
-            try:
-                bye = fs.delete('rules', rid)
-                print type(bye) #FIXME
-                say("Rule %d \"%s\" deleted." % (rid, bye[1]), type="success")
-                return
-            except Exception, e:
-                say("Unable to delete %s - %s" % (name, e), type="alert")
-                abort(500)
-        elif action == 'moveup':
-            try:
-                fs.rule_moveup(rid)
-            except Exception, e:
-                say("Cannot move rule %d up." % rid)
-        elif action == 'movedown':
-            try:
-                fs.rule_movedown(rid)
-            except Exception, e:
-                say("Cannot move rule %d down." % rid)
-
-
-    @bottle.route('/hostgroups')
-    @view('hostgroups')
-    def hostgroups():
-        return dict(hostgroups=fs.hostgroups)
-
-    @bottle.route('/hostgroups', method='POST')
-    def hostgroups():
-        action = request.POST.get('action', '').strip()
-        name = request.POST.get('name', '').strip()  #FIXME: move all tables to the new delete-by-rid method
-        if action == 'delete':
-            try:
-                hostgroups =  [ h for h in hostgroups if h[0] != name ]
-                say("Host Group %s deleted." % name, type="success")
-                return
-            except Exception, e:
-                say("Unable to delete %s - %s" % (name, e), type="alert")
-                abort(500)
-
-
-    @bottle.route('/hosts')
-    @view('hosts')
-    def hosts():
-        return dict(hosts=fs.hosts)
-
-
-    @bottle.route('/hosts', method='POST')
-    def hosts():
-        action = request.POST.get('action', '').strip()
-        if action == 'delete':
-            try:
-                name = request.POST.get('name', '').strip()
-                hosts =  [ h for h in hosts if h[0] != name ]
-                say("Host %s deleted." % name, type="success")
-                return
-            except Exception, e:
-                say("Unable to delete %s - %s" % (name, e), type="alert")
-                abort(500)
-
-    @bottle.route('/hosts_new', method='POST')
-    def hosts_new():
-        hostname = pg('hostname')
-        iface = pg('iface')
-        ip_addr = pg('ip_addr')
-        print hostname, iface, ip_addr
-        if hostname.startswith("test"):
-            print repr(hosts)
-            hosts.append((hostname, iface, ip_addr))
-            say('Host %s added.' % hostname, type="success")
-            return {'ok': True}
-
-        say('Unable to add %s.' % hostname, type="alert")
-        return {'ok': False, 'hostname':'Must start with "test"'}
-
-
-
-    @bottle.route('/networks')
-    @view('networks')
-    def networks():
-        return dict(networks=fs.networks)
-
-    @bottle.route('/networks', method='POST')
-    def networks():
-        global networks
-        action = request.POST.get('action', '').strip()
-        name = request.POST.get('name', '').strip()
-        if action == 'delete':
-            try:
-                networks =  [ h for h in networks if h[0] != name ]
-                say("Network %s deleted." % name, type="success")
-                return
-            except Exception, e:
-                say("Unable to delete %s - %s" % (name, e), type="alert")
-                abort(500)
-
-
-    @bottle.route('/services')
-    @view('services')
-    def services():
-        return dict(services=fs.services)
-
-    @bottle.route('/services', method='POST')
-    def services():
-        global services
-        action = request.POST.get('action', '').strip()
-        name = request.POST.get('name', '').strip()
-        if action == 'delete':
-            try:
-                services =  [ h for h in services if h[0] != name ]
-                say("Service %s deleted." % name, type="success")
-                return
-            except Exception, e:
-                say("Unable to delete %s - %s" % (name, e), type="alert")
-                abort(500)
-
-
-    # management commands
-
-    @bottle.route('/manage')
-    @view('manage')
-    def manage():
-        return dict()
-
-    @bottle.route('/saveneeded')
-    def saveneeded():
-        return dict(sn=True)
-
-    @bottle.route('/save', method='POST')
-    def savebtn():
-        msg = request.POST.get('msg', '').strip()
-        say('Saving configuration...')
-        say("Msg: %s" % msg)
-        say('Configuration saved.', type="success")
-        print 'woohoo'
-        return
-
-    @bottle.route('/reset', method='POST')
-    def resetbtn():
-        say('Configuration reset.', type="success")
-        return
-
-    @bottle.route('/check', method='POST')
-    def checkbtn():
-        say('Configuration check started...')
-        from time import sleep
-        sleep(4)
-        say('Configuration check successful.', type="success")
-        return
-
-    @bottle.route('/deploy', method='POST')
-    def deploybtn():
-        say('Configuration deployment started...')
-        say('Compiling firewall rules...')
-        try:
-            comp_rules = fs.compile()
-            for r in comp_rules:
-                say(r)
-            rd = fs.compile_dict()
-#            say(q for q in repr(rd).split('\n'))
-        except Exception, e:
-            say("Compilation failed: %s" % e,  type="alert")
+            bye = fs.delete('rules', rid)
+            print type(bye) #FIXME
+            say("Rule %d \"%s\" deleted." % (rid, bye[1]), type="success")
             return
-        say('Configuration deployed.', type="success")
+        except Exception, e:
+            say("Unable to delete %s - %s" % (name, e), type="alert")
+            abort(500)
+    elif action == 'moveup':
+        try:
+            fs.rule_moveup(rid)
+        except Exception, e:
+            say("Cannot move rule %d up." % rid)
+    elif action == 'movedown':
+        try:
+            fs.rule_movedown(rid)
+        except Exception, e:
+            say("Cannot move rule %d down." % rid)
+
+
+@bottle.route('/hostgroups')
+@view('hostgroups')
+def hostgroups():
+    return dict(hostgroups=fs.hostgroups)
+
+@bottle.route('/hostgroups', method='POST')
+def hostgroups():
+    action = pg('action', '')
+    name = pg('name', '')  #FIXME: move all tables to the new delete-by-rid method
+    if action == 'delete':
+        try:
+            hostgroups =  [ h for h in hostgroups if h[0] != name ]
+            say("Host Group %s deleted." % name, type="success")
+            return
+        except Exception, e:
+            say("Unable to delete %s - %s" % (name, e), type="alert")
+            abort(500)
+
+
+@bottle.route('/hosts')
+@view('hosts')
+def hosts():
+    return dict(hosts=fs.hosts)
+
+
+@bottle.route('/hosts', method='POST')
+def hosts():
+    action = pg('action', '')
+    if action == 'delete':
+        try:
+            name = pg('name', '')
+#            hosts =  [ h for h in hosts if h[0] != name ] #FIXME
+            say("Host %s deleted." % name, type="success")
+            return
+        except Exception, e:
+            say("Unable to delete %s - %s" % (name, e), type="alert")
+            abort(500)
+
+@bottle.route('/hosts_new', method='POST')
+def hosts_new():
+    hostname = pg('hostname')
+    iface = pg('iface')
+    ip_addr = pg('ip_addr')
+    print hostname, iface, ip_addr
+    if hostname.startswith("test"):
+#        print repr(hosts) #FIXME
+#        hosts.append((hostname, iface, ip_addr))
+        say('Host %s added.' % hostname, type="success")
+        return {'ok': True}
+
+    say('Unable to add %s.' % hostname, type="alert")
+    return {'ok': False, 'hostname':'Must start with "test"'}
+
+
+
+@bottle.route('/networks')
+@view('networks')
+def networks():
+    return dict(networks=fs.networks)
+
+@bottle.route('/networks', method='POST')
+def networks():
+    global networks
+    action = pg('action', '')
+    name = pg('name', '')
+    if action == 'delete':
+        try:
+            networks =  [ h for h in networks if h[0] != name ]
+            say("Network %s deleted." % name, type="success")
+            return
+        except Exception, e:
+            say("Unable to delete %s - %s" % (name, e), type="alert")
+            abort(500)
+
+
+@bottle.route('/services')
+@view('services')
+def services():
+    return dict(services=fs.services)
+
+@bottle.route('/services', method='POST')
+def services():
+    global services
+    action = pg('action', '')
+    name = pg('name', '')
+    if action == 'delete':
+        try:
+            services =  [ h for h in services if h[0] != name ]
+            say("Service %s deleted." % name, type="success")
+            return
+        except Exception, e:
+            say("Unable to delete %s - %s" % (name, e), type="alert")
+            abort(500)
+
+
+# management commands
+
+@bottle.route('/manage')
+@view('manage')
+def manage():
+    return dict()
+
+@bottle.route('/saveneeded')
+def saveneeded():
+    return dict(sn=True)
+
+@bottle.route('/save', method='POST')
+def savebtn():
+    msg = pg('msg', '')
+    say('Saving configuration...')
+    say("Msg: %s" % msg)
+    say('Configuration saved.', type="success")
+    print 'woohoo'
+    return
+
+@bottle.route('/reset', method='POST')
+def resetbtn():
+    say('Configuration reset.', type="success")
+    return
+
+@bottle.route('/check', method='POST')
+def checkbtn():
+    say('Configuration check started...')
+    from time import sleep
+    sleep(4)
+    say('Configuration check successful.', type="success")
+    return
+
+@bottle.route('/deploy', method='POST')
+def deploybtn():
+    say('Configuration deployment started...')
+    say('Compiling firewall rules...')
+    try:
+        comp_rules = fs.compile()
+        for r in comp_rules:
+            say(r)
+        rd = fs.compile_dict()
+#            say(q for q in repr(rd).split('\n'))
+    except Exception, e:
+        say("Compilation failed: %s" % e,  type="alert")
         return
+    say('Configuration deployed.', type="success")
+    return
 
 
-    # serving files
+# serving files
 
-    @bottle.route('/static/:filename#[a-zA-Z0-9_\.?\/?]+#')
-    def static_file(filename):
-        if filename == '/jquery-ui.js':
-            send_file('/usr/share/javascript/jquery-ui/jquery-ui.js') #TODO: support other distros
-        elif filename == 'jquery.min.js':
-            send_file('/usr/share/javascript/jquery/jquery.min.js', root='/')
-        elif filename == 'jquery-ui.custom.css': #TODO: support version change
-            send_file('/usr/share/javascript/jquery-ui/css/smoothness/jquery-ui-1.7.2.custom.css')
+@bottle.route('/static/:filename#[a-zA-Z0-9_\.?\/?]+#')
+def static_file(filename):
+    if filename == '/jquery-ui.js':
+        send_file('/usr/share/javascript/jquery-ui/jquery-ui.js') #TODO: support other distros
+    elif filename == 'jquery.min.js':
+        send_file('/usr/share/javascript/jquery/jquery.min.js', root='/')
+    elif filename == 'jquery-ui.custom.css': #TODO: support version change
+        send_file('/usr/share/javascript/jquery-ui/css/smoothness/jquery-ui-1.7.2.custom.css')
+    else:
+        send_file(filename, root='static')
+
+@bottle.route('/favicon.ico')
+def favicon():
+    send_file('favicon.ico', root='static')
+
+
+    # authentication
+
+#    def _validate(user, pwd):
+#        if user == 'admin' and pwd == 'admin':
+#            return (True, 'admin')
+#        return False, ''
+
+@bottle.route('/login', method='POST')
+def login():
+    """ """
+
+    try:
+        s = bottle.request.environ.get('beaker.session')
+
+        print
+        print repr(s.keys())
+        print
+        if 'username' in s:  # user is authenticated <--> username is set
+            say("Already logged in as \"%s\"." % s['username'])
+            return
+
+        user = pg('user', '')
+        pwd = pg('pwd', '')
+
+        if user =='admin' and pwd == 'admin':   #TODO: setup _validate function and user management
+            role = 'admin'
+            say("%s logged in." % user, type="success")
+            print type(s)
+            s['username'] = user
+            s['role'] = role
+            print repr(s.keys())
+            s = bottle.request.environ.get('beaker.session')
+            print repr(s.keys())
+            s.save()
+            return {'logged_in': True}
         else:
-            send_file(filename, root='static')
+            say("Login denied for \"%s\"" % user, type="warning")
+            return {'logged_in': False}
 
-    @bottle.route('/favicon.ico')
-    def favicon():
-        send_file('favicon.ico', root='static')
+    except:
+        import traceback
+        traceback.print_exc()
 
-#webapp = WebApp(conf)
 
+@bottle.route('/logout')
+def logout():
+    s = bottle.request.environ.get('beaker.session')
+    if 'username' in s:
+        s.delete()
+        say('User logged out.')
+    else:
+        say('User already logged out.', type='warning')
 
 
 
@@ -287,6 +338,8 @@ def main():
                         format='%(asctime)s %(levelname)-8s %(message)s',
                         datefmt='%a, %d %b %Y %H:%M:%S')
         log.debug("Debug mode")
+        bottle.debug(True)
+        say("Firelet started in debug mode.", type="success")
         bottle_debug(True)
         reload = True
     else:
@@ -297,13 +350,18 @@ def main():
                     filename=conf.logfile,
                     filemode='w')
         reload = False
+        say("Firelet started.", type="success")
 
-    say("Firelet started.", type="success")
 
-    run(host=conf.listen_address, port=conf.listen_port, reloader=reload)
+    session_opts = {
+        'session.type': 'cookie',
+        'session.validate_key': True,
+    }
+    app = bottle.default_app()
+    app = SessionMiddleware(app, session_opts)
 
-#    log.info("Terminating daemon...")
-#    log.info("Terminated.")
+    run(app=app, host=conf.listen_address, port=conf.listen_port, reloader=reload)
+
 
 
 if __name__ == "__main__":

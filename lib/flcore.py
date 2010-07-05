@@ -9,6 +9,7 @@ from os import unlink
 from socket import inet_ntoa, inet_aton
 from struct import pack, unpack
 
+#TODO: setup _validate function and user management
 
 try:
     import json

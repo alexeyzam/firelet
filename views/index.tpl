@@ -253,11 +253,21 @@ input:hover { background: #fff}
 
     <div id="header"><div>Firelet</div></div>
     <div id="pageLogin">
-    <span><a href="/login">Login</a></span>
+
+
+
+
+
+%if not show_logout:
+    <span><a href="/login" class="loginform" rel="#loginform">Login</a></span>
+%end
+%if show_logout:
+    <span><a id="logout" href="/logout">Logout</a></span>
+%end
     </div>
     <div id="savereset">
         <span>
-            <button class="modalInput" rel="#prompt"><img src="static/save.png"  title="Save"> Save</button>
+            <button class="modalInput" rel="#savediag"><img src="static/save.png"  title="Save"> Save</button>
         </span>
         <span>
             <img src="static/reset.png" title="Reset" id="reset">
@@ -285,7 +295,7 @@ input:hover { background: #fff}
 
 
 <!-- save dialog -->
-<div class="modal" id="prompt">
+<div class="modal" id="savediag">
     <h2>Save configuration</h2>
     <p>Please insert a change description</p>
     <form>
@@ -296,6 +306,18 @@ input:hover { background: #fff}
     <br />
 </div>
 
+<!-- login dialog -->
+<div class="modal" id="loginform">
+    <h2>Login</h2>
+    <p>Please insert your credentials</p>
+    <form>
+        <input type="text" name="user" value="username" />
+        <input type="text" name="pwd" value="password" />
+        <button type="submit"> OK </button>
+        <button type="button" class="close"> Cancel </button>
+    </form>
+    <br />
+</div>
 
 <script>
 
@@ -305,42 +327,41 @@ function refresh_msg()
     $("div#msgpane").load("/messages");
 }
 
+
 $(function() {
+
+
     $("ul.css-tabs").tabs("div.css-panes > div", {effect: 'ajax', history: true});
     refresh_msg();
 
-});
 
-// Save and reset buttons
+    // Save and reset buttons
 
-$("div#savereset img[title]").tooltip({
-    tip: '.tooltip',
-    effect: 'fade',
-    fadeOutSpeed: 100,
-    predelay: 800,
-    position: "bottom right",
-    offset: [15, -30]
-});
+    $("div#savereset img[title]").tooltip({
+        tip: '.tooltip',
+        effect: 'fade',
+        fadeOutSpeed: 100,
+        predelay: 800,
+        position: "bottom right",
+        offset: [15, -30]
+    });
 
-$("div#savereset img").fadeTo("fast", 0.6);
+    $("div#savereset img").fadeTo("fast", 0.6);
 
-$("div#savereset img").hover(function() {
-  $(this).fadeTo("fast", 1);
-}, function() {
-  $(this).fadeTo("fast", 0.6);
-});
+    $("div#savereset img").hover(function() {
+      $(this).fadeTo("fast", 1);
+    }, function() {
+      $(this).fadeTo("fast", 0.6);
+    });
 
 
-$('img#reset').click(function() {
-  $.post("reset");
-  $('div#savereset').hide();
-});
+    $('img#reset').click(function() {
+      $.post("reset");
+      $('div#savereset').hide();
+    });
 
-// Save form
 
-$(function() {
-
-$(function() {
+    // Save form
 
     var triggers = $(".modalInput").overlay({
         mask: {
@@ -351,7 +372,7 @@ $(function() {
         closeOnClick: false
     });
 
-    $("#prompt form").submit(function(e) {
+    $("#savediag form").submit(function(e) {
         // close the overlay
         //triggers.eq(1).overlay().close();
         // get user input
@@ -364,18 +385,47 @@ $(function() {
         triggers.hide();
     });
 
-});
+    // Login form
+
+    var login = $(".loginform").overlay({
+        mask: {
+            color: '#ebecff',
+            loadSpeed: 200,
+            opacity: 0.9
+        },
+        closeOnClick: false
+    });
+
+    $("#loginform form").submit(function(e) {
+        // close the overlay
+        //login.eq(1).overlay().close();
+        e.preventDefault();
+        var user = $("input[name=user]", this).val();
+        var pwd = $("input[name=pwd]", this).val();
+
+        //login.eq(1).html(input);
+        $.post("login",{user: user, pwd: pwd}, function(json){
+            console.log(json);
+            if (json.logged_in === true) {
+                location.reload();
+                over.eq(0).overlay().close();
+            }
+        }, "json"
+        );
+
+    });
+
+
+    $('a#logout').click(function() {
+        $.getJSON("logout", function(json){ location.reload(); });
+
+    });
+
+
 
 });
-
-// New item button
-
-
-// New item form
 
 
 </script>
-
 </body>
-
 </html>
