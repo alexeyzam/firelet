@@ -3,6 +3,8 @@ from lib import mailer
 from lib.flcore import *
 import shutil
 
+from nose.tools import assert_raises
+
 #TODO: migration to network objects
 #TODO: parallel SSH
 #TODO: SSH check and deployment
@@ -32,6 +34,7 @@ def test_get_confs2():
     flssh.pxssh.login = flssh.pxssh.isalive = flssh.pxssh.prompt = flssh.pxssh.logout = dummy
     flssh.pxssh.sendline = dummy_sl
     d  = flssh.get_confs( [('localhost','127.0.0.1'),]  )
+
 #    assert d == {'localhost': [None, '127.0.0.1', {
 #        'filter': '-A INPUT -s 10.0.0.0/8 -p tcp -m tcp --dport 80 -j ACCEPT\n-A FORWARD -s 1.2.3.4/32 -d 5.6.7.8/32 -p tcp -m multiport --dports 22,80,443 -j ACCEPT\n-A OUTPUT -d 10.10.10.10/32 -p udp -m udp --dport 123 -j ACCEPT',
 #        'nat': '-A POSTROUTING -o eth3 -j MASQUERADE'},
@@ -43,6 +46,24 @@ def test_get_confs2():
 
 
 
+## User management testing
+
+def test_user_management():
+    shutil.rmtree('test/firewalltmp', True)
+    shutil.copytree('test/', 'test/firewalltmp')
+    u = Users(d='test/firewalltmp')
+    u.create('Totoro', 'admin', 'rawr', 'totoro@nowhere.forest')
+    assert_raises(Exception,  u.create, 'Totoro', '', '', '')
+    u.validate('Totoro', 'rawr')
+    assert_raises(Exception, u.validate, 'Totoro', 'booo')
+    u.update('Totoro', role='user')
+    assert u._users['Totoro'][0] == 'user'
+    u.update('Totoro', pwd='')
+    u.update('Totoro', email='')
+    assert u._users['Totoro'][2] == ''
+    assert_raises(Exception, u.update, 'Totoro2', 'email=""')
+    u.delete('Totoro')
+    assert_raises(Exception,  u.delete, 'Totoro')
 
 
 ## FireSet testing

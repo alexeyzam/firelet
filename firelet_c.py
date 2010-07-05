@@ -16,6 +16,10 @@ from sys import argv, exit
 #       rollback <version>
 #   check
 #   deploy
+#   user
+#       add <....>
+#       del <num>
+#       list
 #   rule
 #       add <....>
 #       del <num>
@@ -37,8 +41,12 @@ def help():
     print """
     Firelet CLI
 
-    Command:
+    Commands:
 
+    user    - web interface user management
+        list
+        add  <login> <role>
+        del <num>
     save    - save the current configuration
     reset   - revert the configuration to the last saved state
     version

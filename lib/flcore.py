@@ -54,13 +54,11 @@ def savecsv(n, stuff, d='firewall'):
 # JSON files
 
 def loadjson(n, d='firewall'):
-    try:
-        f = open("%s/%s.json" % (d, n))
-        s = f.read()
-        f.close()
-        return json.loads(s)
-    except IOError:
-        return []
+    f = open("%s/%s.json" % (d, n))
+    s = f.read()
+    f.close()
+    return json.loads(s)
+
 
 def savejson(n, obj, d='firewall'):
     s = json.dumps(obj)
@@ -474,3 +472,69 @@ COMMIT
 -A INPUT -s 3.3.3.3/32 -j ACCEPT
 COMMIT
 """
+
+
+
+
+# #  User management  # #
+
+class Users(object):
+    """User management, with password hashing.
+    users = {'username': ['role','pwdhash','email'], ... }
+    """
+
+    def __init__(self, d=''):
+        self._dir = d
+        try:
+            self._users = loadjson('users', d=d)
+        except:
+            self._users = {} #TODO: raise alert?
+
+    def _save(self):
+        savejson('users', self._users, d=self._dir)
+
+    def _hash(self, username):
+        return username
+
+    def create(self, username, role, pwd, email=None):
+        assert username, "Username must be provided."
+        assert username not in self._users, "User already exists."
+        self._users[username] = [role, self._hash(pwd), email]
+        self._save()
+
+    def update(self, username, role=None, pwd=None, email=None):
+        assert username in self._users, "Non existing user."
+        if role is not None:
+            self._users[username][0] = role
+        if pwd is not None:
+            self._users[username][1] = self._hash(pwd)
+        if email is not None:
+            self._users[username][2] = email
+        self._save()
+
+    def delete(self, username):
+        try:
+            self._users.pop(username)
+        except KeyError:
+            raise Exception, "Non existing user."
+        self._save()
+
+    def validate(self, username, pwd):
+        assert username, "Missing username."
+        assert username in self._users, "Non existing user."
+        assert self._hash(pwd) == self._users[username][1], "Incorrect password."
+        #TODO: should I return True?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
