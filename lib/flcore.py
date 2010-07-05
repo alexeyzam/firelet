@@ -167,7 +167,7 @@ class FireSet(object):
     # editing methods
 
     def delete(self, table, rid):
-        assert table in ('rules', 'hosts', 'hostgroups', 'services', 'network') ,  "TODO"
+        assert table in ('rules', 'hosts', 'hostgroups', 'services', 'network') ,  "Incorrect table name."
         return self.__dict__[table].pop(rid) #FIXME: not returning
 
     def rule_moveup(self, rid):

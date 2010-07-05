@@ -37,7 +37,64 @@ def say(s, type='info'):
 def pg(name, default=''):
     return request.POST.get(name, default).strip()
 
-# web services
+
+# # #  web services  # # #
+
+
+# #  authentication  # #
+
+#    def _validate(user, pwd):
+#        if user == 'admin' and pwd == 'admin':
+#            return (True, 'admin')
+#        return False, ''
+
+def _require(role='auth'):
+    """Ensure the user has admin role or is authenticated at least"""
+    s = bottle.request.environ.get('beaker.session')
+    if not s:
+        say("User needs to be authenticated.", type="warning") #TODO: not really explanatory in a multiuser session.
+        raise Exception, "User needs to be authenticated."
+    if role == 'auth': return
+    myrole = s.get('role', '')
+    if myrole == role: return
+    say("A %s account is required." % repr(role))
+    raise Exception
+
+
+
+@bottle.route('/login', method='POST')
+def login():
+    """ """
+    s = bottle.request.environ.get('beaker.session')
+    if 'username' in s:  # user is authenticated <--> username is set
+        say("Already logged in as \"%s\"." % s['username'])
+        return
+    user = pg('user', '')
+    pwd = pg('pwd', '')
+    if user =='admin' and pwd == 'admin':   #TODO: setup _validate function and user management
+        role = 'admin'
+        say("%s logged in." % user, type="success")
+        s['username'] = user
+        s['role'] = role
+        s = bottle.request.environ.get('beaker.session')
+        s.save()
+        return {'logged_in': True}
+    else:
+        say("Login denied for \"%s\"" % user, type="warning")
+        return {'logged_in': False}
+
+
+
+@bottle.route('/logout')
+def logout():
+    s = bottle.request.environ.get('beaker.session')
+    if 'username' in s:
+        s.delete()
+        say('User logged out.')
+    else:
+        say('User already logged out.', type='warning')
+
+
 #
 #class WebApp(object):
 #
@@ -73,6 +130,7 @@ def ruleset():
 @bottle.route('/ruleset', method='POST')
 def ruleset():
     global fs
+    _require('admin')
     action = pg('action', '')
     name = pg('name', '')
     rid = int(pg('rid', '-1'))
@@ -112,6 +170,7 @@ def hostgroups():
 
 @bottle.route('/hostgroups', method='POST')
 def hostgroups():
+    _require('admin')
     action = pg('action', '')
     name = pg('name', '')  #FIXME: move all tables to the new delete-by-rid method
     if action == 'delete':
@@ -132,6 +191,7 @@ def hosts():
 
 @bottle.route('/hosts', method='POST')
 def hosts():
+    _require('admin')
     action = pg('action', '')
     if action == 'delete':
         try:
@@ -145,6 +205,7 @@ def hosts():
 
 @bottle.route('/hosts_new', method='POST')
 def hosts_new():
+    _require('admin')
     hostname = pg('hostname')
     iface = pg('iface')
     ip_addr = pg('ip_addr')
@@ -168,6 +229,7 @@ def networks():
 @bottle.route('/networks', method='POST')
 def networks():
     global networks
+    _require('admin')
     action = pg('action', '')
     name = pg('name', '')
     if action == 'delete':
@@ -187,6 +249,7 @@ def services():
 
 @bottle.route('/services', method='POST')
 def services():
+    _require('admin')
     global services
     action = pg('action', '')
     name = pg('name', '')
@@ -213,6 +276,7 @@ def saveneeded():
 
 @bottle.route('/save', method='POST')
 def savebtn():
+    _require('admin')
     msg = pg('msg', '')
     say('Saving configuration...')
     say("Msg: %s" % msg)
@@ -222,19 +286,20 @@ def savebtn():
 
 @bottle.route('/reset', method='POST')
 def resetbtn():
+    _require('admin')
     say('Configuration reset.', type="success")
     return
 
 @bottle.route('/check', method='POST')
 def checkbtn():
+    _require('admin')
     say('Configuration check started...')
-    from time import sleep
-    sleep(4)
     say('Configuration check successful.', type="success")
     return
 
 @bottle.route('/deploy', method='POST')
 def deploybtn():
+    _require('admin')
     say('Configuration deployment started...')
     say('Compiling firewall rules...')
     try:
@@ -268,58 +333,7 @@ def favicon():
     send_file('favicon.ico', root='static')
 
 
-    # authentication
 
-#    def _validate(user, pwd):
-#        if user == 'admin' and pwd == 'admin':
-#            return (True, 'admin')
-#        return False, ''
-
-@bottle.route('/login', method='POST')
-def login():
-    """ """
-
-    try:
-        s = bottle.request.environ.get('beaker.session')
-
-        print
-        print repr(s.keys())
-        print
-        if 'username' in s:  # user is authenticated <--> username is set
-            say("Already logged in as \"%s\"." % s['username'])
-            return
-
-        user = pg('user', '')
-        pwd = pg('pwd', '')
-
-        if user =='admin' and pwd == 'admin':   #TODO: setup _validate function and user management
-            role = 'admin'
-            say("%s logged in." % user, type="success")
-            print type(s)
-            s['username'] = user
-            s['role'] = role
-            print repr(s.keys())
-            s = bottle.request.environ.get('beaker.session')
-            print repr(s.keys())
-            s.save()
-            return {'logged_in': True}
-        else:
-            say("Login denied for \"%s\"" % user, type="warning")
-            return {'logged_in': False}
-
-    except:
-        import traceback
-        traceback.print_exc()
-
-
-@bottle.route('/logout')
-def logout():
-    s = bottle.request.environ.get('beaker.session')
-    if 'username' in s:
-        s.delete()
-        say('User logged out.')
-    else:
-        say('User already logged out.', type='warning')
 
 
 

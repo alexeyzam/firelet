@@ -71,7 +71,6 @@ ul.css-tabs a.current {
 #pageLogin
 {
     font-size: 10px;
-    font-family: verdana;
     text-align: right;
 }
 
@@ -129,14 +128,6 @@ a.link, a, a.active {
   margin: 0 auto 2px auto;
 }
 
-.code {
-  font-family: monospace;
-}
-
-span.code {
-  font-weight: bold;
-  background: #eee;
-}
 
 #status_block {
   margin: 0 auto 0.5em auto;
