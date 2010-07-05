@@ -13,9 +13,10 @@ from time import time, sleep, localtime
 
 from lib.confreader import ConfReader
 from lib import mailer
-from lib.flcore import FireSet, GitFireSet, DumbFireSet
+from lib.flcore import FireSet, GitFireSet, DumbFireSet, Users
 
 fs = DumbFireSet()
+users = Users(d='firewall')
 
 #TODO: HG, H, N, Rule, Service creation
 #TODO: Rule up/down move
@@ -71,16 +72,17 @@ def login():
         return
     user = pg('user', '')
     pwd = pg('pwd', '')
-    if user =='admin' and pwd == 'admin':   #TODO: setup _validate function and user management
-        role = 'admin'
-        say("%s logged in." % user, type="success")
+    try:
+        users.validate(user, pwd)
+        role = users._users[user][0]
+        say("User %s with role %s logged in." % (user, role), type="success")
         s['username'] = user
         s['role'] = role
         s = bottle.request.environ.get('beaker.session')
         s.save()
         return {'logged_in': True}
-    else:
-        say("Login denied for \"%s\"" % user, type="warning")
+    except Exception, e:
+        say("Login denied for \"%s\": %s" % (user, e), type="warning")
         return {'logged_in': False}
 
 

@@ -1,6 +1,7 @@
 import csv
 import git
 
+from hashlib import sha512
 from collections import defaultdict
 from git import InvalidGitRepositoryError, NoSuchPathError
 from itertools import product
@@ -478,6 +479,8 @@ COMMIT
 
 # #  User management  # #
 
+#TODO: add creation and last access date?
+
 class Users(object):
     """User management, with password hashing.
     users = {'username': ['role','pwdhash','email'], ... }
@@ -493,13 +496,13 @@ class Users(object):
     def _save(self):
         savejson('users', self._users, d=self._dir)
 
-    def _hash(self, username):
-        return username
+    def _hash(self, u, pwd): #TODO: should I add salting?
+        return sha512("%s:::%s" % (u, pwd)).hexdigest()
 
     def create(self, username, role, pwd, email=None):
         assert username, "Username must be provided."
         assert username not in self._users, "User already exists."
-        self._users[username] = [role, self._hash(pwd), email]
+        self._users[username] = [role, self._hash(username, pwd), email]
         self._save()
 
     def update(self, username, role=None, pwd=None, email=None):
@@ -507,7 +510,7 @@ class Users(object):
         if role is not None:
             self._users[username][0] = role
         if pwd is not None:
-            self._users[username][1] = self._hash(pwd)
+            self._users[username][1] = self._hash(username, pwd)
         if email is not None:
             self._users[username][2] = email
         self._save()
@@ -522,7 +525,7 @@ class Users(object):
     def validate(self, username, pwd):
         assert username, "Missing username."
         assert username in self._users, "Non existing user."
-        assert self._hash(pwd) == self._users[username][1], "Incorrect password."
+        assert self._hash(username, pwd) == self._users[username][1], "Incorrect password."
         #TODO: should I return True?
 
 
