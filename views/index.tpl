@@ -359,6 +359,12 @@ $(function() {
 
     // Save and reset buttons
 
+    $("div#savereset").hide();
+
+    $.getJSON("save_needed", function(json){
+        if (json.sn === true) $("div#savereset").show();
+    });
+
     $("div#savereset img[title]").tooltip({
         tip: '.tooltip',
         effect: 'fade',

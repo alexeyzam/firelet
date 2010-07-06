@@ -199,9 +199,9 @@ class FireSet(object):
     # deployment-related methods
 
     #
-    # The hostgroups are flattened, then the firewall rules are compiled into a big list of iptables commands.
-    # Firelet connects to the firewalls and fetch the iptables status and the existing interfaces (name, ip_addr, netmask)
-    # Based on this, the list is split in many sets - one for each firewall.
+    # 1) The hostgroups are flattened, then the firewall rules are compiled into a big list of iptables commands.
+    # 2) Firelet connects to the firewalls and fetch the iptables status and the existing interfaces (name, ip_addr, netmask)
+    # 3) Based on this, the list is split in many sets - one for each firewall.
 
     #TODO: save the new configuration for each host and provide versioning.
     # Before deployment, compare the old (versioned), current (on the host) and new configuration for each firewall.
@@ -219,6 +219,8 @@ class FireSet(object):
 
     def compile(self):
         """Compile iptables rules to be deployed in a single, big list. During the compilation many checks are performed."""
+
+        assert not self.save_needed(), "Configuration must be saved before deployment."
 
         for rule in self.rules:
             assert rule[0] in ('y', 'n'), 'First field must be "y" or "n" in %s' % repr(rule)
@@ -314,6 +316,7 @@ class FireSet(object):
 
     def compile_dict(self, hosts=None, rset=None):
         """Generate set of rules specific for each host"""
+        assert not self.save_needed(), "Configuration must be saved before deployment."
         if not hosts: hosts = self.hosts
         if not rset: rset = self.compile()
         # r[hostname][interface] = [rule, rule, ... ]
@@ -327,6 +330,13 @@ class FireSet(object):
                 rd[hostname][iface] = [myrules, ]
 
         return rd
+
+    def deploy(self):
+        """  """
+        assert not self.save_needed(), "Configuration must be saved before deployment."
+        # TODO: perform every step
+        comp_rules = self.compile()
+        rd = self.compile_dict()
 
 
 
@@ -343,13 +353,17 @@ class DumbFireSet(FireSet):
 
     def _put_lock(self):
         open("%s/lock" % self._repodir, 'w').close()
+        print
+        print 'locking'
+        print
 
-    def save(self):
+    def save(self, msg):
         """Mem to disk"""
-        if not self.save_needed(): return
+        if not self.save_needed(): return False  #TODO: handle commit message
         for table in ('rules', 'hosts', 'hostgroups', 'services', 'networks'):
             savecsv(table, self.__dict__[table], d=self._repodir)
         unlink("%s/lock" % self._repodir)
+        return True
 
     def save_needed(self):
         try:

@@ -15,9 +15,6 @@ from lib.confreader import ConfReader
 from lib import mailer
 from lib.flcore import FireSet, GitFireSet, DumbFireSet, Users
 
-fs = DumbFireSet()
-users = Users(d='firewall')
-
 #TODO: HG, H, N, Rule, Service creation
 #TODO: Rule up/down move
 #TODO: say() as a custom log target
@@ -32,8 +29,16 @@ def say(s, type='info'):
         type = 'alert'
     ts = datetime.now().strftime("%H:%M:%S")
     msg_list.append((type, ts, s))
-    if len(msg_list) > 20:
+    if len(msg_list) > 40:
         msg_list.pop(0)
+
+
+fs = DumbFireSet()
+say("Configuration loaded.")
+say("%d hosts, %d rules, %d networks loaded." % (len(fs.hosts), len(fs.rules), len(fs.networks)))
+
+users = Users(d='firewall')
+
 
 def pg(name, default=''):
     return request.POST.get(name, default).strip()
@@ -272,30 +277,39 @@ def services():
 def manage():
     return dict()
 
-@bottle.route('/saveneeded')
-def saveneeded():
-    return dict(sn=True)
+@bottle.route('/save_needed')
+def save_needed():
+    return {'sn': fs.save_needed()}
 
 @bottle.route('/save', method='POST')
 def savebtn():
     _require('admin')
     msg = pg('msg', '')
+    if not fs.save_needed():
+        say('Save not needed.', type="warning")
+        return
     say('Saving configuration...')
-    say("Msg: %s" % msg)
-    say('Configuration saved.', type="success")
-    print 'woohoo'
-    return
+    say("Commit msg: \"%s\"" % msg)
+    saved = fs.save(msg)
+    if saved:
+        say('Configuration saved.', type="success")
+        return
 
 @bottle.route('/reset', method='POST')
 def resetbtn():
     _require('admin')
+    if not fs.save_needed():
+        say('Reset not needed.', type="warning")
+        return
+    say("Resetting configuration changes...")
+    fs.reset()
     say('Configuration reset.', type="success")
     return
 
 @bottle.route('/check', method='POST')
 def checkbtn():
     _require('admin')
-    say('Configuration check started...')
+    say('Configuration check started...')   #TODO
     say('Configuration check successful.', type="success")
     return
 
@@ -305,11 +319,7 @@ def deploybtn():
     say('Configuration deployment started...')
     say('Compiling firewall rules...')
     try:
-        comp_rules = fs.compile()
-        for r in comp_rules:
-            say(r)
-        rd = fs.compile_dict()
-#            say(q for q in repr(rd).split('\n'))
+        fs.deploy()
     except Exception, e:
         say("Compilation failed: %s" % e,  type="alert")
         return
