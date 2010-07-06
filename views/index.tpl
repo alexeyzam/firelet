@@ -58,7 +58,7 @@ ul.css-tabs a.current {
 
 
 /* tab pane */
-.css-panes div {
+.tabpane div {
     display:none;
     border:1px solid #666;
     border-width:0 1px 1px 1px;
@@ -71,6 +71,7 @@ ul.css-tabs a.current {
 #pageLogin
 {
     font-size: 10px;
+    font-family: verdana;
     text-align: right;
 }
 
@@ -128,23 +129,13 @@ a.link, a, a.active {
   margin: 0 auto 2px auto;
 }
 
-
-#status_block {
-  margin: 0 auto 0.5em auto;
-  padding: 15px 10px 15px 55px;
-  background: #cec URL('../images/ok.png') left center no-repeat;
-  border: 1px solid #9c9;
-  width: 450px;
-  font-size: 120%;
-  font-weight: bolder;
+.code {
+  font-family: monospace;
 }
 
-.notice {
-  margin: 0.5em auto 0.5em auto;
-  padding: 15px 10px 15px 55px;
-  width: 450px;
-  background: #eef URL('../images/info.png') left center no-repeat;
-  border: 1px solid #cce;
+span.code {
+  font-weight: bold;
+  background: #eee;
 }
 
 .fielderror {
@@ -238,7 +229,35 @@ input {
 
 input:hover { background: #fff}
 
+// Message pane
+div#msgpane {
+    height:10em;
+    overflow:auto;
+}
+div#msgslot {
+    height:10em;
+    overflow:auto;
+}
+
+table#msgs tr td.hea {
+    width: 20px;
+    vertical-align:middle;
+}
+table#msgs tr td.ts { width: 5em; }
+
+div#gradient {
+ border-top: 1px solid #ccc;
+  position: relative;
+  top: 15px;
+  height: 15px;
+  width: 100%;
+  background: url('static/gradient.png') repeat-x;
+  z-index: 4000;
+}
+
+
 </style>
+
 </head>
 <body>
 
@@ -275,9 +294,15 @@ input:hover { background: #fff}
         <li><a href="monitor">Monitor</a></li>
     </ul>
 
-    <div class="css-panes"><div style="display:block"></div></div>
+    <div class="tabpane"><div style="display:block"></div></div>
 
-    <div id="msgpane"></div>
+    <div id="msgpane">
+        <div id="gradient"></div>
+        <div id="msgslot">
+            <table id="msgs">
+            </table>
+        </div>
+    </div>
 
     <div id="footer">
         <p>Distributed firewall management</p>
@@ -315,15 +340,21 @@ input:hover { background: #fff}
 function refresh_msg()
 {
     setTimeout("refresh_msg()",2000);
-    $("div#msgpane").load("/messages");
+    t = $("div#msgslot").scrollTop();
+    th = $("table#msgs").height();
+    delta = th - t - 100;
+    if (delta < 10) { $("table#msgs").load("/messages"); }
 }
 
 
 $(function() {
 
-
-    $("ul.css-tabs").tabs("div.css-panes > div", {effect: 'ajax', history: true});
+    $("ul.css-tabs").tabs("div.tabpane > div", {effect: 'ajax', history: true});
     refresh_msg();
+
+    setTimeout(function() {
+        $("div#msgslot").scrollTop(1000);
+    },500);
 
 
     // Save and reset buttons
@@ -412,11 +443,10 @@ $(function() {
 
     });
 
-
-
 });
 
 
 </script>
 </body>
+
 </html>

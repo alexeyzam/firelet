@@ -4,7 +4,7 @@
 <br/>
 <button id="deploy" rel="#prompt"><img src="static/deploy.png"  title="Deploy"> Deploy</button>
 <style>
-div.css-panes div button {
+div.tabpane div button {
     width: 6em;
     padding: 1px;
 }

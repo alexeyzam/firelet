@@ -63,7 +63,7 @@ $(function() {
         $('.tooltip').hide();
         $.post("ruleset", { action: action, name: name, rid: td.id},
             function(data){
-                $('div.css-panes div').load('/ruleset');
+                $('div.tabpane div').load('/ruleset');
             });
     });
 });
