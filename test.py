@@ -74,7 +74,7 @@ def test_gitfireset():
     fs = GitFireSet(repodir='test/firewalltmp')
     return #FIXME
     assert fs.save_needed() == False
-    fs.save()
+    fs.save('test')
     assert fs.save_needed() == False
     fs.reset()
     assert fs.save_needed() == False
@@ -87,7 +87,7 @@ def test_gitfireset():
         tmp = len(fs.__dict__[t])
         assert fs.save_needed() == True
         assert tmp == len(fs.__dict__[t]) - 1
-    fs.save()
+    fs.save('test')
     assert fs.save_needed() == False
     tmp = fs.rules
     fs.rule_moveup(2)
@@ -104,7 +104,7 @@ def test_dumbfireset():
     shutil.copytree('test/', 'test/firewalltmp')
     fs = DumbFireSet(repodir='test/firewalltmp')
     assert fs.save_needed() == False
-    fs.save()
+    fs.save('save')
     assert fs.save_needed() == False
     fs.reset()
     assert fs.save_needed() == False
@@ -117,7 +117,7 @@ def test_dumbfireset():
         fs.delete(t, 0)
         assert fs.save_needed() == True, t
         assert tmp == len(fs.__dict__[t]) + 1, t
-    fs.save()
+    fs.save('test')
     assert fs.save_needed() == False
     orig_rules = fs.rules[:] # copy
     fs.rule_moveup(2)

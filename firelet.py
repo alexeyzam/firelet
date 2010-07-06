@@ -127,7 +127,10 @@ def index():
         title = 'test'
     return dict(msg=msg, title=title, show_logout=show_logout)
 
-# tables interaction
+# #  tables interaction  # #
+#
+# GETs are used to list contents
+# POSTs are used to make changes
 
 @bottle.route('/ruleset')
 @view('ruleset')
@@ -145,6 +148,8 @@ def ruleset():
     #TODO: rewrite this using OO  Rule() ?
     if action == 'delete':
         try:
+            print
+            print repr(rid)
             bye = fs.delete('rules', rid)
             print type(bye) #FIXME
             say("Rule %d \"%s\" deleted." % (rid, bye[1]), type="success")

@@ -351,11 +351,10 @@ class DumbFireSet(FireSet):
         self.services = loadcsv('services', d=self._repodir)
         self.networks = loadcsv('networks', d=self._repodir)
 
+#TODO: save_needed could become a bool attribute with getter and setter
+
     def _put_lock(self):
         open("%s/lock" % self._repodir, 'w').close()
-        print
-        print 'locking'
-        print
 
     def save(self, msg):
         """Mem to disk"""
