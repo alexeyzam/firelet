@@ -9,7 +9,6 @@ from os import unlink
 from socket import inet_ntoa, inet_aton
 from struct import pack, unpack
 
-#TODO: setup _validate function and user management
 
 try:
     import json
@@ -303,11 +302,11 @@ class FireSet(object):
         from flssh import get_confs
         #TODO: use management IP addrs
         hs = ((n, addr) for n, iface, addr in self.hosts)
-        self.confs = get_confs(hs)
+        self._remote_confs = get_confs(hs)
 
     def _check_ifaces(self):
         """Ensure that the interfaces configured on the hosts match the contents of the host table"""
-        confs = self.confs
+        confs = self._remote_confs
         for name,iface,ipa in self.hosts:
             if not name in confs:
                 raise Exception, "Host %s not available." % name
@@ -327,7 +326,9 @@ class FireSet(object):
 
 
     def compile_dict(self, hosts=None, rset=None):
-        """Generate set of rules specific for each host"""
+        """Generate set of rules specific for each host.
+
+        """
         assert not self.save_needed(), "Configuration must be saved before deployment."
         if not hosts: hosts = self.hosts
         if not rset: rset = self.compile()
@@ -340,7 +341,7 @@ class FireSet(object):
                 rd[hostname][iface].append(myrules)
             else:
                 rd[hostname][iface] = [myrules, ]
-
+        print repr(rd)
         return rd
 
     def deploy(self):
@@ -348,7 +349,12 @@ class FireSet(object):
         assert not self.save_needed(), "Configuration must be saved before deployment."
         # TODO: perform every step
         comp_rules = self.compile()
-        rd = self.compile_dict()
+        self._get_confs
+        self._check_ifaces
+        self.rd = self.compile_dict()
+
+#        self._deliver_confs()
+#        self._apply_remote_confs()
 
 
 

@@ -23,12 +23,12 @@ from lib.flcore import FireSet, GitFireSet, DumbFireSet, Users
 
 msg_list = []
 
-def say(s, type='info'):
-    """type can be: info, warning, alert"""
-    if type == 'error':
-        type = 'alert'
+def say(s, level='info'):
+    """level can be: info, warning, alert"""
+    if level == 'error':
+        level = 'alert'
     ts = datetime.now().strftime("%H:%M:%S")
-    msg_list.append((type, ts, s))
+    msg_list.append((level, ts, s))
     if len(msg_list) > 40:
         msg_list.pop(0)
 
@@ -58,7 +58,7 @@ def _require(role='auth'):
     """Ensure the user has admin role or is authenticated at least"""
     s = bottle.request.environ.get('beaker.session')
     if not s:
-        say("User needs to be authenticated.", type="warning") #TODO: not really explanatory in a multiuser session.
+        say("User needs to be authenticated.", level="warning") #TODO: not really explanatory in a multiuser session.
         raise Exception, "User needs to be authenticated."
     if role == 'auth': return
     myrole = s.get('role', '')
@@ -80,14 +80,14 @@ def login():
     try:
         users.validate(user, pwd)
         role = users._users[user][0]
-        say("User %s with role %s logged in." % (user, role), type="success")
+        say("User %s with role %s logged in." % (user, role), level="success")
         s['username'] = user
         s['role'] = role
         s = bottle.request.environ.get('beaker.session')
         s.save()
         return {'logged_in': True}
     except Exception, e:
-        say("Login denied for \"%s\": %s" % (user, e), type="warning")
+        say("Login denied for \"%s\": %s" % (user, e), level="warning")
         return {'logged_in': False}
 
 
@@ -99,7 +99,7 @@ def logout():
         s.delete()
         say('User logged out.')
     else:
-        say('User already logged out.', type='warning')
+        say('User already logged out.', level='warning')
 
 
 #
@@ -152,10 +152,10 @@ def ruleset():
             print repr(rid)
             bye = fs.delete('rules', rid)
             print type(bye) #FIXME
-            say("Rule %d \"%s\" deleted." % (rid, bye[1]), type="success")
+            say("Rule %d \"%s\" deleted." % (rid, bye[1]), level="success")
             return
         except Exception, e:
-            say("Unable to delete rule %s - %s" % (name, e), type="alert")
+            say("Unable to delete rule %s - %s" % (name, e), level="alert")
             abort(500)
     elif action == 'moveup':
         try:
@@ -188,10 +188,10 @@ def hostgroups():
     if action == 'delete':
         try:
             hostgroups =  [ h for h in hostgroups if h[0] != name ]
-            say("Host Group %s deleted." % name, type="success")
+            say("Host Group %s deleted." % name, level="success")
             return
         except Exception, e:
-            say("Unable to delete %s - %s" % (name, e), type="alert")
+            say("Unable to delete %s - %s" % (name, e), level="alert")
             abort(500)
 
 
@@ -209,10 +209,10 @@ def hosts():
         try:
             name = pg('name', '')
 #            hosts =  [ h for h in hosts if h[0] != name ] #FIXME
-            say("Host %s deleted." % name, type="success")
+            say("Host %s deleted." % name, level="success")
             return
         except Exception, e:
-            say("Unable to delete %s - %s" % (name, e), type="alert")
+            say("Unable to delete %s - %s" % (name, e), level="alert")
             abort(500)
 
 @bottle.route('/hosts_new', method='POST')
@@ -225,10 +225,10 @@ def hosts_new():
     if hostname.startswith("test"):
 #        print repr(hosts) #FIXME
 #        hosts.append((hostname, iface, ip_addr))
-        say('Host %s added.' % hostname, type="success")
+        say('Host %s added.' % hostname, level="success")
         return {'ok': True}
 
-    say('Unable to add %s.' % hostname, type="alert")
+    say('Unable to add %s.' % hostname, level="alert")
     return {'ok': False, 'hostname':'Must start with "test"'}
 
 
@@ -247,10 +247,10 @@ def networks():
     if action == 'delete':
         try:
             networks =  [ h for h in networks if h[0] != name ]
-            say("Network %s deleted." % name, type="success")
+            say("Network %s deleted." % name, level="success")
             return
         except Exception, e:
-            say("Unable to delete %s - %s" % (name, e), type="alert")
+            say("Unable to delete %s - %s" % (name, e), level="alert")
             abort(500)
 
 
@@ -268,10 +268,10 @@ def services():
     if action == 'delete':
         try:
             services =  [ h for h in services if h[0] != name ]
-            say("Service %s deleted." % name, type="success")
+            say("Service %s deleted." % name, level="success")
             return
         except Exception, e:
-            say("Unable to delete %s - %s" % (name, e), type="alert")
+            say("Unable to delete %s - %s" % (name, e), level="alert")
             abort(500)
 
 
@@ -291,31 +291,31 @@ def savebtn():
     _require('admin')
     msg = pg('msg', '')
     if not fs.save_needed():
-        say('Save not needed.', type="warning")
+        say('Save not needed.', level="warning")
         return
     say('Saving configuration...')
     say("Commit msg: \"%s\"" % msg)
     saved = fs.save(msg)
     if saved:
-        say('Configuration saved.', type="success")
+        say('Configuration saved.', level="success")
         return
 
 @bottle.route('/reset', method='POST')
 def resetbtn():
     _require('admin')
     if not fs.save_needed():
-        say('Reset not needed.', type="warning")
+        say('Reset not needed.', level="warning")
         return
     say("Resetting configuration changes...")
     fs.reset()
-    say('Configuration reset.', type="success")
+    say('Configuration reset.', level="success")
     return
 
 @bottle.route('/check', method='POST')
 def checkbtn():
     _require('admin')
     say('Configuration check started...')   #TODO
-    say('Configuration check successful.', type="success")
+    say('Configuration check successful.', level="success")
     return
 
 @bottle.route('/deploy', method='POST')
@@ -326,9 +326,14 @@ def deploybtn():
     try:
         fs.deploy()
     except Exception, e:
-        say("Compilation failed: %s" % e,  type="alert")
+        say("Compilation failed: %s" % e,  level="alert")
         return
-    say('Configuration deployed.', type="success")
+    #TODO: remove this
+    for h, x in fs.rd.iteritems():
+        for y in x.values():
+            for line in y[0]:
+                say(h + "  " + line)
+    say('Configuration deployed.', level="success")
     return
 
 
@@ -377,7 +382,7 @@ def main():
                         datefmt='%a, %d %b %Y %H:%M:%S')
         log.debug("Debug mode")
         bottle.debug(True)
-        say("Firelet started in debug mode.", type="success")
+        say("Firelet started in debug mode.", level="success")
         bottle_debug(True)
         reload = True
     else:
@@ -388,7 +393,7 @@ def main():
                     filename=conf.logfile,
                     filemode='w')
         reload = False
-        say("Firelet started.", type="success")
+        say("Firelet started.", level="success")
 
 
     session_opts = {
