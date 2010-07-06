@@ -17,6 +17,19 @@ try:
 except ImportError:
     import simplejson as json
 
+try:
+    from itertools import product
+except ImportError:
+    def product(*args, **kwds):
+        """List cartesian product - not available in Python 2.5"""
+        pools = map(tuple, args) * kwds.get('repeat', 1)
+        result = [[]]
+        for pool in pools:
+            result = [x+[y] for x in result for y in pool]
+        for prod in result:
+            yield tuple(prod)
+
+
 protocols = ['IP','TCP', 'UDP', 'OSPF', 'IS-IS', 'SCTP', 'AH', 'ESP']
 
 #files handling

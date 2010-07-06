@@ -244,5 +244,33 @@ def test_json_files():
     nd = loadjson('jfile', d='test/firewalltmp')
     assert d == nd
 
-if __name__ == '__main__':
-    test_get_confs2()
+# #  Test cartesian product  # #
+
+def test_product_2_6():
+    from itertools import product
+
+    assert tuple(product([1,2,3,4,5,'O HI'],['a','b','c','d',42])) == (
+        (1, 'a'), (1, 'b'), (1, 'c'), (1, 'd'), (1, 42), (2, 'a'), (2, 'b'), (2, 'c'), (2, 'd'), (2, 42),
+        (3, 'a'), (3, 'b'), (3, 'c'), (3, 'd'), (3, 42), (4, 'a'), (4, 'b'), (4, 'c'), (4, 'd'), (4, 42),
+        (5, 'a'), (5, 'b'), (5, 'c'), (5, 'd'), (5, 42), ('O HI', 'a'), ('O HI', 'b'), ('O HI', 'c'),
+        ('O HI', 'd'), ('O HI', 42))
+
+
+def test_product_2_5():
+
+    def product(*args, **kwds):
+        """List cartesian product - not available in Python 2.5"""
+        pools = map(tuple, args) * kwds.get('repeat', 1)
+        result = [[]]
+        for pool in pools:
+            result = [x+[y] for x in result for y in pool]
+        for prod in result:
+            yield tuple(prod)
+
+    assert tuple(product([1,2,3,4,5,'O HI'],['a','b','c','d',42])) == (
+        (1, 'a'), (1, 'b'), (1, 'c'), (1, 'd'), (1, 42), (2, 'a'), (2, 'b'), (2, 'c'), (2, 'd'), (2, 42),
+        (3, 'a'), (3, 'b'), (3, 'c'), (3, 'd'), (3, 42), (4, 'a'), (4, 'b'), (4, 'c'), (4, 'd'), (4, 42),
+        (5, 'a'), (5, 'b'), (5, 'c'), (5, 'd'), (5, 42), ('O HI', 'a'), ('O HI', 'b'), ('O HI', 'c'),
+        ('O HI', 'd'), ('O HI', 42))
+
+
