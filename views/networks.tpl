@@ -11,8 +11,8 @@
     <thead>
         <tr><th></th><th>Name</th><th>Network</th><th>Netmask</th></tr>
     </thead>
-% for network in networks:
-    <tr>
+% for rid, network in networks:
+    <tr id="{{rid}}">
     <td class="hea">
         <img src="/static/delete.png" title="Delete network" class="delete">
     </td>
@@ -45,11 +45,9 @@ $("table#items tr td img").hover(function() {
 $(function() {
     $('img.delete').click(function() {
         td = this.parentElement.parentElement;
-        name = td.children[1].innerText;
-        $.post("networks", { action: 'delete', name: name},
+        $.post("networks", { action: 'delete', rid: td.id},
             function(data){
-                $(td).remove();
-                $('.tooltip').hide();
+                $('div.tabpane div').load('/networks');
             });
     });
 });

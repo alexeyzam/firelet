@@ -9,8 +9,8 @@
 </style>
 
 <table id="items">
-% for hostgroup in hostgroups:
-    <tr>
+% for rid, hostgroup in hostgroups:
+    <tr id="{{rid}}">
     <td class="hea">
         <img src="/static/delete.png" title="Delete host group" class="delete">
     </td>
@@ -43,11 +43,9 @@ $("table#items tr td img").hover(function() {
 $(function() {
     $('img.delete').click(function() {
         td = this.parentElement.parentElement;
-        name = td.children[1].innerText;
-        $.post("hostgroups", { action: 'delete', name: name},
+        $.post("hostgroups", { action: 'delete', rid: td.id},
             function(data){
-                $(td).remove();
-                $('.tooltip').hide();
+                $('div.tabpane div').load('/hostgroups');
             });
     });
 });

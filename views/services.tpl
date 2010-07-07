@@ -11,8 +11,8 @@
     <thead>
         <tr><th></th><th>Name</th><th>Protocol</th><th>Ports</th></tr>
     </thead>
-% for service in services:
-    <tr>
+% for rid, service in services:
+    <tr id="{{rid}}">
     <td class="hea">
         <img src="/static/delete.png" title="Delete service" class="delete">
     </td>
@@ -45,11 +45,9 @@ $("table#items tr td img").hover(function() {
 $(function() {
     $('img.delete').click(function() {
         td = this.parentElement.parentElement;
-        name = td.children[1].innerText;
-        $.post("services", { action: 'delete', name: name},
+        $.post("services", { action: 'delete', rid: td.id},
             function(data){
-                $(td).remove();
-                $('.tooltip').hide();
+                $('div.tabpane div').load('/services');
             });
     });
 });

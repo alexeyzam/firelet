@@ -37,8 +37,8 @@
     <thead>
         <tr><th></th><th>Name</th><th>Iface</th><th>IP Address</th><th>Role</th></tr>
     </thead>
-% for host in hosts:
-    <tr>
+% for rid, host in hosts:
+    <tr id="{{rid}}">
     <td class="hea">
         <img src="/static/delete.png" title="Delete host" class="delete">
     </td>
@@ -114,11 +114,9 @@ $("table#items tr td img").hover(function() {
 $(function() {
     $('img.delete').click(function() {
         td = this.parentElement.parentElement;
-        name = td.children[1].innerText;
-        $.post("hosts", { action: 'delete', name: name},
+        $.post("hosts", { action: 'delete', rid: td.id},
             function(data){
-                $(td).remove();
-                $('.tooltip').hide();
+                $('div.tabpane div').load('/hosts');
             });
     });
 });

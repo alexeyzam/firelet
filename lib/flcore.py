@@ -131,6 +131,7 @@ class Network(NetworkObj):
 
 
 class HostGroup(NetworkObj):
+    """A Host Group contains hosts, networks, and other host groups"""
 
     def __init__(self, childs=[]):
         self.childs = childs
@@ -178,7 +179,10 @@ class FireSet(object):
 
     def delete(self, table, rid):
         assert table in ('rules', 'hosts', 'hostgroups', 'services', 'network') ,  "Incorrect table name."
-        return self.__dict__[table].pop(rid) #FIXME: not returning
+        try:
+            self.__dict__[table].pop(rid)
+        except Exception, e:
+            print "Unable to delete item %d in table %s: %s" % (rid, table, e)
 
     def rule_moveup(self, rid):
         try:

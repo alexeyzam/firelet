@@ -43,6 +43,13 @@ users = Users(d='firewall')
 def pg(name, default=''):
     return request.POST.get(name, default).strip()
 
+def int_pg(name, default=''):
+    v = request.POST.get(name, default).strip()
+    if not v: return None
+    try:
+        return int(v)
+    except:
+        raise "Expected int as POST parameter, got string."
 
 # # #  web services  # # #
 
@@ -139,20 +146,16 @@ def ruleset():
 
 @bottle.route('/ruleset', method='POST')
 def ruleset():
-    global fs
     _require('admin')
     action = pg('action', '')
     name = pg('name', '')
-    rid = int(pg('rid', '-1'))
-    print "+" * 30, action
-    #TODO: rewrite this using OO  Rule() ?
+    rid = int_pg('rid')
+
     if action == 'delete':
         try:
-            print
-            print repr(rid)
-            bye = fs.delete('rules', rid)
-            print type(bye) #FIXME
-            say("Rule %d \"%s\" deleted." % (rid, bye[1]), level="success")
+            assert rid, "Item number not provided"
+            fs.delete('rules', rid)
+            say("Rule %d deleted." % rid, level="success")
             return
         except Exception, e:
             say("Unable to delete rule %s - %s" % (name, e), level="alert")
@@ -178,41 +181,43 @@ def ruleset():
 @bottle.route('/hostgroups')
 @view('hostgroups')
 def hostgroups():
-    return dict(hostgroups=fs.hostgroups)
+    return dict(hostgroups=enumerate(fs.hostgroups))
 
 @bottle.route('/hostgroups', method='POST')
 def hostgroups():
     _require('admin')
     action = pg('action', '')
-    name = pg('name', '')  #FIXME: move all tables to the new delete-by-rid method
+    rid = int_pg('rid')
     if action == 'delete':
         try:
-            hostgroups =  [ h for h in hostgroups if h[0] != name ]
-            say("Host Group %s deleted." % name, level="success")
+            assert rid, "Item number not provided"
+
+            fs.delete('hostgroups', rid)
+            say("Host Group %s deleted." % rid, level="success")
             return
         except Exception, e:
-            say("Unable to delete %s - %s" % (name, e), level="alert")
+            say("Unable to delete %s - %s" % (rid, e), level="alert")
             abort(500)
 
 
 @bottle.route('/hosts')
 @view('hosts')
 def hosts():
-    return dict(hosts=fs.hosts)
+    return dict(hosts=enumerate(fs.hosts))
 
 
 @bottle.route('/hosts', method='POST')
 def hosts():
     _require('admin')
     action = pg('action', '')
+    rid = int_pg('rid')
     if action == 'delete':
         try:
-            name = pg('name', '')
-#            hosts =  [ h for h in hosts if h[0] != name ] #FIXME
-            say("Host %s deleted." % name, level="success")
+            fs.delete('hosts', rid)
+            say("Host %s deleted." % rid, level="success")
             return
         except Exception, e:
-            say("Unable to delete %s - %s" % (name, e), level="alert")
+            say("Unable to delete %s - %s" % (rid, e), level="alert")
             abort(500)
 
 @bottle.route('/hosts_new', method='POST')
@@ -236,42 +241,42 @@ def hosts_new():
 @bottle.route('/networks')
 @view('networks')
 def networks():
-    return dict(networks=fs.networks)
+    return dict(networks=enumerate(fs.networks))
 
 @bottle.route('/networks', method='POST')
 def networks():
-    global networks
     _require('admin')
     action = pg('action', '')
-    name = pg('name', '')
+    rid = int_pg('rid')
     if action == 'delete':
         try:
-            networks =  [ h for h in networks if h[0] != name ]
-            say("Network %s deleted." % name, level="success")
+            assert rid, "Item number not provided"
+            fs.delete('networks', rid)
+            say("Network %s deleted." % rid, level="success")
             return
         except Exception, e:
-            say("Unable to delete %s - %s" % (name, e), level="alert")
+            say("Unable to delete %s - %s" % (rid, e), level="alert")
             abort(500)
 
 
 @bottle.route('/services')
 @view('services')
 def services():
-    return dict(services=fs.services)
+    return dict(services=enumerate(fs.services))
 
 @bottle.route('/services', method='POST')
 def services():
+    print repr(request.POST.get('rid'))
     _require('admin')
-    global services
     action = pg('action', '')
-    name = pg('name', '')
+    rid = int_pg('rid')
     if action == 'delete':
         try:
-            services =  [ h for h in services if h[0] != name ]
-            say("Service %s deleted." % name, level="success")
+            fs.delete('services', rid)
+            say("Service %s deleted." % rid, level="success")
             return
         except Exception, e:
-            say("Unable to delete %s - %s" % (name, e), level="alert")
+            say("Unable to delete %s - %s" % (rid, e), level="alert")
             abort(500)
 
 
