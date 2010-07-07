@@ -81,28 +81,20 @@ def savejson(n, obj, d='firewall'):
 
 # IP address parsing
 
-def dot_to_long(ip):
-    "convert decimal dotted quad string to long integer"
-    return unpack('L',inet_aton(ip))[0]
+def net_addr(a, n):
+    q = IPNetwork('%s/%d' % (a, n)).network
+    return str(q)
 
-def long_to_dot(n):
-    "convert long int to dotted quad string"
-    return inet_ntoa(pack('L',n))
+    addr = map(int, a.split('.'))
+    x =unpack('!L',inet_aton(a))[0]  &  2L**(n + 1) -1
+    return inet_ntoa(pack('L',x))
 
-def masklen_to_long(n):
-    "return a mask of n bits as a long integer"
-    return (1L<<long(n)) - 1
-
-def masklen_to_long(n):
-    "return a mask of n bits as a long integer"
-    return (2L<<int(n)-1)-1
 
 # Network objects
 
 class NetworkObj(object):
     """Can be a host, a network or a hostgroup"""
     pass
-
 
 class Sys(NetworkObj):
     def __init__(self, name, ifaces={}):
@@ -119,13 +111,25 @@ class Host(NetworkObj):
 class Network(NetworkObj):
     def __init__(self, name, addr, masklen):
         self.name = name
-        self.ip_addr = addr
+        self.update(addr, masklen)
+
+    def update(self, addr, masklen):
+        """Get the correct network address and update attributes"""
+        real_addr = net_addr(addr, masklen)
+#        real_addr = long_to_dot(dot_to_long(addr) & masklen_to_long(masklen))
+        self.ip_addr = real_addr
         self.netmasklen = masklen
-    def __contains__(self, item):
+        return real_addr, masklen, real_addr == addr
+
+    def __contains__(self, other):
         """Check if a host or a network falls inside this network"""
-        if isinstance(item, Host):
-#            return dot_to_long(item.ip_addr) & masklen_to_long(self.netmasklen) == dot_to_long(self.ip_addr)
-            return IPAddress(item.ip_addr) in IPNetwork("%s/%s" % (self.ip_addr, self.netmasklen))
+        if isinstance(other, Host):
+            return net_addr(other.ip_addr, self.netmasklen) == self.ip_addr
+
+        elif isinstance(other, Network):
+            addr_ok = net_addr(other.ip_addr, self.netmasklen) == self.ip_addr
+            net_ok = other.netmasklen >= self.netmasklen
+            return addr_ok and net_ok
 
 
 

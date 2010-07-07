@@ -136,27 +136,63 @@ def test_dumbfireset():
 
 
 
-##
+# #  IP address handling  # #
 
-def test_ip_parsing():
-    for x in xrange(0, 256):
-        ipaddr = "%d.%d.%d.%d" % (x, x, x, x)
-        assert long_to_dot(dot_to_long(ipaddr)) == ipaddr
+#def test_ip_parsing():
+#    for x in xrange(0, 256):
+#        ipaddr = "%d.%d.%d.%d" % (x, x, x, x)
+#        assert long_to_dot(dot_to_long(ipaddr)) == ipaddr
+
+
+def test_network_update():
+    assert Network('','255.255.255.255',8).ip_addr == '255.0.0.0'
+    assert Network('','255.255.255.255',16).ip_addr == '255.255.0.0'
+    assert Network('','255.255.255.255',24).ip_addr == '255.255.255.0'
+    assert Network('','255.255.255.255',27).ip_addr == '255.255.255.224'
+    assert Network('','255.255.255.255',28).ip_addr == '255.255.255.240'
+    assert Network('','255.255.255.255',29).ip_addr == '255.255.255.248'
+    assert Network('','255.255.255.255',30).ip_addr == '255.255.255.252'
+
+
+def test_contain_nets():
+    assert Network('', '255.255.255.255', 16) in Network('', '255.255.255.255', 8)
+    assert Network('', '255.255.255.255', 16) in Network('', '255.255.255.255', 16)
+    assert Network('', '255.255.255.255', 8) not in Network('', '255.255.255.255', 16)
+    assert Network('', '1.0.0.0', 17) in Network('', '1.0.0.0', 16)
+    assert Network('', '1.0.0.0', 16) in Network('', '1.0.0.0', 16)
+    assert Network('', '1.0.0.0', 15) not in Network('', '1.0.0.0', 16)
+    assert Network('', '42.42.42.42', 15) not in Network('','42.42.42.42', 16)
+    assert Network('', '42.42.42.42', 16) in Network('','42.42.42.42', 16)
+    assert Network('', '42.42.42.42', 17) in Network('','42.42.42.42', 16)
+
+def test_contain_hosts():
+    assert Host('h', 'eth0', '1.1.1.1') in Network('h', '1.1.1.0', 28)
+    assert Host('h', 'eth0', '1.1.1.15') in Network('h', '1.1.1.0', 28)
+    assert Host('h', 'eth0', '1.1.1.16') not in Network('h', '1.1.1.0', 28)
+    assert Host('h', 'eth0', '1.1.1.1') in Network('h', '1.1.1.0', 24)
+    assert Host('h', 'eth0', '1.1.1.1') in Network('h', '1.1.1.0', 8)
+    assert Host('h', 'eth0', '1.1.1.1') not in Network('h', '1.1.2.0', 24)
+    assert Host('h', 'eth0', '1.1.1.1') not in Network('h', '10.1.1.0', 8)
+
+def test_compare():
+    from netaddr import IPNetwork
+    for x in xrange(0, 32):
+        n=IPNetwork('255.1.1.1/%d' % x)
+        ok = n.network
+        mine = Network('','255.1.1.1', x).ip_addr
+        print 'ok', ok, 'mine', mine, 'len', x
+        assert str(mine) == str(ok)
 
 
 def test_flattening():
-
     hg2 = HostGroup(childs=[Host('h', 'b', 'i')])
-    hg3 = HostGroup(childs=[Network('n', 'b', 'c'), hg2])
+    hg3 = HostGroup(childs=[Network('n', '2.2.2.0', 24), hg2])
     hg = HostGroup(childs=[hg2, hg3])
     assert ['h', 'h'] == [h.name for h in hg.hosts()]
     assert ['n'] == [h.name for h in hg.networks()], repr(hg.networks())
 
-def test_contain():
-    assert Host('h', 'eth0', '1.1.1.1') in Network('h', '1.1.1.0', '28')
-    assert Host('h', 'eth0', '1.1.1.1') in Network('h', '1.1.1.0', '24')
-    assert Host('h', 'eth0', '1.1.1.1') in Network('h', '1.1.1.0', '8')
 
+# # Rule compliation and deployment testing # #
 
 def test_compilation():
     shutil.rmtree('test/firewalltmp', True)
