@@ -1,29 +1,55 @@
 
 from pxssh import pxssh, ExceptionPxssh
+import logging
+log = logging.getLogger()
 
-def get_confs(hosts_d, timeout=10, keep_sessions=False, username='firelet'):
-    """Connects to the firewall, get the configuration and return:
-        { host: [session, ip_addr, iptables-save, interfaces], ... }
+# This module does not read configuration files. Everything is passed as parameters.
+#
+
+
+
+def _connect(hosts_d, timeout=10, username='firelet'):
+    """Connects to the firewalls, returns:
+    d = {hostname: [session, ip_addr] , ...}
     """
     d = {}
-    assert isinstance(hosts_d, dict), "Dict expected"
+
     for hostname, addrs in hosts_d.iteritems():
         assert len(addrs), "No management IP address for %s, " % hostname
         ip_addr = addrs[0]      #TODO: cycle through different addrs?
         p = pxssh()
         p.my_hostname = hostname # used for testing - urgh
-        p.login(ip_addr, username)
+        try:
+            p.login(ip_addr, username)
+        except Exception, e:
+            log.info("Unable to connect to %s as %s" % (hostname,username))
         d[hostname] = [p, ip_addr]
 
     dead = [n for n, li in d.iteritems() if not li[0].isalive()]
     if dead:
-        print "%d hosts unreachable" % len(dead)
-        for p, ip_addr in d.values():
-            try:
-                p.logout()  # logout from the existing connections
-            except:
-                pass
-            raise Exception, "%d hosts unreachable" % len(dead)
+        log.info("%d hosts unreachable" % len(dead))
+        _disconnect(d)
+        raise Exception, "%d hosts unreachable" % len(dead)
+
+    return d
+
+def _disconnect(d):
+    """Disconnects from the hosts and purge the session from the dict"""
+    for hostname, li in d.iteritems():
+        try:
+            li[0].logout()
+            li[0] = None
+        except:
+            log.debug('Unable to disconnect from host "%s"' % hostname)
+    return d
+
+
+def get_confs(hosts_d, timeout=10, keep_sessions=False, username='firelet'):
+    """Connects to the firewalls, get the configuration and return:
+        { host: [session, ip_addr, iptables-save, interfaces], ... }
+    """
+    assert isinstance(hosts_d, dict), "Dict expected"
+    d = _connect(hosts_d, timeout=timeout, username=username)
 
     for hostname, (p, ip_addr) in d.iteritems():
         p.sendline('sudo /sbin/iptables-save')
@@ -41,18 +67,12 @@ def get_confs(hosts_d, timeout=10, keep_sessions=False, username='firelet'):
         d[name][2] = parse_iptables_save(iptables)
         d[name][3] = parse_ip_addr_show(ip_a_s)
 
+    if not keep_sessions:
+        log.debug("Closing connections.")
+        d = _disconnect(d)
 
-    if keep_sessions:
-        return d
+    log.debug("Dictionary built by get_confs: %s" % repr(d))
 
-    for name, (p, ip_addr, iptables, y) in d.iteritems():
-        try:
-            p.logout()  # logout from the existing connections
-            d[name][0] = None
-        except:
-            pass
-
-    print repr(d)
     return d
 
 
@@ -114,63 +134,67 @@ def parse_ip_addr_show(s):
 
 
 
-def deliver_confs(confs_d, hosts_d, timeout=10, keep_sessions=False, username='firelet'):
+def deliver_confs(newconfs_d, hosts_d, timeout=10, keep_sessions=True, username='firelet'):
     """Connects to the firewall, deliver the configuration.
         hosts_d = { host: [session, ip_addr, iptables-save, interfaces], ... }
+        newconfs_d =  {hostname: {iface: [rules, ] }, ... }
     """
 
-    assert isinstance(confs_d_d, dict), "Dict expected"
+    assert isinstance(newconfs_d, dict), "Dict expected"
     assert isinstance(hosts_d, dict), "Dict expected"
 
-    dead = [n for n, li in d.iteritems() if not li[0].isalive()]
+    reconnect = False
+    for n, li in hosts_d.iteritems():
+        if not li[0] or not li[0].isalive():
+            reconnect = True
 
-    for hostname, addrs in hosts_d.iteritems():
-        assert len(addrs), "No management IP address for %s, " % hostname
-        ip_addr = addrs[0]      #TODO: cycle through different addrs?
-        p = pxssh()
-        p.my_hostname = hostname # used for testing - urgh
-        p.login(ip_addr, username)
-        d[hostname] = [p, ip_addr]
+    if reconnect:
+        log.debug("Reconnecting to firewalls to deploy iptables configuration")
+        d = _connect(hosts_d, timeout=timeout, username=username)
+    else:
+        d = hosts_d
 
-    dead = [n for n, li in d.iteritems() if not li[0].isalive()]
-    if dead:
-        print "%d hosts unreachable" % len(dead)
-        for p, ip_addr in d.values():
-            try:
-                p.logout()  # logout from the existing connections
-            except:
-                pass
-            raise Exception, "%d hosts unreachable" % len(dead)
-
-    for hostname, (p, ip_addr) in d.iteritems():
-        p.sendline('sudo /sbin/iptables-save')
+    for hostname, li in d.iteritems():
+        p = li[0]
+        p.sendline('cat > /tmp/newiptables << EOF')
+        p.sendline('# Created by Firelet for host %s' % hostname)
+        p.sendline('*filter')
+        for iface, rules in newconfs_d[hostname].iteritems():
+            [ p.sendline(str(rule)) for rule in rules ]
+        p.sendline('COMMIT')
+        p.sendline('EOF')
         p.prompt()
         ret = p.before
-        ret = [r.rstrip() for r in ret.split('\n')]
-        d[hostname].append(ret)
-        p.sendline('/bin/ip addr show')
+        log.debug("Deployed ruleset file to %s, got %s" % (hostname, ret)  )
+
+#    if not keep_sessions: _disconnect(d)
+    return
+
+
+def apply_remote_confs(hosts_d, timeout=10, keep_sessions=False, username='firelet'):
+    """Loads the deployed ruleset on the firewalls"""
+
+    assert isinstance(hosts_d, dict), "Dict expected"
+
+    reconnect = False
+    for n, li in hosts_d.iteritems():
+        if not li[0] or not li[0].isalive():
+            log.debug('bad ' +n)
+            reconnect = True
+
+    if reconnect:
+        log.debug("Must reconnect to firewalls to apply iptables configuration")
+        d = _connect(hosts_d, timeout=timeout, username=username)
+    else:
+        d = hosts_d
+
+    for hostname, li in d.iteritems():
+        p = li[0]
+        p.sendline('/sbin/iptables-restore < /tmp/newiptables')
         p.prompt()
         ret = p.before
-        ret = [r.rstrip() for r in ret.split('\n')]
-        d[hostname].append(ret)
+        log.debug("Deployed ruleset file to %s, got %s" % (hostname, ret)  )
 
-    for name, (p, ip_addr, iptables, ip_a_s) in d.iteritems():
-        d[name][2] = parse_iptables_save(iptables)
-        d[name][3] = parse_ip_addr_show(ip_a_s)
-
-
-    if keep_sessions:
-        return d
-
-    for name, (p, ip_addr, iptables, y) in d.iteritems():
-        try:
-            p.logout()  # logout from the existing connections
-            d[name][0] = None
-        except:
-            pass
-
-    print repr(d)
-    return d
-
-
+    if not keep_sessions: _disconnect(d)
+    return
 

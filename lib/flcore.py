@@ -9,6 +9,17 @@ from os import unlink
 from socket import inet_ntoa, inet_aton
 from struct import pack, unpack
 
+import logging
+log = logging.getLogger()
+
+# Logging levels:
+#
+# critical - application failing - red mark on webapp logging pane
+# error - anything that prevents ruleset deployment - red mark
+# warning - non-blocking errors - orange mark
+# info - default messages - displayed on webapp
+# debug - usually not logged and not displayed on webapp
+
 
 try:
     import json
@@ -307,7 +318,7 @@ class FireSet(object):
 
         return compiled
 
-    def _get_confs(self):
+    def _get_confs(self, keep_sessions=False):
         from flssh import get_confs
         self._remote_confs = None
         d = {}      # {hostname: [management ip address list ], ... }    If the list is empty we cannot reach that host.
@@ -317,7 +328,7 @@ class FireSet(object):
                 d[n].append(addr)
         for n, x in d.iteritems():
             assert len(x), "No management IP address for %s " % n
-        self._remote_confs = get_confs(d, username='root')
+        self._remote_confs = get_confs(d, keep_sessions=keep_sessions, username='root')
 
     def _check_ifaces(self):
         """Ensure that the interfaces configured on the hosts match the contents of the host table"""
@@ -364,19 +375,25 @@ class FireSet(object):
         assert not self.save_needed(), "Configuration must be saved before deployment."
         # TODO: perform every step
         comp_rules = self.compile()
-        self._get_confs
-        self._check_ifaces
+        self._get_confs(keep_sessions=True)
+        self._check_ifaces()
         self.rd = self.compile_dict()
         self._deliver_confs(self.rd)
         self._apply_remote_confs()
 
-    def _deliver_confs(self):
+    def _deliver_confs(self, newconfs_d, keep_sessions=False):
         """Deliver the new iptables ruleset to each connected host"""
         #TODO: compare the actual and new ruleset, then deploy only the needed changes, then check?
-        pass
+        import flssh
+        flssh.deliver_confs(newconfs_d, self._remote_confs, timeout=10, keep_sessions=keep_sessions, username='root')
 
     def _apply_remote_confs(self):
-        pass #TODO
+        import flssh
+        flssh.apply_remote_confs(self._remote_confs, timeout=10, keep_sessions=True, username='root')
+        pass
+
+    def _check_remote_confs(self):
+        pass
 
 
 class DumbFireSet(FireSet):
