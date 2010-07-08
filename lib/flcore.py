@@ -231,6 +231,7 @@ class FireSet(object):
         """Flatten host groups tree, used in compile()"""
         def flatten1(item):
             li = addr.get(item), net.get(item), self._flattenhg(hgs.get(item), addr, net, hgs)  # should we convert network to string here?
+            print repr(item)
             return filter(None, li)[0]
         if not items: return None
         return map(flatten1, items)
@@ -245,7 +246,7 @@ class FireSet(object):
             assert rule[0] in ('y', 'n'), 'First field must be "y" or "n" in %s' % repr(rule)
 
         # build dictionaries to perform resolution
-        addr = dict(((name + ":" + iface),ipa) for name,iface,ipa in self.hosts) # host to ip_addr
+        addr = dict(((name + ":" + iface),ipa) for name,iface,ipa, is_m in self.hosts) # host to ip_addr
         net = dict((name, (n, mask)) for name, n, mask in self.networks) # network name
         hgs = dict((entry[0], (entry[1:])) for entry in self.hostgroups) # host groups
         hg_flat = dict((hg, self._flattenhg(hgs[hg], addr, net, hgs)) for hg in hgs) # flattened to {hg: hosts and networks}
@@ -308,21 +309,29 @@ class FireSet(object):
 
     def _get_confs(self):
         from flssh import get_confs
-        #TODO: use management IP addrs
-        hs = ((n, addr) for n, iface, addr in self.hosts)
-        self._remote_confs = get_confs(hs)
+        self._remote_confs = None
+        d = {}      # {hostname: [management ip address list ], ... }    If the list is empty we cannot reach that host.
+        for n, iface, addr, is_m in self.hosts:
+            if n not in d: d[n] = []
+            if int(is_m):                            # IP address flagged for management
+                d[n].append(addr)
+        for n, x in d.iteritems():
+            assert len(x), "No management IP address for %s " % n
+        self._remote_confs = get_confs(d, username='root')
 
     def _check_ifaces(self):
         """Ensure that the interfaces configured on the hosts match the contents of the host table"""
         confs = self._remote_confs
-        for name,iface,ipa in self.hosts:
+        print '- ' * 30
+        print repr(confs)
+        for name,iface,ipa, is_m in self.hosts:
             if not name in confs:
                 raise Exception, "Host %s not available." % name
             if not iface in confs[name][3]:
                 raise Exception, "Interface %s missing on host %s" % (iface, name)
             ip_addr_v4, ip_addr_v6 = confs[name][3][iface]
-            print repr(confs[name][3][iface])
-            print name, iface, ipa
+#            print repr(confs[name][3][iface])
+#            print name, iface, ipa
             assert ipa == ip_addr_v4.split('/')[0] or ipa == ip_addr_v6, "Wrong address on %s on interface %s" % (name, iface)
 
         #TODO: warn if there are extra interfaces?
@@ -335,7 +344,7 @@ class FireSet(object):
 
     def compile_dict(self, hosts=None, rset=None):
         """Generate set of rules specific for each host.
-
+            rd = {hostname: {iface: [rules, ] }, ... }
         """
         assert not self.save_needed(), "Configuration must be saved before deployment."
         if not hosts: hosts = self.hosts
@@ -343,12 +352,10 @@ class FireSet(object):
         # r[hostname][interface] = [rule, rule, ... ]
         rd = defaultdict(dict)
 
-        for hostname,iface,ipa in hosts:
+        for hostname,iface,ipa, is_h in hosts:
             myrules = [ r for r in rset if ipa in r ]   #TODO: match subnets as well
-            if iface in rd[hostname]:
-                rd[hostname][iface].append(myrules)
-            else:
-                rd[hostname][iface] = [myrules, ]
+            if not iface in rd[hostname]: rd[hostname][iface] = []
+            rd[hostname][iface].extend(myrules)
         print repr(rd)
         return rd
 
@@ -360,10 +367,16 @@ class FireSet(object):
         self._get_confs
         self._check_ifaces
         self.rd = self.compile_dict()
+        self._deliver_confs(self.rd)
+        self._apply_remote_confs()
 
-#        self._deliver_confs()
-#        self._apply_remote_confs()
+    def _deliver_confs(self):
+        """Deliver the new iptables ruleset to each connected host"""
+        #TODO: compare the actual and new ruleset, then deploy only the needed changes, then check?
+        pass
 
+    def _apply_remote_confs(self):
+        pass #TODO
 
 
 class DumbFireSet(FireSet):

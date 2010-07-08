@@ -1,25 +1,29 @@
 
 from pxssh import pxssh, ExceptionPxssh
 
-def get_confs(li, timeout=10, keep_sessions=False, username='firelet'):
+def get_confs(hosts_d, timeout=10, keep_sessions=False, username='firelet'):
     """Connects to the firewall, get the configuration and return:
         { host: [session, ip_addr, iptables-save, interfaces], ... }
     """
     d = {}
-    try:
-        for hostname, ip_addr in li:
-            p = pxssh()
-            p.my_hostname = hostname # used for testing - urgh
-            p.login(ip_addr, username)
-            assert p.isalive(), "Host %s not responding to SSH after login." % hostname
-            d[hostname] = [p, ip_addr]
-    except Exception, e:
+    assert isinstance(hosts_d, dict), "Dict expected"
+    for hostname, addrs in hosts_d.iteritems():
+        assert len(addrs), "No management IP address for %s, " % hostname
+        ip_addr = addrs[0]      #TODO: cycle through different addrs?
+        p = pxssh()
+        p.my_hostname = hostname # used for testing - urgh
+        p.login(ip_addr, username)
+        d[hostname] = [p, ip_addr]
+
+    dead = [n for n, li in d.iteritems() if not li[0].isalive()]
+    if dead:
+        print "%d hosts unreachable" % len(dead)
         for p, ip_addr in d.values():
             try:
                 p.logout()  # logout from the existing connections
             except:
                 pass
-#        raise Exception, str(e) + 'Unable to login on %s' % actual
+            raise Exception, "%d hosts unreachable" % len(dead)
 
     for hostname, (p, ip_addr) in d.iteritems():
         p.sendline('sudo /sbin/iptables-save')
@@ -37,6 +41,7 @@ def get_confs(li, timeout=10, keep_sessions=False, username='firelet'):
         d[name][2] = parse_iptables_save(iptables)
         d[name][3] = parse_ip_addr_show(ip_a_s)
 
+
     if keep_sessions:
         return d
 
@@ -47,6 +52,7 @@ def get_confs(li, timeout=10, keep_sessions=False, username='firelet'):
         except:
             pass
 
+    print repr(d)
     return d
 
 
@@ -107,6 +113,64 @@ def parse_ip_addr_show(s):
     return d
 
 
+
+def deliver_confs(confs_d, hosts_d, timeout=10, keep_sessions=False, username='firelet'):
+    """Connects to the firewall, deliver the configuration.
+        hosts_d = { host: [session, ip_addr, iptables-save, interfaces], ... }
+    """
+
+    assert isinstance(confs_d_d, dict), "Dict expected"
+    assert isinstance(hosts_d, dict), "Dict expected"
+
+    dead = [n for n, li in d.iteritems() if not li[0].isalive()]
+
+    for hostname, addrs in hosts_d.iteritems():
+        assert len(addrs), "No management IP address for %s, " % hostname
+        ip_addr = addrs[0]      #TODO: cycle through different addrs?
+        p = pxssh()
+        p.my_hostname = hostname # used for testing - urgh
+        p.login(ip_addr, username)
+        d[hostname] = [p, ip_addr]
+
+    dead = [n for n, li in d.iteritems() if not li[0].isalive()]
+    if dead:
+        print "%d hosts unreachable" % len(dead)
+        for p, ip_addr in d.values():
+            try:
+                p.logout()  # logout from the existing connections
+            except:
+                pass
+            raise Exception, "%d hosts unreachable" % len(dead)
+
+    for hostname, (p, ip_addr) in d.iteritems():
+        p.sendline('sudo /sbin/iptables-save')
+        p.prompt()
+        ret = p.before
+        ret = [r.rstrip() for r in ret.split('\n')]
+        d[hostname].append(ret)
+        p.sendline('/bin/ip addr show')
+        p.prompt()
+        ret = p.before
+        ret = [r.rstrip() for r in ret.split('\n')]
+        d[hostname].append(ret)
+
+    for name, (p, ip_addr, iptables, ip_a_s) in d.iteritems():
+        d[name][2] = parse_iptables_save(iptables)
+        d[name][3] = parse_ip_addr_show(ip_a_s)
+
+
+    if keep_sessions:
+        return d
+
+    for name, (p, ip_addr, iptables, y) in d.iteritems():
+        try:
+            p.logout()  # logout from the existing connections
+            d[name][0] = None
+        except:
+            pass
+
+    print repr(d)
+    return d
 
 
 

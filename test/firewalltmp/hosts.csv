@@ -1,6 +1,6 @@
-Bilbo eth0 10.66.1.2
-Bilbo eth1 10.66.2.1
-Smeagol eth0 10.66.1.3
-Fangorn eth1 10.66.2.2
-Gandalf eth0 172.16.2.223
-Gandalf eth1 10.66.1.1
+Bilbo eth0 10.66.1.2 0
+Bilbo eth1 10.66.2.1 1
+Smeagol eth0 10.66.1.3 1
+Fangorn eth0 10.66.2.2 1
+Gandalf eth0 172.16.2.223 0
+Gandalf eth1 10.66.1.1 1
