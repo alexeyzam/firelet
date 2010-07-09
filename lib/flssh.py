@@ -73,6 +73,9 @@ class SSHConnector(object):
 
 
     def parse_iptables_save(self, s):
+        """Parse iptables-save output and returns a dict:
+        {'filter': [rule, rule, ... ], 'nat': [] }
+        """
 
         def start(li, tag):
             for n, item in enumerate(li):
@@ -100,7 +103,7 @@ class SSHConnector(object):
 
         block = get_block(s, '*filter')
         b = filter(good, block)
-        i['filter'] = '\n'.join(b)
+        i['filter'] = b
 
     #    for q in ('INPUT', 'OUTPUT', 'FORWARD'):
     #        i['filter'][q] = '\n'.join(x for x in block if x.startswith('-A %s' % q))

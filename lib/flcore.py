@@ -244,7 +244,7 @@ class FireSet(object):
         """Flatten host groups tree, used in compile()"""
         def flatten1(item):
             li = addr.get(item), net.get(item), self._flattenhg(hgs.get(item), addr, net, hgs)  # should we convert network to string here?
-            print repr(item)
+            log.debug("Flattening... %s" % repr(item))
             return filter(None, li)[0]
         if not items: return None
         return map(flatten1, items)
@@ -372,8 +372,82 @@ class FireSet(object):
         log.debug("Rules compiled as dict: %s" % repr(rd))
         return rd
 
-    def deploy(self):
-        """  """
+    def _diff_table(self):      # Ridefined below!
+        """Generate an HTML table containing the changes between the existing and the compiled iptables ruleset *on each host* """
+        #TODO: this is a hack - rewrite it with two-step comparison (existing VS old, existing VS new) and rule injection.
+        from difflib import HtmlDiff
+        differ = HtmlDiff()
+        html = ''
+        for hostname, (ex_iptables_d, ex_ip_a_s) in self._remote_confs.iteritems():   # existing iptables ruleset
+            # rd[hostname][iface] = [rule, rule,]
+            if hostname in self.rd:
+                ex_iptables = ex_iptables_d['filter']
+                a = self.rd[hostname]
+                new_iptables = sum(a.values(),[]) # flattened
+                diff = differ.make_table(ex_iptables, new_iptables,context=True,numlines=0)
+                html += "<h4 class='dtt'>%s</h4>" % hostname + diff
+            else:
+                log.debug('%s removed?' % hostname) #TODO: review this, manage *new* hosts as well
+        return html
+
+    def _diff_table(self):
+        """Generate an HTML table containing the changes between the existing and the compiled iptables ruleset *on each host* """
+        #TODO: this is a hack - rewrite it with two-step comparison (existing VS old, existing VS new) and rule injection.
+        html = ''
+        for hostname, (ex_iptables_d, ex_ip_a_s) in self._remote_confs.iteritems():   # existing iptables ruleset
+            # rd[hostname][iface] = [rule, rule,]
+            if hostname in self.rd:
+                ex_iptables = ex_iptables_d['filter']
+                a = self.rd[hostname]
+                new_iptables = sum(a.values(),[]) # flattened
+                new_s = set(new_iptables)
+                ex_s = set(ex_iptables)
+                tab = ''
+                for r in list(new_s - ex_s):
+                    tab += '<tr class="add"><td>%s</td></tr>' % r
+                for r in list(ex_s - new_s):
+                    tab += '<tr class="del"><td>%s</td></tr>' % r
+                html += "<h4 class='dtt'>%s</h4><table class='phdiff_table'>%s</table>" % (hostname, tab)
+            else:
+                log.debug('%s removed?' % hostname) #TODO: review this, manage *new* hosts as well
+
+        return html
+
+
+        from difflib import HtmlDiff
+        differ = HtmlDiff()
+        html = ''
+        for hostname, (ex_iptables_d, ex_ip_a_s) in self._remote_confs.iteritems():   # existing iptables ruleset
+            # rd[hostname][iface] = [rule, rule,]
+            if hostname in self.rd:
+                ex_iptables = ex_iptables_d['filter']
+                a = self.rd[hostname]
+                new_iptables = sum(a.values(),[]) # flattened
+                diff = differ.make_table(ex_iptables, new_iptables,context=True,numlines=0)
+                html += "<h4 class='dtt'>%s</h4>" % hostname + diff
+            else:
+                log.debug('%s removed?' % hostname) #TODO: review this, manage *new* hosts as well
+        return html
+
+    def check(self):
+        """Check the configuration to the firewalls.
+        """
+        assert not self.save_needed(), "Configuration must be saved before check."
+
+        comp_rules = self.compile()
+        sx = self._get_confs(keep_sessions=True)
+        self._check_ifaces()
+        self.rd = self.compile_dict()
+        log.debug('Diff table: %s' % self._diff_table())
+
+
+        return self._diff_table()
+
+
+    def deploy(self, ignore_unreachables=False, replace_ruleset=False):
+        """Check and then deploy the configuration to the firewalls.
+        Some ignore flags can be set to force the deployment even in case of errors.
+        """
         assert not self.save_needed(), "Configuration must be saved before deployment."
 
         comp_rules = self.compile()
@@ -441,7 +515,7 @@ class DumbFireSet(FireSet):
             self.rules = rules
             self._put_lock()
         except Exception, e:
-            print e
+            log.debug("Error in rule_moveup: %s" % e)
             #            say("Cannot move rule %d up." % rid)
 
     def rule_movedown(self, rid):

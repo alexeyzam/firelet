@@ -319,9 +319,16 @@ def resetbtn():
 @bottle.route('/check', method='POST')
 def checkbtn():
     _require('admin')
-    say('Configuration check started...')   #TODO
+    say('Configuration check started...')
+    try:
+#        import time
+#        time.sleep(1)
+        diff_table = fs.check()
+    except Exception, e:
+        say("Check failed: %s" % e,  level="alert")
+        return
     say('Configuration check successful.', level="success")
-    return
+    return dict(diff_table=diff_table)
 
 @bottle.route('/deploy', method='POST')
 def deploybtn():

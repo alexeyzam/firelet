@@ -141,7 +141,6 @@ $("form#new_form").validator().submit(function(e) {
 
     $.post("hosts_new", ff,
         function(json){
-            console.log(json);
             if (json.ok === true) {
                 over.eq(0).overlay().close();
             } else {

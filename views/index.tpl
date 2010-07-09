@@ -350,6 +350,7 @@ function refresh_msg()
 $(function() {
 
     $("ul.css-tabs").tabs("div.tabpane > div", {effect: 'ajax', history: true});
+
     refresh_msg();
 
     setTimeout(function() {
