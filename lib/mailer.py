@@ -16,8 +16,8 @@ def send(conf, log, sbj='', body=''):
 
 def send_html_and_text(sbj='Hello', body=''):
 
-    me = "federico.ceratto@goa.com"
-    you = "federico.ceratto@goa.com"
+    me = ""
+    you = ""
 
     # Create message container - the correct MIME type is multipart/alternative.
     msg = MIMEMultipart('alternative')
@@ -50,7 +50,7 @@ def send_html_and_text(sbj='Hello', body=''):
     msg.attach(part2)
 
     try:
-        session = SMTP('smtp.goa.com')
+        session = SMTP('localhost')
         session.sendmail(me, you, msg.as_string())
 #        session.sendmail(emailsrc, emaildests, "Subject: [%s]: %s\n%s" % (title, sbj, body))
         session.close()
@@ -60,8 +60,8 @@ def send_html_and_text(sbj='Hello', body=''):
 
 def send_html(sbj='Hello', body=''):
 
-    me = "federico.ceratto@goa.com"
-    you = "federico.ceratto@goa.com"
+    me = ""
+    you = ""
 
     # Create message container - the correct MIME type is multipart/alternative.
     msg = MIMEMultipart('alternative')
@@ -109,7 +109,7 @@ def send_html(sbj='Hello', body=''):
     msg.attach(part)
 
     try:
-        session = SMTP('smtp.goa.com')
+        session = SMTP('localhost')
         session.sendmail(me, you, msg.as_string())
 #        session.sendmail(emailsrc, emaildests, "Subject: [%s]: %s\n%s" % (title, sbj, body))
         session.close()
