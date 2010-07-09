@@ -8,8 +8,10 @@ from netaddr import IPAddress, IPNetwork
 from os import unlink
 from socket import inet_ntoa, inet_aton
 from struct import pack, unpack
-
 import logging
+
+from flssh import SSHConnector
+
 log = logging.getLogger()
 
 # Logging levels:
@@ -319,7 +321,6 @@ class FireSet(object):
         return compiled
 
     def _get_confs(self, keep_sessions=False):
-        from flssh import get_confs
         self._remote_confs = None
         d = {}      # {hostname: [management ip address list ], ... }    If the list is empty we cannot reach that host.
         for n, iface, addr, is_m in self.hosts:
@@ -328,28 +329,29 @@ class FireSet(object):
                 d[n].append(addr)
         for n, x in d.iteritems():
             assert len(x), "No management IP address for %s " % n
-        self._remote_confs = get_confs(d, keep_sessions=keep_sessions, username='root')
+        sx = SSHConnector(d, username='root')
+        self._remote_confs = sx.get_confs()
+        if keep_sessions:
+            return sx
+        sx._disconnect()
+        del(sx)
 
     def _check_ifaces(self):
         """Ensure that the interfaces configured on the hosts match the contents of the host table"""
+        log.debug("Checking interfaces...")
         confs = self._remote_confs
-        print '- ' * 30
-        print repr(confs)
+        log.debug("Confs: %s" % repr(confs) )
         for name,iface,ipa, is_m in self.hosts:
             if not name in confs:
                 raise Exception, "Host %s not available." % name
-            if not iface in confs[name][3]:
+            if not iface in confs[name][1]:         #TODO: test this in unit testing
                 raise Exception, "Interface %s missing on host %s" % (iface, name)
-            ip_addr_v4, ip_addr_v6 = confs[name][3][iface]
-#            print repr(confs[name][3][iface])
-#            print name, iface, ipa
+            ip_addr_v4, ip_addr_v6 = confs[name][1][iface]
+
             assert ipa == ip_addr_v4.split('/')[0] or ipa == ip_addr_v6, "Wrong address on %s on interface %s" % (name, iface)
 
         #TODO: warn if there are extra interfaces?
 
-#        for hostname, (session, ip_addr, iptables_save, ip_a_s) in self.confs:
-#            for iface, (ip_addr_v4, ip_addr_v6) in ip_a_s:
-#                pass
 
 
 
@@ -367,30 +369,20 @@ class FireSet(object):
             myrules = [ r for r in rset if ipa in r ]   #TODO: match subnets as well
             if not iface in rd[hostname]: rd[hostname][iface] = []
             rd[hostname][iface].extend(myrules)
-        print repr(rd)
+        log.debug("Rules compiled as dict: %s" % repr(rd))
         return rd
 
     def deploy(self):
         """  """
         assert not self.save_needed(), "Configuration must be saved before deployment."
-        # TODO: perform every step
+
         comp_rules = self.compile()
-        self._get_confs(keep_sessions=True)
+        sx = self._get_confs(keep_sessions=True)
         self._check_ifaces()
         self.rd = self.compile_dict()
-        self._deliver_confs(self.rd)
-        self._apply_remote_confs()
+        sx.deliver_confs(self.rd)
+        sx.apply_remote_confs()
 
-    def _deliver_confs(self, newconfs_d, keep_sessions=False):
-        """Deliver the new iptables ruleset to each connected host"""
-        #TODO: compare the actual and new ruleset, then deploy only the needed changes, then check?
-        import flssh
-        flssh.deliver_confs(newconfs_d, self._remote_confs, timeout=10, keep_sessions=keep_sessions, username='root')
-
-    def _apply_remote_confs(self):
-        import flssh
-        flssh.apply_remote_confs(self._remote_confs, timeout=10, keep_sessions=True, username='root')
-        pass
 
     def _check_remote_confs(self):
         pass
