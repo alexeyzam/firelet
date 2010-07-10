@@ -3,6 +3,7 @@ import git
 
 from hashlib import sha512
 from collections import defaultdict
+from shutil import copytree, rmtree
 from git import InvalidGitRepositoryError, NoSuchPathError
 from netaddr import IPAddress, IPNetwork
 from os import unlink
@@ -42,6 +43,9 @@ except ImportError:
 
 
 protocols = ['IP','TCP', 'UDP', 'OSPF', 'IS-IS', 'SCTP', 'AH', 'ESP']
+
+class Alert(Exception):
+    """Custom exception used to send an alert message to the user"""
 
 #files handling
 
@@ -199,7 +203,7 @@ class FireSet(object):
         try:
             self.__dict__[table].pop(rid)
         except Exception, e:
-            print "Unable to delete item %d in table %s: %s" % (rid, table, e)
+            Alert,  "Unable to delete item %d in table %s: %s" % (rid, table, e)
 
     def rule_moveup(self, rid):
         try:
@@ -274,7 +278,7 @@ class FireSet(object):
             elif n == '*':
                 return [None]
             else:
-                raise Exception, "Host %s is not defined." % n
+                raise Alert, "Host %s is not defined." % n
 
         compiled = []
         for ena, name, src, src_serv, dst, dst_serv, action, log_val, desc in self.rules:
@@ -289,7 +293,7 @@ class FireSet(object):
             assert dproto in protocols + [None], "Unknown dest protocol: %s" % dproto
 
             if sproto and dproto and sproto != dproto:
-                raise Exception, "Source and destination protocol must be the same in rule \"%s\"." % name
+                raise Alert, "Source and destination protocol must be the same in rule \"%s\"." % name
             if dproto:
                 proto = " -p %s" % dproto.lower()
             elif sproto:
@@ -309,7 +313,7 @@ class FireSet(object):
             try:
                 log_val = int(log_val)  #TODO: try/except this
             except:
-                raise Exception, "The logging field in rule \"%s\" must be an integer." % name
+                raise Alert, "The logging field in rule \"%s\" must be an integer." % name
 
             for src, dst in product(srcs, dsts):
                 src = " -s %s" % src if src else ''
@@ -343,12 +347,13 @@ class FireSet(object):
         log.debug("Confs: %s" % repr(confs) )
         for name,iface,ipa, is_m in self.hosts:
             if not name in confs:
-                raise Exception, "Host %s not available." % name
+                raise Alert, "Host %s not available." % name
             if not iface in confs[name][1]:         #TODO: test this in unit testing
-                raise Exception, "Interface %s missing on host %s" % (iface, name)
+                raise Alert, "Interface %s missing on host %s" % (iface, name)
             ip_addr_v4, ip_addr_v6 = confs[name][1][iface]
 
-            assert ipa == ip_addr_v4.split('/')[0] or ipa == ip_addr_v6, "Wrong address on %s on interface %s" % (name, iface)
+            if ipa not in (ip_addr_v6,  ip_addr_v4.split('/')[0] ):
+                raise Alert,"Wrong address on %s on interface %s" % (name, iface)
 
         #TODO: warn if there are extra interfaces?
 
@@ -430,16 +435,16 @@ class FireSet(object):
         return html
 
     def check(self):
-        """Check the configuration to the firewalls.
+        """Check the configuration on the firewalls.
         """
-        assert not self.save_needed(), "Configuration must be saved before check."
+        if self.save_needed():
+            raise Alert, "Configuration must be saved before check."
 
         comp_rules = self.compile()
         sx = self._get_confs(keep_sessions=True)
         self._check_ifaces()
         self.rd = self.compile_dict()
         log.debug('Diff table: %s' % self._diff_table())
-
 
         return self._diff_table()
 
@@ -562,52 +567,56 @@ class GitFireSet(FireSet):
 
 
 
+class DemoFireSet(DumbFireSet):
+    """Based on DumbFireSet. Provide a demo version without real network interaction.
+    The status of the simulated remote hosts is kept in demo/ and it is based on test/
+    """
+    def __init__(self):
+        DumbFireSet.__init__(self)
+        rmtree( 'demo/', True)
+        copytree('test/', 'demo/')
 
-# Firewall ruleset processing
+    def _get_confs(self, keep_sessions=False):
+        def ip_a_s(n):
+            """Build a dict: {'eth0': (addr, None)} for a given host"""
+            i = ((iface, (addr, None)) for hn, iface, addr, is_m in self.hosts if hn == n   )
+            return dict(i)
+        def rulelist(n):
+            try:
+                return loadjson("iptables-save-" + n, d='demo')
+            except:
+                return []
+        d = {} # {hostname: [[iptables], [ip-addr-show]], ... }
+        for n, iface, addr, is_m in self.hosts:
+            d[n] = [ {'filter': rulelist(n)}, ip_a_s(n)]
+        print repr(d)
+        self._remote_confs = d
 
+    # check() is not redefined: it uses _get_confs only for network interaction.
+    def check(self):
+        """Check the configuration on the firewalls.
+        """
+        if self.save_needed():
+            raise Alert, "Configuration must be saved before check."
+        comp_rules = self.compile()
+        sx = self._get_confs(keep_sessions=True)
+        self._check_ifaces()
+        self.rd = self.compile_dict()
+        log.debug('Diff table: %s' % self._diff_table())
+        return self._diff_table()
 
+    def deploy(self, ignore_unreachables=False, replace_ruleset=False):
+        """Check and then deploy the configuration to the simulated firewalls."""
+        if self.save_needed():
+            raise Alert, "Configuration must be saved before deployment."
+        comp_rules = self.compile()
+        sx = self._get_confs(keep_sessions=True)
+        self._check_ifaces()
+        self.rd = self.compile_dict() # r[hostname][interface] = [rule, rule, ... ]
+        for n, k in self.rd.iteritems():
+            rules = sum(k.values(),[])
+            savejson("iptables-save-" + n, rules, d='demo')
 
-
-
-
-
-
-
-
-
-
-"""
-*raw
-:PREROUTING ACCEPT
-:OUTPUT ACCEPT
-COMMIT
-
-*mangle
-:PREROUTING ACCEPT
-:INPUT ACCEPT
-:FORWARD ACCEPT
-:OUTPUT ACCEPT
-:POSTROUTING ACCEPT
-COMMIT
-
-*nat
-:PREROUTING ACCEPT
-:POSTROUTING ACCEPT
-:OUTPUT ACCEPT
-COMMIT
-
-*filter
-:INPUT ACCEPT
-:FORWARD ACCEPT
-:OUTPUT ACCEPT
--A INPUT -s 4.4.4.4/32 -p tcp -m multiport --sports 0:65535 -m multiport --dports 2:4,5:10,10:33 -j ACCEPT
--A INPUT -s 4.4.4.4/32 -p tcp -m multiport --sports 0:65535 -m multiport --dports 2:4,5:10,10:33 -j ACCEPT
--A INPUT -s 4.4.4.4/32 -p tcp -m tcp --dport 2:4 -j ACCEPT
--A INPUT -s 3.3.3.3/32 -j ACCEPT
--A INPUT -s 3.3.3.0/30 -j ACCEPT
--A INPUT -s 3.3.3.3/32 -j ACCEPT
-COMMIT
-"""
 
 
 
@@ -654,7 +663,7 @@ class Users(object):
         try:
             self._users.pop(username)
         except KeyError:
-            raise Exception, "Non existing user."
+            raise Alert, "Non existing user."
         self._save()
 
     def validate(self, username, pwd):

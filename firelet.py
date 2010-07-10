@@ -13,7 +13,7 @@ from time import time, sleep, localtime
 
 from lib.confreader import ConfReader
 from lib import mailer
-from lib.flcore import FireSet, GitFireSet, DumbFireSet, Users
+from lib.flcore import Alert, FireSet, GitFireSet, DumbFireSet, DemoFireSet, Users
 
 #TODO: HG, H, N, Rule, Service creation
 #TODO: Rule up/down move
@@ -31,14 +31,6 @@ def say(s, level='info'):
     msg_list.append((level, ts, s))
     if len(msg_list) > 40:
         msg_list.pop(0)
-
-
-fs = DumbFireSet()
-say("Configuration loaded.")
-say("%d hosts, %d rules, %d networks loaded." % (len(fs.hosts), len(fs.rules), len(fs.networks)))
-
-users = Users(d='firewall')
-
 
 def pg(name, default=''):
     return request.POST.get(name, default).strip()
@@ -66,7 +58,7 @@ def _require(role='auth'):
     s = bottle.request.environ.get('beaker.session')
     if not s:
         say("User needs to be authenticated.", level="warning") #TODO: not really explanatory in a multiuser session.
-        raise Exception, "User needs to be authenticated."
+        raise Alert, "User needs to be authenticated."
     if role == 'auth': return
     myrole = s.get('role', '')
     if myrole == role: return
@@ -324,8 +316,12 @@ def checkbtn():
 #        import time
 #        time.sleep(1)
         diff_table = fs.check()
-    except Exception, e:
+    except Alert, e:
         say("Check failed: %s" % e,  level="alert")
+        return
+    except Exception, e:
+        import traceback
+        log.debug(traceback.format_exc())
         return
     say('Configuration check successful.', level="success")
     return dict(diff_table=diff_table)
@@ -340,11 +336,6 @@ def deploybtn():
     except Exception, e:
         say("Compilation failed: %s" % e,  level="alert")
         return
-    #TODO: remove this
-    for h, x in fs.rd.iteritems():
-        for y in x.values():
-            for line in y[0]:
-                say(h + "  " + line)
     say('Configuration deployed.', level="success")
     return
 
@@ -396,7 +387,7 @@ def main():
         bottle.debug(True)
         say("Firelet started in debug mode.", level="success")
         bottle_debug(True)
-        reload = True
+        reload = False
     else:
         debug_mode = False
         log.basicConfig(level=log.INFO,
@@ -405,7 +396,22 @@ def main():
                     filename=conf.logfile,
                     filemode='w')
         reload = False
+
+
+
         say("Firelet started.", level="success")
+
+    if conf.demo_mode == 'False':
+        globals()['fs'] = DumbFireSet()
+        say("Configuration loaded.")
+        say("%d hosts, %d rules, %d networks loaded." % (len(fs.hosts), len(fs.rules), len(fs.networks)))
+        globals()['users'] = Users(d='firewall')
+    elif conf.demo_mode == 'True':
+        globals()['fs'] = DemoFireSet()
+        say("Demo mode.")
+        say("%d hosts, %d rules, %d networks loaded." % (len(fs.hosts), len(fs.rules), len(fs.networks)))
+        globals()['users'] = Users(d='demo')
+
 
 
     session_opts = {
@@ -416,7 +422,6 @@ def main():
     app = SessionMiddleware(app, session_opts)
 
     run(app=app, host=conf.listen_address, port=conf.listen_port, reloader=reload)
-
 
 
 if __name__ == "__main__":
