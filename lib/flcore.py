@@ -543,7 +543,7 @@ class DumbFireSet(FireSet):
 
 class GitFireSet(FireSet):
     """FireSet implementing Git to manage the configuration repository"""
-    def __init__(self, repodir='firewall'):
+    def __init__(self, repodir='/tmp/firewall'):
         self.rules = loadcsv('rules')
         self.hosts = loadcsv('hosts')
         self.hostgroups = loadcsv('hostgroups')
@@ -558,7 +558,7 @@ class GitFireSet(FireSet):
 
     def version_list(self):
         """Parse git log --date=iso and returns a list of lists:
-        [ [author, date, [msg lines] ], ... ]
+        [ [author, date, [msg lines], commit_id ], ... ]
         """
         o, e = self._git('log --date=iso')
         if e:
@@ -569,7 +569,8 @@ class GitFireSet(FireSet):
         for r in o.split('\n'):
             if r.startswith('commit '):
                 if author:
-                    li.append([author, date, msg])
+                    li.append([author, date, msg, commit])
+                commit = r[7:]
                 msg = []
             elif r.startswith('Author: '):
                 author = r[8:]

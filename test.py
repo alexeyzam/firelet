@@ -101,8 +101,9 @@ def test_gitfireset_simple():
     fs.reset()
     assert fs.save_needed() == False
 
+
 @with_setup(setup_dir, teardown_flssh)
-def test_gitfireset():
+def test_gitfireset_long():
     fs = GitFireSet(repodir='/tmp/firelet')
     for t in ('rules', 'hosts', 'hostgroups', 'services', 'networks'):
         fs.delete(t, 1)

@@ -339,6 +339,19 @@ def deploybtn():
     say('Configuration deployed.', level="success")
     return
 
+@bottle.route('/version_list')
+@view('version_list')
+def version_list():
+    _require('admin')
+    li = fs.version_list()
+    return dict(version_list=li)
+
+@bottle.route('/rollback', method='POST')
+def rollback():
+    cid = pg('commit_id') #TODO validate cid?
+    fs.rollback(cid)
+    say("Configuration rolled back.")
+    return
 
 # serving files
 
@@ -402,7 +415,7 @@ def main():
         say("Firelet started.", level="success")
 
     if conf.demo_mode == 'False':
-        globals()['fs'] = DumbFireSet()
+        globals()['fs'] = GitFireSet()
         say("Configuration loaded.")
         say("%d hosts, %d rules, %d networks loaded." % (len(fs.hosts), len(fs.rules), len(fs.networks)))
         globals()['users'] = Users(d='firewall')

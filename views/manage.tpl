@@ -6,6 +6,11 @@
 <br/>
 <button id="deploy" rel="#prompt"><img src="static/deploy.png"  title="Deploy"> Deploy</button>
 
+<div id="version_list">
+    <table>
+    </table>
+</div>
+
 <!-- check_feedback dialog -->
 <div class="ovl" id="check_ovr">
     <h2>Configuration check</h2>
@@ -56,8 +61,17 @@ table.phdiff_table tr.del {
 
 p#spinner { text-align: center; }
 
+div#version_list{
+    display: inline;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
 
+div#version_list table {
+    margin: 2em;
 
+}
 </style>
 
 <script>
@@ -78,6 +92,17 @@ $(function() {
         $.post("deploy",
             function(data){            });
     });
+
+    $('div#version_list table').load('version_list', function() {
+        $('img.rollback').click(function() {
+            cid = this.id;
+            $.post("rollback", {commit_id: cid},
+                function(data){
+                    $('div#version_list table').load('version_list');
+                });
+        });
+    });
+
 
 
     // Check feedback overlay
