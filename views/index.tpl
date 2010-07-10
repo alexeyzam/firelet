@@ -195,8 +195,8 @@ div#savereset {
 .modal {
     background-color:#fff;
     display:none;
-    width:350px;
-    padding:15px;
+    width: 18em;
+    padding:2em;
     text-align:left;
     border:2px solid #333;
 
@@ -320,10 +320,11 @@ div#gradient {
 <!-- login dialog -->
 <div class="modal" id="loginform">
     <h2>Login</h2>
-    <p>Please insert your credentials</p>
+    <p>Please insert your credentials:</p>
     <form>
-        <input type="text" name="user" value="username" />
-        <input type="text" name="pwd" value="password" />
+        <input type="text" name="user" value="username here, pwd below" />
+        <input type="password" name="pwd" value="" />
+        <br/><br/>
         <button type="submit"> OK </button>
         <button type="button" class="close"> Cancel </button>
     </form>

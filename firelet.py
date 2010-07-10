@@ -73,7 +73,7 @@ def login():
     s = bottle.request.environ.get('beaker.session')
     if 'username' in s:  # user is authenticated <--> username is set
         say("Already logged in as \"%s\"." % s['username'])
-        return
+        return {'logged_in': True}
     user = pg('user', '')
     pwd = pg('pwd', '')
     try:
@@ -85,7 +85,7 @@ def login():
         s = bottle.request.environ.get('beaker.session')
         s.save()
         return {'logged_in': True}
-    except Exception, e:
+    except (Alert, AssertionError), e:
         say("Login denied for \"%s\": %s" % (user, e), level="warning")
         return {'logged_in': False}
 

@@ -1,5 +1,4 @@
 import csv
-import git
 
 from hashlib import sha512
 from collections import defaultdict
@@ -178,22 +177,23 @@ class FireSet(object):
     def __init__(self, repodir='firewall'):
         raise NotImplementedError
 
-    # fireset management methods
+    # FireSet management methods
+    # They are redefined in each FireSet subclass
 
     def save_needed(self):
-        return True
+        raise NotImplementedError
 
     def save(self):
-        pass
+        raise NotImplementedError
 
     def reset(self):
-        pass
+        raise NotImplementedError
 
     def rollback(self, n):
-        pass
+        raise NotImplementedError
 
     def version_list(self):
-        return []
+        raise NotImplementedError
 
     # editing methods
 
@@ -543,26 +543,108 @@ class DumbFireSet(FireSet):
 
 class GitFireSet(FireSet):
     """FireSet implementing Git to manage the configuration repository"""
-
     def __init__(self, repodir='firewall'):
         self.rules = loadcsv('rules')
         self.hosts = loadcsv('hosts')
         self.hostgroups = loadcsv('hostgroups')
         self.services = loadcsv('services')
         self.networks = loadcsv('networks')
-
-        try:
-            self._repo = git.Repo(repodir) #TODO full path
-        except InvalidGitRepositoryError:
-            self._repo = git.Repo.create(repodir, mkdir=True)
-        except NoSuchPathError:
-            self._repo = git.Repo.create(repodir, mkdir=True)
+        self._git_repodir = repodir
+        if 'fatal: Not a git repository' in self._git('status')[1]:
+            log.debug('Creating Git repo...')
+            self._git('init .')
+            self._git('add *')
+            self._git('commit -m "First commit."')
 
     def version_list(self):
-        return self._repo.commits(self, max_count=30)
+        """Parse git log --date=iso and returns a list of lists:
+        [ [author, date, [msg lines] ], ... ]
+        """
+        o, e = self._git('log --date=iso')
+        if e:
+            Alert, e   #TODO
+        li = []
+        msg = []
+        author = None
+        for r in o.split('\n'):
+            if r.startswith('commit '):
+                if author:
+                    li.append([author, date, msg])
+                msg = []
+            elif r.startswith('Author: '):
+                author = r[8:]
+            elif r.startswith('Date: '):
+                date = r[8:]
+            elif r:
+                msg.append(r.strip())
+        return li
+
+
+    def _git(self, cmd):
+        from subprocess import Popen, PIPE
+        p = Popen('/usr/bin/git %s' % cmd, shell=True, cwd=self._git_repodir, stdout=PIPE, stderr=PIPE)
+        p.wait()
+        return p.communicate()
+
+    def save(self, msg):
+        if not msg:
+            msg = '(no message)'
+        self._git("add *")
+        self._git("commit -m '%s'" % msg)
+
+    def reset(self):
+        o, e = self._git('reset --hard')
+        assert 'HEAD is now at' in o, "Git reset --hard output: '%s' error: '%s'" % (o, e)
+
+    def rollback(self, n):
+        try:
+            n = int(n)
+        except ValueError:
+            raise Alert, "rollback requires an integer"
+        self.reset()
+        o, e = self._git("reset --hard HEAD~%d" % n)
+        assert 'HEAD is now at' in o, "Git reset --hard HEAD~%d output: '%s' error: '%s'" % (n, o, e)
 
     def save_needed(self):
-        return self._repo.is_dirty
+        o, e = self._git('status')
+#        log.debug("Git status output: '%s' error: '%s'" % (o, e))
+        if 'nothing to commit ' in o:
+            return False
+        elif '# On branch master' in o:
+            return True
+        else:
+            raise Alert, "Git status output: '%s' error: '%s'" % (o, e)
+
+    # GitFireSet editing
+
+    def delete(self, table, rid):
+        assert table in ('rules', 'hosts', 'hostgroups', 'services', 'networks') ,  "Wrong table name for deletion: %s" % table
+        try:
+            self.__dict__[table].pop(rid)
+            savecsv(table, self.__dict__[table], d=self._git_repodir)
+        except Exception, e:
+            pass #TODO
+
+    def rule_moveup(self, rid):
+        try:
+            rules = self.rules
+            rules[rid], rules[rid - 1] = rules[rid - 1], rules[rid]
+            self.rules = rules
+            savecsv('rules', rules, d=self._git_repodir)
+        except Exception, e:
+            log.debug("Error in rule_moveup: %s" % e)
+            #            say("Cannot move rule %d up." % rid)
+
+    def rule_movedown(self, rid):
+        try:
+            rules = self.rules
+            rules[rid], rules[rid + 1] = rules[rid + 1], rules[rid]
+            self.rules = rules[:]
+            savecsv('rules', rules, d=self._git_repodir)
+        except Exception, e:
+            #            say("Cannot move rule %d down." % rid)
+            pass
+
 
 
 
@@ -650,7 +732,6 @@ class Users(object):
         assert username, "Missing username."
         assert username in self._users, "Incorrect user or password."
         assert self._hash(username, pwd) == self._users[username][1], "Incorrect user or password."
-        #TODO: should I return True?
 
 
 

@@ -13,11 +13,11 @@ log = logging.getLogger()
 #TODO: SSH check and deployment
 
 def setup_dir():
-    shutil.rmtree('test/firewalltmp', True)
-    shutil.copytree('test/', 'test/firewalltmp')
+    shutil.rmtree('/tmp/firelet', True)
+    shutil.copytree('test/', '/tmp/firelet')
 
 def teardown_dir():
-    shutil.rmtree('test/firewalltmp', True)
+    shutil.rmtree('/tmp/firelet', True)
 
 
 
@@ -50,7 +50,7 @@ def teardown_flssh():
 
 #@with_setup(setup_dummy_flssh, teardown_dir)
 #def test_get_confs3():
-#    fs = DumbFireSet(repodir='test/firewalltmp')
+#    fs = DumbFireSet(repodir='/tmp/firelet')
 #    fs._get_confs()
 #    assert fs._remote_confs == {'Bilbo': [None, '10.66.2.1', {'filter': '-A INPUT -s 10.0.0.0/8 -p tcp -m tcp --dport 80 -j ACCEPT\n-A FORWARD -s 1.2.3.4/32 -d 5.6.7.8/32 -p tcp -m multiport --dports 22,80,443 -j ACCEPT\n-A OUTPUT -d 10.10.10.10/32 -p udp -m udp --dport 123 -j ACCEPT', 'nat': '-A POSTROUTING -o eth3 -j MASQUERADE'}, {'lo': ('127.0.0.1/8', '::1/128'), 'eth1': ('10.66.2.1/24', 'fe80::3939:3939:3939:3939/64'), 'eth0': ('10.66.1.2/24', 'fe80::3939:3939:3939:3939/64')}], 'Fangorn': [None, '10.66.2.2', {'filter': '-A INPUT -s 10.0.0.0/8 -p tcp -m tcp --dport 80 -j ACCEPT\n-A FORWARD -s 1.2.3.4/32 -d 5.6.7.8/32 -p tcp -m multiport --dports 22,80,443 -j ACCEPT\n-A OUTPUT -d 10.10.10.10/32 -p udp -m udp --dport 123 -j ACCEPT', 'nat': '-A POSTROUTING -o eth3 -j MASQUERADE'}, {'lo': ('127.0.0.1/8', '::1/128'), 'eth0': ('10.66.2.2/24', 'fe80::3939:3939:3939:3939/64')}], 'Gandalf': [None, '10.66.1.1', {'filter': '-A INPUT -s 10.0.0.0/8 -p tcp -m tcp --dport 80 -j ACCEPT\n-A FORWARD -s 1.2.3.4/32 -d 5.6.7.8/32 -p tcp -m multiport --dports 22,80,443 -j ACCEPT\n-A OUTPUT -d 10.10.10.10/32 -p udp -m udp --dport 123 -j ACCEPT', 'nat': '-A POSTROUTING -o eth3 -j MASQUERADE'}, {'lo': ('127.0.0.1/8', '::1/128'), 'eth1': ('10.66.1.1/24', 'fe80::3939:3939:3939:3939/64'), 'eth0': ('172.16.2.223/24', 'fe80::3939:3939:3939:3939/64')}], 'Smeagol': [None, '10.66.1.3', {'filter': '-A INPUT -s 10.0.0.0/8 -p tcp -m tcp --dport 80 -j ACCEPT\n-A FORWARD -s 1.2.3.4/32 -d 5.6.7.8/32 -p tcp -m multiport --dports 22,80,443 -j ACCEPT\n-A OUTPUT -d 10.10.10.10/32 -p udp -m udp --dport 123 -j ACCEPT', 'nat': '-A POSTROUTING -o eth3 -j MASQUERADE'}, {'lo': ('127.0.0.1/8', '::1/128'), 'eth0': ('10.66.1.3/24', 'fe80::3939:3939:3939:3939/64')}]}
 
@@ -58,7 +58,7 @@ def teardown_flssh():
 
 #@with_setup(setup_dummy_flssh, teardown_dir)
 #def test_get_confs4():
-#    fs = DumbFireSet(repodir='test/firewalltmp')
+#    fs = DumbFireSet(repodir='/tmp/firelet')
 #    fs._get_confs()
 #    fs._check_ifaces()
 #    rd = fs.compile_dict(hosts=fs.hosts)
@@ -75,7 +75,7 @@ def teardown_flssh():
 
 @with_setup(setup_dir, teardown_flssh)
 def test_user_management():
-    u = Users(d='test/firewalltmp')
+    u = Users(d='/tmp/firelet')
     u.create('Totoro', 'admin', 'rawr', 'totoro@nowhere.forest')
     assert_raises(Exception,  u.create, 'Totoro', '', '', '')
     u.validate('Totoro', 'rawr')
@@ -93,36 +93,45 @@ def test_user_management():
 # #  FireSet testing # #
 
 @with_setup(setup_dir, teardown_flssh)
-def test_gitfireset():
-    fs = GitFireSet(repodir='test/firewalltmp')
-    return #FIXME
+def test_gitfireset_simple():
+    fs = GitFireSet(repodir='/tmp/firelet')
     assert fs.save_needed() == False
     fs.save('test')
     assert fs.save_needed() == False
     fs.reset()
     assert fs.save_needed() == False
-    fs.rollback(2)
-    assert fs.save_needed() == False
-    vl = version_list()
-    # assert
-    for t in ('rules', 'hosts', 'hostgroups', 'services', 'network'):
+
+@with_setup(setup_dir, teardown_flssh)
+def test_gitfireset():
+    fs = GitFireSet(repodir='/tmp/firelet')
+    for t in ('rules', 'hosts', 'hostgroups', 'services', 'networks'):
         fs.delete(t, 1)
-        tmp = len(fs.__dict__[t])
         assert fs.save_needed() == True
-        assert tmp == len(fs.__dict__[t]) - 1
-    fs.save('test')
-    assert fs.save_needed() == False
-    tmp = fs.rules
+        fs.save("%s: n.1 deleted" % t)
+        assert fs.save_needed() == False
     fs.rule_moveup(2)
     assert fs.save_needed() == True
-    assert tmp != fs.rules
     fs.rule_movedown(1)
-    assert tmp == fs.rules
+    fs.save('movedown1')
+    fs.rule_movedown(2)
+    fs.save('movedown2')
+    fs.rule_movedown(3)
+    fs.save('movedown3')
+    vl = fs.version_list()
+    log.debug('version_list: %s' % repr(vl))
+    assert zip(*vl)[2] == (['movedown3'], ['movedown2'], ['networks: n.1 deleted'], ['services: n.1 deleted'],
+                            ['hostgroups: n.1 deleted'], ['hosts: n.1 deleted'], ['rules: n.1 deleted'])
+    fs.rollback(2)
+    assert fs.save_needed() == False
+    vl = fs.version_list()
+    log.debug('version_list: %s' % repr(vl))
+    assert zip(*vl)[2] == (['networks: n.1 deleted'], ['services: n.1 deleted'], ['hostgroups: n.1 deleted'],
+                            ['hosts: n.1 deleted'], ['rules: n.1 deleted'])
 
 
 @with_setup(setup_dir, teardown_flssh)
 def test_dumbfireset():
-    fs = DumbFireSet(repodir='test/firewalltmp')
+    fs = DumbFireSet(repodir='/tmp/firelet')
     assert fs.save_needed() == False
     fs.save('save')
     assert fs.save_needed() == False
@@ -211,14 +220,14 @@ def test_flattening():
 
 @with_setup(setup_dir, teardown_flssh)
 def test_compilation():
-    fs = DumbFireSet(repodir='test/firewalltmp')
+    fs = DumbFireSet(repodir='/tmp/firelet')
     compiled = fs.compile()
     r =['-A FORWARD -p tcp -s 10.66.1.2 -d 10.66.1.1 --dport 443 -j ACCEPT', '-A FORWARD -s 10.66.1.3 -d 172.16.2.223 --log-level 3 --log-prefix NoSmeagol -j LOG', '-A FORWARD -s 10.66.1.3 -d 172.16.2.223 -j DROP', '-A FORWARD -p tcp -s 10.66.1.2 -d 10.66.2.2 --dport 80 -j ACCEPT', '-A FORWARD -p tcp -s 172.16.2.223 -d 10.0.0.0/255.0.0.0 --dport 22 --log-level 2 --log-prefix ssh_mgmt -j LOG', '-A FORWARD -p tcp -s 172.16.2.223 -d 10.0.0.0/255.0.0.0 --dport 22 -j ACCEPT', '-A FORWARD -p tcp -s 10.66.1.2 -d 10.66.1.3 --dport 6660:6669 -j ACCEPT', '-A FORWARD -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 --log-level 2 --log-prefix imap -j LOG', '-A FORWARD -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 -j ACCEPT', '-A FORWARD -p udp -s 172.16.2.223 -d 172.16.2.223 --dport 123 -j ACCEPT', '-A FORWARD --log-level 1 --log-prefix default -j LOG', '-A FORWARD -j DROP']
     assert compiled == r, "Compilation incorrect" + repr(compiled)
 
 @with_setup(setup_dir, teardown_flssh)
 def test_select_rules():
-    fs = DumbFireSet(repodir='test/firewalltmp')
+    fs = DumbFireSet(repodir='/tmp/firelet')
     rd = fs.compile_dict()
     log.debug( repr(rd) )
     assert rd == {'Bilbo': {'eth1': [], 'eth0': ['-A FORWARD -p tcp -s 10.66.1.2 -d 10.66.1.1 --dport 443 -j ACCEPT', '-A FORWARD -p tcp -s 10.66.1.2 -d 10.66.2.2 --dport 80 -j ACCEPT', '-A FORWARD -p tcp -s 10.66.1.2 -d 10.66.1.3 --dport 6660:6669 -j ACCEPT', '-A FORWARD -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 --log-level 2 --log-prefix imap -j LOG', '-A FORWARD -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 -j ACCEPT']}, 'Fangorn': {'eth0': ['-A FORWARD -p tcp -s 10.66.1.2 -d 10.66.2.2 --dport 80 -j ACCEPT']}, 'Gandalf': {'eth1': ['-A FORWARD -p tcp -s 10.66.1.2 -d 10.66.1.1 --dport 443 -j ACCEPT'], 'eth0': ['-A FORWARD -s 10.66.1.3 -d 172.16.2.223 --log-level 3 --log-prefix NoSmeagol -j LOG', '-A FORWARD -s 10.66.1.3 -d 172.16.2.223 -j DROP', '-A FORWARD -p tcp -s 172.16.2.223 -d 10.0.0.0/255.0.0.0 --dport 22 --log-level 2 --log-prefix ssh_mgmt -j LOG', '-A FORWARD -p tcp -s 172.16.2.223 -d 10.0.0.0/255.0.0.0 --dport 22 -j ACCEPT', '-A FORWARD -p udp -s 172.16.2.223 -d 172.16.2.223 --dport 123 -j ACCEPT']}, 'Smeagol': {'eth0': ['-A FORWARD -s 10.66.1.3 -d 172.16.2.223 --log-level 3 --log-prefix NoSmeagol -j LOG', '-A FORWARD -s 10.66.1.3 -d 172.16.2.223 -j DROP', '-A FORWARD -p tcp -s 10.66.1.2 -d 10.66.1.3 --dport 6660:6669 -j ACCEPT', '-A FORWARD -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 --log-level 2 --log-prefix imap -j LOG', '-A FORWARD -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 -j ACCEPT']}}
@@ -226,7 +235,7 @@ def test_select_rules():
 #@with_setup(setup_dir, teardown_flssh)
 #def test_deployment():
 #    """Test host connectivity is required"""
-#    fs = DumbFireSet(repodir='test/firewalltmp')
+#    fs = DumbFireSet(repodir='/tmp/firelet')
 #    fs.deploy()
 
 
@@ -260,11 +269,11 @@ def test_json5():
     assert d != json_loop(d)
 
 def test_json_files():
-    shutil.rmtree('test/firewalltmp', True)
-    shutil.copytree('test/', 'test/firewalltmp')
+    shutil.rmtree('/tmp/firelet', True)
+    shutil.copytree('test/', '/tmp/firelet')
     d = {'d1':{'d2':{'d3':{'d4':{'d5':{'this is getting':'boring'}}}}}}
-    savejson('jfile', d, d='test/firewalltmp')
-    nd = loadjson('jfile', d='test/firewalltmp')
+    savejson('jfile', d, d='/tmp/firelet')
+    nd = loadjson('jfile', d='/tmp/firelet')
     assert d == nd
 
 # #  Test cartesian product  # #
