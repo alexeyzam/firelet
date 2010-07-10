@@ -263,11 +263,6 @@ div#gradient {
 
     <div id="header"><div>Firelet</div></div>
     <div id="pageLogin">
-
-
-
-
-
 %if not show_logout:
     <span><a href="/login" class="loginform" rel="#loginform">Login</a></span>
 %end
@@ -444,10 +439,11 @@ $(function() {
 
     });
 
-
     $('a#logout').click(function() {
-        $.getJSON("logout", function(json){ location.reload(); });
-
+        $.getJSON("logout", function(json){
+            location.reload();
+        });
+        event.preventDefault();
     });
 
 });
