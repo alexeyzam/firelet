@@ -648,8 +648,8 @@ class Users(object):
 
     def validate(self, username, pwd):
         assert username, "Missing username."
-        assert username in self._users, "Non existing user."
-        assert self._hash(username, pwd) == self._users[username][1], "Incorrect password."
+        assert username in self._users, "Incorrect user or password."
+        assert self._hash(username, pwd) == self._users[username][1], "Incorrect user or password."
         #TODO: should I return True?
 
 
