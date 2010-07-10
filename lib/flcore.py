@@ -411,13 +411,15 @@ class FireSet(object):
                     tab += '<tr class="add"><td>%s</td></tr>' % r
                 for r in list(ex_s - new_s):
                     tab += '<tr class="del"><td>%s</td></tr>' % r
-                html += "<h4 class='dtt'>%s</h4><table class='phdiff_table'>%s</table>" % (hostname, tab)
+                if tab:
+                    html += "<h4 class='dtt'>%s</h4><table class='phdiff_table'>%s</table>" % (hostname, tab)
             else:
                 log.debug('%s removed?' % hostname) #TODO: review this, manage *new* hosts as well
-
+        if not html:
+            return '<p>The firewalls are up to date. No deployment needed.</p>'
         return html
 
-
+        # unused
         from difflib import HtmlDiff
         differ = HtmlDiff()
         html = ''

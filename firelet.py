@@ -29,7 +29,7 @@ def say(s, level='info'):
         level = 'alert'
     ts = datetime.now().strftime("%H:%M:%S")
     msg_list.append((level, ts, s))
-    if len(msg_list) > 40:
+    if len(msg_list) > 10:
         msg_list.pop(0)
 
 def pg(name, default=''):
@@ -318,7 +318,7 @@ def checkbtn():
         diff_table = fs.check()
     except Alert, e:
         say("Check failed: %s" % e,  level="alert")
-        return
+        return dict(diff_table="Check failed: %s" % e)
     except Exception, e:
         import traceback
         log.debug(traceback.format_exc())
