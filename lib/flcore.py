@@ -3,7 +3,6 @@ import git
 
 from hashlib import sha512
 from collections import defaultdict
-from shutil import copytree, rmtree
 from git import InvalidGitRepositoryError, NoSuchPathError
 from netaddr import IPAddress, IPNetwork
 from os import unlink
@@ -565,45 +564,23 @@ class GitFireSet(FireSet):
 
 
 
-
-
 class DemoFireSet(DumbFireSet):
     """Based on DumbFireSet. Provide a demo version without real network interaction.
-    The status of the simulated remote hosts is kept in demo/ and it is based on test/
+    The status of the simulated remote hosts is kept in memory.
     """
     def __init__(self):
         DumbFireSet.__init__(self)
-        rmtree( 'demo/', True)
-        copytree('test/', 'demo/')
+        self._demo_rulelist = defaultdict(list)
 
     def _get_confs(self, keep_sessions=False):
         def ip_a_s(n):
             """Build a dict: {'eth0': (addr, None)} for a given host"""
             i = ((iface, (addr, None)) for hn, iface, addr, is_m in self.hosts if hn == n   )
             return dict(i)
-        def rulelist(n):
-            try:
-                return loadjson("iptables-save-" + n, d='demo')
-            except:
-                return []
         d = {} # {hostname: [[iptables], [ip-addr-show]], ... }
         for n, iface, addr, is_m in self.hosts:
-            d[n] = [ {'filter': rulelist(n)}, ip_a_s(n)]
-        print repr(d)
+            d[n] = [ {'filter': self._demo_rulelist[n]}, ip_a_s(n)]
         self._remote_confs = d
-
-    # check() is not redefined: it uses _get_confs only for network interaction.
-    def check(self):
-        """Check the configuration on the firewalls.
-        """
-        if self.save_needed():
-            raise Alert, "Configuration must be saved before check."
-        comp_rules = self.compile()
-        sx = self._get_confs(keep_sessions=True)
-        self._check_ifaces()
-        self.rd = self.compile_dict()
-        log.debug('Diff table: %s' % self._diff_table())
-        return self._diff_table()
 
     def deploy(self, ignore_unreachables=False, replace_ruleset=False):
         """Check and then deploy the configuration to the simulated firewalls."""
@@ -615,7 +592,8 @@ class DemoFireSet(DumbFireSet):
         self.rd = self.compile_dict() # r[hostname][interface] = [rule, rule, ... ]
         for n, k in self.rd.iteritems():
             rules = sum(k.values(),[])
-            savejson("iptables-save-" + n, rules, d='demo')
+            self._demo_rulelist[n] = rules
+
 
 
 
