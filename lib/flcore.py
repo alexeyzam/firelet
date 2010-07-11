@@ -580,6 +580,24 @@ class GitFireSet(FireSet):
                 msg.append(r.strip())
         return li
 
+    def version_diff(self, commit_id):
+        """Parse git diff <commit_id>"""
+        o, e = self._git('diff %s' % commit_id)
+        if e:
+            Alert, e   #TODO
+        li = []
+        for x in o.split('\n')[2:]: #TODO: Looks fragile
+            if x.startswith('+++'):
+                li.append((x[6:-4], 'title'))
+            elif x.startswith('---') or x.startswith('@@'):
+                pass
+            elif x.startswith('-'):
+                li.append((x[1:], 'del'))
+            elif x.startswith('+'):
+                li.append((x[1:], 'add'))
+            else:
+                li.append((x, ''))
+        return li
 
     def _git(self, cmd):
         from subprocess import Popen, PIPE

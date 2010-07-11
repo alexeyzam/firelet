@@ -357,6 +357,16 @@ def version_list():
     li = fs.version_list()
     return dict(version_list=li)
 
+@bottle.route('/version_diff', method='POST')
+@view('version_diff')
+def version_diff():
+    _require('admin')
+    cid = pg('commit_id') #TODO validate cid?
+    li = fs.version_diff(cid)
+    if li:
+        return dict(li=li)
+    return dict(li=(('(No changes.)', 'title')))
+
 @bottle.route('/rollback', method='POST')
 def rollback():
     cid = pg('commit_id') #TODO validate cid?

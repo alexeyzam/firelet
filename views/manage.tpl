@@ -22,7 +22,7 @@
     </table>
 </div>
 
-<!-- check_feedback dialog -->
+<!-- check_feedback overlay -->
 <div class="ovl" id="check_ovr">
     <h2>Configuration check</h2>
     <div id="diff_table">
@@ -30,6 +30,13 @@
     <br />
 </div>
 
+<!-- version diff overaly -->
+<div class="ovl" id="version_diff_ovr">
+    <h2>Version diff</h2>
+    <div id="version_diff">
+    </div>
+    <br />
+</div>
 
 <style>
 img#help { float: right; }
@@ -76,6 +83,12 @@ table td {
     border: 1px solid #c0c0c0;
     padding: 2px;
 }
+table.phdiff_table tr.title td {
+    text-align:center;
+    background-color: #f0f0f0;
+    font-size: 120%;
+    font-weight: bold;
+}
 table.phdiff_table tr.add {
     background-color: #f0fff0;
 }
@@ -117,14 +130,35 @@ $(function() {
             function(data){            });
     });
 
+    // Version list pane
     $('div#version_list table').load('version_list', function() {
-        $('img.rollback').click(function() {
+
+        $('img.rollback').click(function() {  // Setup rollback trigger
             cid = this.id;
             $.post("rollback", {commit_id: cid},
                 function(data){
                     $('div#version_list table').load('version_list');
                 });
         });
+
+        $('img.view_ver_diff').click(function() {
+            $('div#version_list').load('version_diff', {commit_id: this.id});
+        });
+
+        /*
+        $("img.view_ver_diff[rel]").overlay({  // Setup commit diff trigger
+            mask: {
+                loadSpeed: 200,
+                opacity: 0.9,
+                onLoad: function () {
+                    d = $('div#view_ver_diff');
+                    d.html('<p>Diff in progress...</p><p id="spinner"><img src="static/spinner_big.gif" /></p>');
+                    d.load('version_diff', {commit_id: this.id});
+                }
+            }
+        });
+        */
+
     });
 
 
