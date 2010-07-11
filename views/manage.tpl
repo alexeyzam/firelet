@@ -32,9 +32,7 @@
 
 
 <style>
-img#help {
-    float: right;
-}
+img#help { float: right; }
 div#help_ovr {
     background-color:#fff;
     display:none;
@@ -42,14 +40,12 @@ div#help_ovr {
     padding:15px;
     text-align:left;
     border:2px solid #333;
-    opacity:0.8;
+    opacity:0.98;
     -moz-border-radius:6px;
     -webkit-border-radius:6px;
     -moz-box-shadow: 0 0 50px #ccc;
     -webkit-box-shadow: 0 0 50px #ccc;
 }
-
-
 div.tabpane div button {
     width: 6em;
     padding: 1px;
@@ -135,7 +131,7 @@ $(function() {
 
     // Check feedback overlay
 
-    var over = $("img[rel]").overlay({
+    var over = $("img#check[rel]").overlay({
         mask: {
             loadSpeed: 200,
             opacity: 0.9,
@@ -152,7 +148,7 @@ $(function() {
     });
 
     // Help overlay
-    $("img.help[rel]").overlay();
-
+    $("img#help[rel]").overlay({ mask: {loadSpeed: 200, opacity: 0.9, }, });
 });
 </script>
+

@@ -255,7 +255,6 @@ div#gradient {
   z-index: 4000;
 }
 
-
 </style>
 
 </head>
