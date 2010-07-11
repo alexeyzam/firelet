@@ -1,3 +1,14 @@
+<img id="help" src="static/help.png" rel="div#help_ovr" title="Help">
+<div id="help_ovr">
+    <h4>Contextual help: Manage</h4>
+    <p>TODO</p>
+    <p>Here some nice Lorem ipsum:</p>
+    <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+    <br/>
+    <p>Press ESC to close this window</p>
+</div>
+
+
 <button id="save" rel="#prompt"><img src="static/save.png"  title="Save"> Save</button>
 <br/>
 <img id="check" src="static/check.png" rel="#check_ovr" title="Check">
@@ -21,6 +32,23 @@
 
 
 <style>
+img#help {
+    float: right;
+}
+div#help_ovr {
+    background-color:#fff;
+    display:none;
+    width: 70em;
+    padding:15px;
+    text-align:left;
+    border:2px solid #333;
+    opacity:0.8;
+    -moz-border-radius:6px;
+    -webkit-border-radius:6px;
+    -moz-box-shadow: 0 0 50px #ccc;
+    -webkit-box-shadow: 0 0 50px #ccc;
+}
+
 
 div.tabpane div button {
     width: 6em;
@@ -123,8 +151,8 @@ $(function() {
         closeOnClick: false
     });
 
-
-
+    // Help overlay
+    $("img.help[rel]").overlay();
 
 });
 </script>
