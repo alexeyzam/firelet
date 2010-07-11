@@ -647,7 +647,35 @@ class GitFireSet(FireSet):
             pass
 
 
+class DemoGitFireSet(GitFireSet):
+    """Based on GitFireSet. Provide a demo version without real network interaction.
+    The status of the simulated remote hosts is kept in memory.
+    """
+    def __init__(self):
+        GitFireSet.__init__(self)
+        self._demo_rulelist = defaultdict(list)
 
+    def _get_confs(self, keep_sessions=False):
+        def ip_a_s(n):
+            """Build a dict: {'eth0': (addr, None)} for a given host"""
+            i = ((iface, (addr, None)) for hn, iface, addr, is_m in self.hosts if hn == n   )
+            return dict(i)
+        d = {} # {hostname: [[iptables], [ip-addr-show]], ... }
+        for n, iface, addr, is_m in self.hosts:
+            d[n] = [ {'filter': self._demo_rulelist[n]}, ip_a_s(n)]
+        self._remote_confs = d
+
+    def deploy(self, ignore_unreachables=False, replace_ruleset=False):
+        """Check and then deploy the configuration to the simulated firewalls."""
+        if self.save_needed():
+            raise Alert, "Configuration must be saved before deployment."
+        comp_rules = self.compile()
+        sx = self._get_confs(keep_sessions=True)
+        self._check_ifaces()
+        self.rd = self.compile_dict() # r[hostname][interface] = [rule, rule, ... ]
+        for n, k in self.rd.iteritems():
+            rules = sum(k.values(),[])
+            self._demo_rulelist[n] = rules
 
 class DemoFireSet(DumbFireSet):
     """Based on DumbFireSet. Provide a demo version without real network interaction.

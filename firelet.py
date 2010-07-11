@@ -13,7 +13,18 @@ from time import time, sleep, localtime
 
 from lib.confreader import ConfReader
 from lib import mailer
-from lib.flcore import Alert, FireSet, GitFireSet, DumbFireSet, DemoFireSet, Users
+from lib.flcore import Alert, GitFireSet, DemoGitFireSet, Users
+
+from bottle import HTTPResponse, HTTPError
+
+class LoggedHTTPError(bottle.HTTPResponse):
+    """ Used to generate an error page """
+    def __init__(self, code=500, output='Unknown Error', exception=None, traceback=None, header=None):
+        super(bottle.HTTPError, self).__init__(output, code, header)
+        log.debug(            """Internal error '%s':\n  Output: %s\n  Header: %s\n  %s--- End of traceback ---"""% (exception, output, header, traceback))
+
+
+bottle.HTTPError = LoggedHTTPError
 
 #TODO: HG, H, N, Rule, Service creation
 #TODO: Rule up/down move
@@ -420,7 +431,7 @@ def main():
         say("%d hosts, %d rules, %d networks loaded." % (len(fs.hosts), len(fs.rules), len(fs.networks)))
         globals()['users'] = Users(d='firewall')
     elif conf.demo_mode == 'True':
-        globals()['fs'] = DemoFireSet()
+        globals()['fs'] = DemoGitFireSet()
         say("Demo mode.")
         say("%d hosts, %d rules, %d networks loaded." % (len(fs.hosts), len(fs.rules), len(fs.networks)))
         globals()['users'] = Users(d='demo')
