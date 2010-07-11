@@ -1,5 +1,5 @@
 
-from pxssh import pxssh, ExceptionPxssh
+from pxssh import pxssh
 import logging
 log = logging.getLogger()
 
