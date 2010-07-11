@@ -397,17 +397,13 @@ $(function() {
     });
 
     $("#savediag form").submit(function(e) {
-        // close the overlay
-        //triggers.eq(1).overlay().close();
-        // get user input
         var input = $("input", this).val();
-        // do something with the answer
-        triggers.eq(1).html(input);
-        $.post("save",{msg: input});
-        // do not submit the form
+        $.post("save",{msg: input}, function(json) {
+            triggers.eq(0).overlay().close();
+        },"json");
         return e.preventDefault();
-        triggers.hide();
     });
+
 
     // Login form
 
@@ -429,13 +425,11 @@ $(function() {
 
         //login.eq(1).html(input);
         $.post("login",{user: user, pwd: pwd}, function(json){
-            console.log(json);
             if (json.logged_in === true) {
                 location.reload();
                 over.eq(0).overlay().close();
             }
-        }, "json"
-        );
+        }, "json");
 
     });
 
