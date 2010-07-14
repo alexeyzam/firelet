@@ -64,6 +64,7 @@ div#help_ovr {
 % for rid, host in hosts:
     <tr id="{{rid}}">
     <td class="hea">
+        <img src="/static/edit.png" title="Edit host" rel="#editing_form" class="edit">
         <img src="/static/delete.png" title="Delete host" class="delete">
     </td>
     % for item in host:
@@ -73,15 +74,14 @@ div#help_ovr {
 % end
 </table>
 
-<p><img src="static/new.png" rel="#new_form"/> New host</p>
-
+<p><img src="static/new.png" rel="#editing_form" class="new"> New host</p>
 
 <!-- New item form -->
-<div id="new_form">
-    <form id="new_form">
+<div id="editing_form">
+    <form id="editing_form">
 
        <fieldset>
-          <h3>New host creation</h3>
+          <h3>Host editing</h3>
 
           <p> Enter bad values and then press the submit button. </p>
 
@@ -119,24 +119,24 @@ div#help_ovr {
 
 <script>
 $(function() {
-$("table#items tr td img[title]").tooltip({
-    tip: '.tooltip',
-    effect: 'fade',
-    fadeOutSpeed: 100,
-    predelay: 800,
-    position: "bottom right",
-    offset: [15, 15]
-});
+    $("table#items tr td img[title]").tooltip({
+        tip: '.tooltip',
+        effect: 'fade',
+        fadeOutSpeed: 100,
+        predelay: 800,
+        position: "bottom right",
+        offset: [15, 15]
+    });
 
-$("table#items tr td img").fadeTo("fast", 0.6);
+    $("table#items tr td img").fadeTo("fast", 0.6);
 
-$("table#items tr td img").hover(function() {
-  $(this).fadeTo("fast", 1);
-}, function() {
-  $(this).fadeTo("fast", 0.6);
-});
+    $("table#items tr td img").hover(function() {
+      $(this).fadeTo("fast", 1);
+    }, function() {
+      $(this).fadeTo("fast", 0.6);
+    });
 
-$(function() {
+
     $('img.delete').click(function() {
         td = this.parentElement.parentElement;
         $.post("hosts", { action: 'delete', rid: td.id},
@@ -144,39 +144,60 @@ $(function() {
                 $('div.tabpane div').load('/hosts');
             });
     });
-});
 
+    // Open the overlay form to create a new element
+    $("img.new[rel]").overlay({
+            mask: {
+                loadSpeed: 200,
+                opacity: 0.9
+            },
+            closeOnClick: false
+    });
 
-var over = $("img[rel]").overlay({
+    // If the form is used for editing an existing item,
+    // load the existing values
+    $("img.edit[rel]").overlay({
         mask: {
             loadSpeed: 200,
             opacity: 0.9
         },
+        onBeforeLoad: function(event, tabIndex) {
+            // TODO: finish form default values fetch
+            $.post("hosts_new", ff,
+                function(json){
+                    if (json.ok === true) {
+                        over.eq(0).overlay().close();
+                    } else {
+                        form.data("validator").invalidate(json);
+                    }
+                }, "json"
+            );
+        },
         closeOnClick: false
-});
+    });
 
 
-// initialize validator for new_form
+    // Send editing_form field values on submit
 
-$("form#new_form").validator().submit(function(e) {
-    var form = $(this);
-    // client-side validation OK
-    if (!e.isDefaultPrevented()) {
-    ff = $('form#new_form').serializeArray();
+    $("form#editing_form").validator().submit(function(e) {
+        var form = $(this);
+        // client-side validation OK
+        if (!e.isDefaultPrevented()) {
+        ff = $('form#editing_form').serializeArray();
+        // TODO: remove defaults and ID
 
-    $.post("hosts_new", ff,
-        function(json){
-            if (json.ok === true) {
-                over.eq(0).overlay().close();
-            } else {
-                form.data("validator").invalidate(json);
-            }
-        }, "json"
-    );
-
-        e.preventDefault();     // prevent default form submission logic
-    }
-});
+        $.post("hosts_new", ff,
+            function(json){
+                if (json.ok === true) {
+                    over.eq(0).overlay().close();
+                } else {
+                    form.data("validator").invalidate(json);
+                }
+            }, "json"
+        );
+            e.preventDefault();     // prevent default form submission logic
+        }
+    });
 
 
 

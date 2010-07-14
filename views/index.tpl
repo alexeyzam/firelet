@@ -207,7 +207,7 @@ div#savereset {
     -webkit-box-shadow: 0 0 50px #ccc;
 }
 
-div#new_form {
+div#editing_form {
     background-color:#fff;
     display:none;
     width:350px;
