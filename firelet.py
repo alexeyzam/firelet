@@ -13,7 +13,7 @@ from time import time, sleep, localtime
 
 from lib.confreader import ConfReader
 from lib import mailer
-from lib.flcore import Alert, GitFireSet, DemoGitFireSet, Users
+from lib.flcore import Alert, GitFireSet, DemoGitFireSet, Users, clean
 
 from bottle import HTTPResponse, HTTPError
 
@@ -43,8 +43,10 @@ def say(s, level='info'):
     if len(msg_list) > 10:
         msg_list.pop(0)
 
+
 def pg(name, default=''):
-    return request.POST.get(name, default).strip()
+    s = request.POST.get(name, default)[:64]
+    return clean(s).strip()
 
 def int_pg(name, default=''):
     v = request.POST.get(name, default).strip()

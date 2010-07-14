@@ -67,8 +67,10 @@ def teardown_flssh():
 
 
 
-
-
+def test_clean():
+    """Test user input cleanup"""
+    s = clean(' !"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_')
+    assert s == ' !#$%&()*+,-./0123456789:;=?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_'
 
 
 # #  User management testing  # #

@@ -6,5 +6,5 @@ do
     find . -name '*pyc' -delete;
     echo -e '\n\n\n\n'
     clear
-    nosetests test.py
+    nosetests --with-doctest test.py
 done

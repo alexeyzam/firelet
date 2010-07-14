@@ -45,6 +45,20 @@ protocols = ['IP','TCP', 'UDP', 'OSPF', 'IS-IS', 'SCTP', 'AH', 'ESP']
 class Alert(Exception):
     """Custom exception used to send an alert message to the user"""
 
+#input validation
+
+def clean(s):
+    """Remove dangerous characters.
+    >>> clean(' !"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_')
+    ' !#$%&()*+,-./0123456789:;=?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_'
+    """
+    o = ''
+    for x in s:
+        n = ord(x)
+        if 31< n < 127  and n not in (34, 39, 60, 62, 96):
+            o += x
+    return o
+
 #files handling
 
 class Table(list):
