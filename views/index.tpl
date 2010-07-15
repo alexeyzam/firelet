@@ -1,7 +1,36 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <html>
 <head>
-    <meta content="text/html; charset=utf-8" http-equiv="content-type">
+<meta content="text/html; charset=utf-8" http-equiv="content-type">
+%if not logged_in:
+<div>
+    <h2>Login</h2>
+    <p>Please insert your credentials:</p>
+    <form action="login" method="post">
+        <input type="text" name="user" />
+        <input type="password" name="pwd" />
+        <br/><br/>
+        <button type="submit" > OK </button>
+        <button type="button" class="close"> Cancel </button>
+    </form>
+    <br />
+</div>
+<style>
+div {
+    color: #777;
+    margin: auto;
+	width: 20em;
+    text-align: center;
+}
+input {
+    background: #f8f8f8;
+    border: 1px solid #777;
+    margin: auto;
+}
+input:hover { background: #fefefe}
+</style>
+%end
+%if logged_in:
 <title>Firelet</title>
 
 <script src="static/jquery.tools.min.js"></script>
@@ -262,12 +291,7 @@ div#gradient {
 
     <div id="header"><div>Firelet</div></div>
     <div id="pageLogin">
-%if not show_logout:
-    <span><a href="/login" class="loginform" rel="#loginform">Login</a></span>
-%end
-%if show_logout:
     <span><a id="logout" href="/logout">Logout</a></span>
-%end
     </div>
     <div id="savereset">
         <span>
@@ -404,42 +428,6 @@ $(function() {
         return e.preventDefault();
     });
 
-
-    // Login form
-
-    var login = $(".loginform").overlay({
-        mask: {
-            color: '#ebecff',
-            loadSpeed: 200,
-            opacity: 0.9
-        },
-        closeOnClick: false
-    });
-
-    $("#loginform form").submit(function(e) {
-        // close the overlay
-        //login.eq(1).overlay().close();
-        e.preventDefault();
-        var user = $("input[name=user]", this).val();
-        var pwd = $("input[name=pwd]", this).val();
-
-        //login.eq(1).html(input);
-        $.post("login",{user: user, pwd: pwd}, function(json){
-            if (json.logged_in === true) {
-                location.reload();
-                over.eq(0).overlay().close();
-            }
-        }, "json");
-
-    });
-
-    $('a#logout').click(function() {
-        $.getJSON("logout", function(json){
-            location.reload();
-        });
-        event.preventDefault();
-    });
-
 });
 
 
@@ -447,3 +435,4 @@ $(function() {
 </body>
 
 </html>
+% end

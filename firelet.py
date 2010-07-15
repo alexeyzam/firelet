@@ -94,21 +94,20 @@ def login():
         s['role'] = role
         s = bottle.request.environ.get('beaker.session')
         s.save()
-        return {'logged_in': True}
+        bottle.redirect('')
     except (Alert, AssertionError), e:
         say("Login denied for \"%s\": %s" % (user, e), level="warning")
-        return {'logged_in': False}
+        bottle.redirect('')
 
 
 
 @bottle.route('/logout')
 def logout():
     s = bottle.request.environ.get('beaker.session')
-    if 'username' in s:
-        s.delete()
-        say('User logged out.')
-    else:
-        say('User already logged out.', level='warning')
+    say('User %s logged out.' % s.get('username', ''))
+    s.delete()
+    bottle.redirect('')
+
 
 
 #
@@ -127,14 +126,13 @@ def messages():
 @view('index')
 def index():
     s = bottle.request.environ.get('beaker.session')
-    show_logout = True if s and 'username' in s else False
-    msg = None
+    logged_in = True if s and 'username' in s else False
 
     try:
         title = conf.title
     except:
         title = 'test'
-    return dict(msg=msg, title=title, show_logout=show_logout)
+    return dict(msg=None, title=title, logged_in=logged_in)
 
 # #  tables interaction  # #
 #
