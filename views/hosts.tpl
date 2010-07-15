@@ -64,8 +64,8 @@ div#help_ovr {
 % for rid, host in hosts:
     <tr id="{{rid}}">
     <td class="hea">
-        <img src="/static/edit.png" title="Edit host" rel="#editing_form" class="edit">
-        <img src="/static/delete.png" title="Delete host" class="delete">
+        <img src="/static/edit.png" title="Edit host" id="{{rid}}" rel="#editing_form" class="edit">
+        <img src="/static/delete.png" title="Delete host" id="{{rid}}" class="delete">
     </td>
     % for item in host:
     <td>{{item}}</td>
@@ -108,7 +108,7 @@ div#help_ovr {
             <input type="checkbox" name="netfw" />
           </p>
 
-          <button type="submit">Submit form</button>
+          <button type="submit">Submit</button>
           <button type="reset">Reset</button>
        </fieldset>
     </form>
@@ -136,8 +136,7 @@ $(function() {
 
 
     $('img.delete').click(function() {
-        td = this.parentElement.parentElement;
-        $.post("hosts", { action: 'delete', rid: td.id},
+        $.post("hosts", { action: 'delete', rid: this.id},
             function(data){
                 $('div.tabpane div').load('/hosts');
             });
@@ -145,9 +144,12 @@ $(function() {
 
     // Open the overlay form to create a new element
     $("img.new[rel]").overlay({
-            mask: {
-                loadSpeed: 200,
-                opacity: 0.9
+            mask: { loadSpeed: 200, opacity: 0.9 },
+            onBeforeLoad: function() {
+                $("form#editing_form input").each(function(n,f) {
+                    f.value = '';
+                    f.checked = false;
+                });
             },
             closeOnClick: false
     });
@@ -157,10 +159,13 @@ $(function() {
     $("img.edit[rel]").overlay({
         mask: { loadSpeed: 200, opacity: 0.9 },
         onBeforeLoad: function(event, tabIndex) {
-            rid = this.getTrigger()[0].parentElement.parentElement.id;
+            rid = this.getTrigger()[0].id;
             $.post("hosts",{'action':'fetch','rid':rid}, function(json){
-                $("form#editing_form input").each(function(n,f) {
+                $("form#editing_form input[type=text]").each(function(n,f) {
                     f.value = json[f.name];
+                });
+                $("form#editing_form input[type=checkbox]").each(function(n,f) {
+                    f.checked = Boolean(json[f.name]);
                 });
             }, "json");
         },
@@ -175,8 +180,6 @@ $(function() {
         // client-side validation OK
         if (!e.isDefaultPrevented()) {
         ff = $('form#editing_form').serializeArray();
-        // TODO: remove defaults and ID
-
         $.post("hosts", ff,
             function(json){
                 if (json.ok === true) {

@@ -31,6 +31,8 @@ bottle.HTTPError = LoggedHTTPError
 #TODO: say() as a custom log target
 #TODO: full rule checking upon Save
 #TODO: move fireset editing in flcore
+#TODO: setup three roles
+#TODO: display only login form to unauth users
 
 msg_list = []
 
@@ -251,7 +253,8 @@ def hosts():
     elif action == 'fetch':
         try:
             n, iface, ipaddr, f = fs.fetch('hosts', rid)
-            return {'hostname':n, 'iface':iface, 'ip_addr':ipaddr}
+            f = int(f)
+            return {'hostname':n, 'iface':iface, 'ip_addr':ipaddr, 'localfw': f, 'netfw': f}
         except Alert, e:
             say('TODO')
 
