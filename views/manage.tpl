@@ -15,8 +15,9 @@
 
 <button id="check" rel="#prompt"><img src="static/check.png" rel="#check" title="Check"> Check</button>
 <br/>
+% if can_deploy:
 <button id="deploy" rel="#prompt"><img src="static/deploy.png"  title="Deploy"> Deploy</button>
-
+% end
 <div id="version_list">
     <table>
     </table>

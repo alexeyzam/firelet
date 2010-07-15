@@ -148,11 +148,12 @@ def index():
 @bottle.route('/ruleset')
 @view('ruleset')
 def ruleset():
+    _require()
     return dict(rules=enumerate(fs.rules))
 
 @bottle.route('/ruleset', method='POST')
 def ruleset():
-    _require('admin')
+    _require('editor')
     action = pg('action', '')
     name = pg('name', '')
     rid = int_pg('rid')
@@ -187,11 +188,12 @@ def ruleset():
 @bottle.route('/hostgroups')
 @view('hostgroups')
 def hostgroups():
+    _require()
     return dict(hostgroups=enumerate(fs.hostgroups))
 
 @bottle.route('/hostgroups', method='POST')
 def hostgroups():
-    _require('admin')
+    _require('editor')
     action = pg('action', '')
     rid = int_pg('rid')
     if action == 'delete':
@@ -209,12 +211,13 @@ def hostgroups():
 @bottle.route('/hosts')
 @view('hosts')
 def hosts():
+    _require()
     return dict(hosts=enumerate(fs.hosts))
 
 
 @bottle.route('/hosts', method='POST')
 def hosts():
-    _require('admin')
+    _require('editor')
     action = pg('action', '')
     rid = int_pg('rid')
     if action == 'delete':
@@ -252,17 +255,15 @@ def hosts():
             say('TODO')
 
 
-
-
-
 @bottle.route('/networks')
 @view('networks')
 def networks():
+    _require()
     return dict(networks=enumerate(fs.networks))
 
 @bottle.route('/networks', method='POST')
 def networks():
-    _require('admin')
+    _require('editor')
     action = pg('action', '')
     rid = int_pg('rid')
     if action == 'delete':
@@ -279,12 +280,12 @@ def networks():
 @bottle.route('/services')
 @view('services')
 def services():
+    _require()
     return dict(services=enumerate(fs.services))
 
 @bottle.route('/services', method='POST')
 def services():
-    print repr(request.POST.get('rid'))
-    _require('admin')
+    _require('editor')
     action = pg('action', '')
     rid = int_pg('rid')
     if action == 'delete':
@@ -302,15 +303,20 @@ def services():
 @bottle.route('/manage')
 @view('manage')
 def manage():
-    return dict()
+    _require()
+    s = bottle.request.environ.get('beaker.session')
+    myrole = s.get('role', '')
+    cd = True if myrole == 'admin' else False
+    return dict(can_deploy=cd)
 
 @bottle.route('/save_needed')
 def save_needed():
+    _require()
     return {'sn': fs.save_needed()}
 
 @bottle.route('/save', method='POST')
 def savebtn():
-    _require('admin')
+    _require()
     msg = pg('msg', '')
     if not fs.save_needed():
         say('Save not needed.', level="warning")
@@ -324,7 +330,7 @@ def savebtn():
 
 @bottle.route('/reset', method='POST')
 def resetbtn():
-    _require('admin')
+    _require()
     if not fs.save_needed():
         say('Reset not needed.', level="warning")
         return
@@ -335,7 +341,7 @@ def resetbtn():
 
 @bottle.route('/check', method='POST')
 def checkbtn():
-    _require('admin')
+    _require()
     say('Configuration check started...')
     try:
 #        import time
@@ -367,14 +373,14 @@ def deploybtn():
 @bottle.route('/version_list')
 @view('version_list')
 def version_list():
-    _require('admin')
+    _require()
     li = fs.version_list()
     return dict(version_list=li)
 
 @bottle.route('/version_diff', method='POST')
 @view('version_diff')
 def version_diff():
-    _require('admin')
+    _require()
     cid = pg('commit_id') #TODO validate cid?
     li = fs.version_diff(cid)
     if li:
@@ -383,6 +389,7 @@ def version_diff():
 
 @bottle.route('/rollback', method='POST')
 def rollback():
+    _require('admin')
     cid = pg('commit_id') #TODO validate cid?
     fs.rollback(cid)
     say("Configuration rolled back.")
@@ -392,6 +399,7 @@ def rollback():
 
 @bottle.route('/static/:filename#[a-zA-Z0-9_\.?\/?]+#')
 def static_file(filename):
+    _require()
     if filename == '/jquery-ui.js':
         send_file('/usr/share/javascript/jquery-ui/jquery-ui.js') #TODO: support other distros
     elif filename == 'jquery.min.js':
