@@ -63,11 +63,6 @@ def int_pg(name, default=None):
 
 # #  authentication  # #
 
-#    def _validate(user, pwd):
-#        if user == 'admin' and pwd == 'admin':
-#            return (True, 'admin')
-#        return False, ''
-
 def _require(role='auth'):
     """Ensure the user has admin role or is authenticated at least"""
     s = bottle.request.environ.get('beaker.session')
@@ -77,7 +72,7 @@ def _require(role='auth'):
     if role == 'auth': return
     myrole = s.get('role', '')
     if myrole == role: return
-    say("A %s account is required." % repr(role))
+    say("An %s account is required." % repr(role))
     raise Exception
 
 

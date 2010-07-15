@@ -35,7 +35,8 @@ div#help_ovr {
 % for rid, hostgroup in hostgroups:
     <tr id="{{rid}}">
     <td class="hea">
-        <img src="/static/delete.png" title="Delete host group" class="delete">
+        <img src="/static/edit.png" title="Edit host group" id="{{rid}}" rel="#editing_form" class="edit">
+        <img src="/static/delete.png" title="Delete host group" id="{{rid}}" class="delete">
     </td>
     % for item in hostgroup:
     <td>{{item}}</td>

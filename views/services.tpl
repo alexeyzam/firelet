@@ -39,7 +39,8 @@ div#help_ovr {
 % for rid, service in services:
     <tr id="{{rid}}">
     <td class="hea">
-        <img src="/static/delete.png" title="Delete service" class="delete">
+        <img src="/static/edit.png" title="Edit service" id="{{rid}}" rel="#editing_form" class="edit">
+        <img src="/static/delete.png" title="Delete service" id="{{rid}}" class="delete">
     </td>
     % for item in service:
     <td>{{item}}</td>

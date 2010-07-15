@@ -25,7 +25,8 @@
 % for rid, network in networks:
     <tr id="{{rid}}">
     <td class="hea">
-        <img src="/static/delete.png" title="Delete network" class="delete">
+        <img src="/static/edit.png" title="Edit network" id="{{rid}}" rel="#editing_form" class="edit">
+        <img src="/static/delete.png" title="Delete network" id="{{rid}}" class="delete">
     </td>
     % for item in network:
     <td>{{item}}</td>

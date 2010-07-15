@@ -51,6 +51,7 @@ div#help_ovr {
             <img class="action" src="/static/enable.png" title="Enable rule" action="enable">
             %end
             <img class="action" src="/static/delete.png" title="Delete rule" action="delete">
+            <img src="/static/edit.png" title="Edit rule" id="{{rid}}" rel="#editing_form" class="edit">
         </td>
         % for item in rule:
         <td>{{item}}</td>
