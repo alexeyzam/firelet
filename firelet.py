@@ -48,9 +48,9 @@ def pg(name, default=''):
     s = request.POST.get(name, default)[:64]
     return clean(s).strip()
 
-def int_pg(name, default=''):
-    v = request.POST.get(name, default).strip()
-    if not v: return None
+def int_pg(name, default=None):
+    v = request.POST.get(name, default)
+    if v == None: return None
     try:
         return int(v)
     except:
@@ -141,8 +141,14 @@ def index():
 
 # #  tables interaction  # #
 #
-# GETs are used to list contents
-# POSTs are used to make changes
+# GETs are used to list all table contents
+# POSTs are used to make changes or to populate editing forms
+# POST "verbs" are sent using the "action" key, and the "rid" key
+# specifies the target:
+#   - delete
+#   - moveup/movedown/enable/disable   see ruleset()
+#   - edit: updates an element if rid is not null, otherwise creates
+#             a new one
 
 @bottle.route('/ruleset')
 @view('ruleset')
@@ -224,22 +230,32 @@ def hosts():
         except Exception, e:
             say("Unable to delete %s - %s" % (rid, e), level="alert")
             abort(500)
+    elif action == 'edit':
+        hostname = pg('hostname')
+        iface = pg('iface')
+        ip_addr = pg('ip_addr')
+        if rid == None:     # new host
+            try:
+                say('Host %s added.' % hostname, level="success") #TODO: complete this
+                return {'ok': True}
+            except Alert, e:
+                say('Unable to add %s.' % hostname, level="alert")
+                return {'ok': False, 'hostname':'Must start with "test"'} #TODO: complete this
+        else:   # update host
+            try:
+                say('Host %s added.' % hostname, level="success") #TODO: complete this
+                return {'ok': True}
+            except Alert, e:
+                say('Unable to add %s.' % hostname, level="alert")
+                return {'ok': False, 'hostname':'Must start with "test"'} #TODO: complete this
+    elif action == 'fetch':
+        try:
+            n, iface, ipaddr, f = fs.fetch('hosts', rid)
+            return {'hostname':n, 'iface':iface, 'ip_addr':ipaddr}
+        except Alert, e:
+            say('TODO')
 
-@bottle.route('/hosts_new', method='POST')
-def hosts_new():
-    _require('admin')
-    hostname = pg('hostname')
-    iface = pg('iface')
-    ip_addr = pg('ip_addr')
-    print hostname, iface, ip_addr
-    if hostname.startswith("test"):
-#        print repr(hosts) #FIXME
-#        hosts.append((hostname, iface, ip_addr))
-        say('Host %s added.' % hostname, level="success")
-        return {'ok': True}
 
-    say('Unable to add %s.' % hostname, level="alert")
-    return {'ok': False, 'hostname':'Must start with "test"'}
 
 
 
@@ -447,6 +463,7 @@ def main():
         say("Demo mode.")
         say("%d hosts, %d rules, %d networks loaded." % (len(fs.hosts), len(fs.rules), len(fs.networks)))
         globals()['users'] = Users(d='demo')
+#        reload = True
 
 
 

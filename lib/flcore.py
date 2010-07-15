@@ -211,6 +211,14 @@ class FireSet(object):
 
     # editing methods
 
+    def fetch(self, table, rid):
+        assert table in ('rules', 'hosts', 'hostgroups', 'services', 'network') ,  "Incorrect table name."
+        try:
+            return self.__dict__[table][rid]
+        except Exception, e:
+            Alert,  "Unable to fetch item %d in table %s: %s" % (rid, table, e)
+
+
     def delete(self, table, rid):
         assert table in ('rules', 'hosts', 'hostgroups', 'services', 'network') ,  "Incorrect table name."
         try:

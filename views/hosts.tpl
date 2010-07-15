@@ -101,11 +101,11 @@ div#help_ovr {
 
           <p>
             <label>Local firewall</label>
-            <input type="checkbox" />
+            <input type="checkbox" name="localfw" />
           </p>
           <p>
             <label>Network firewall</label>
-            <input type="checkbox" />
+            <input type="checkbox" name="netfw" />
           </p>
 
           <button type="submit">Submit form</button>
@@ -114,8 +114,6 @@ div#help_ovr {
     </form>
     <p>Enter and Esc keys are supported.</p>
 </div>
-
-
 
 <script>
 $(function() {
@@ -154,24 +152,17 @@ $(function() {
             closeOnClick: false
     });
 
-    // If the form is used for editing an existing item,
-    // load the existing values
+    // If the form is being used to edit an existing item,
+    // load the actual values
     $("img.edit[rel]").overlay({
-        mask: {
-            loadSpeed: 200,
-            opacity: 0.9
-        },
+        mask: { loadSpeed: 200, opacity: 0.9 },
         onBeforeLoad: function(event, tabIndex) {
-            // TODO: finish form default values fetch
-            $.post("hosts_new", ff,
-                function(json){
-                    if (json.ok === true) {
-                        over.eq(0).overlay().close();
-                    } else {
-                        form.data("validator").invalidate(json);
-                    }
-                }, "json"
-            );
+            rid = this.getTrigger()[0].parentElement.parentElement.id;
+            $.post("hosts",{'action':'fetch','rid':rid}, function(json){
+                $("form#editing_form input").each(function(n,f) {
+                    f.value = json[f.name];
+                });
+            }, "json");
         },
         closeOnClick: false
     });
@@ -186,7 +177,7 @@ $(function() {
         ff = $('form#editing_form').serializeArray();
         // TODO: remove defaults and ID
 
-        $.post("hosts_new", ff,
+        $.post("hosts", ff,
             function(json){
                 if (json.ok === true) {
                     over.eq(0).overlay().close();
