@@ -79,14 +79,21 @@ class Table(list):
 def loadcsv(n, d='firewall'):
     try:
         f = open("%s/%s.csv" % (d, n))
-        r = Table(csv.reader(f, delimiter=' '))
+        li = [x for x in f if not x.startswith('#') and x != '\n']
+#        if li[0] != '# Format 0.1 - Do not edit this line':
+#            raise Exception, "Data format not supported in %s/%s.csv" % (d, n)
+        r = Table(csv.reader(li, delimiter=' '))
         f.close()
         return r
     except IOError:
         return [] #FIXME: why?
 
 def savecsv(n, stuff, d='firewall'):
+    f = open("%s/%s.csv" % (d, n))
+    comments = [x for x in f if x.startswith('#')]
+    f.close()
     f = open("%s/%s.csv" % (d, n), 'wb')
+    f.writelines(comments)
     writer = csv.writer(f,  delimiter=' ')
     writer.writerows(stuff)
     f.close()
