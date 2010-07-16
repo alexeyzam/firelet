@@ -309,7 +309,7 @@ div#gradient {
         <li><a href="networks">Networks</a></li>
         <li><a href="services">Services</a></li>
         <li><a href="manage">Manage</a></li>
-        <li><a href="monitor">Monitor</a></li>
+        <li><a href="map">Map</a></li>
     </ul>
 
     <div class="tabpane"><div style="display:block"></div></div>

@@ -413,6 +413,18 @@ def static_file(filename):
 def favicon():
     send_file('favicon.ico', root='static')
 
+@bottle.route('/map')
+def flmap():
+    return """<img src="map.png">"""
+
+@bottle.route('/map.png')
+def flmap_png():
+    from lib.flmap import drawmap
+    bottle.response.content_type = 'image/png'
+    return drawmap(fs)
+
+
+
 
 
 
