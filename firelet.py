@@ -99,12 +99,12 @@ def login():
         say("Login denied for \"%s\": %s" % (user, e), level="warning")
         bottle.redirect('')
 
-
-
 @bottle.route('/logout')
 def logout():
     s = bottle.request.environ.get('beaker.session')
-    say('User %s logged out.' % s.get('username', ''))
+    u = s.get('username', None)
+    if u:
+        say('User %s logged out.' % u)
     s.delete()
     bottle.redirect('')
 
