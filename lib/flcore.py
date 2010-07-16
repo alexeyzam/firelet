@@ -47,6 +47,12 @@ class Alert(Exception):
 
 #input validation
 
+def validc(c):
+    n = ord(c)
+    if 31< n < 127  and n not in (34, 39, 60, 62, 96):
+        return True
+    return False
+
 def clean(s):
     """Remove dangerous characters.
     >>> clean(' !"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_')
@@ -98,6 +104,20 @@ def savecsv(n, stuff, d='firewall'):
     writer.writerows(stuff)
     f.close()
 
+def load_hosts_csv(n, d='firewall'):
+    """Read the hosts csv file, group the routed networks as a list"""
+    li = loadcsv(n, d)
+    mu = [[x[0], x[1], x[2], x[3], x[4:]] for x in li]
+    log.debug('giving %s' % repr(mu))
+    return mu
+
+def save_hosts_csv(n, mu, d='firewall'):
+    """Save hosts on a csv file, flattening the input list."""
+    log.debug('got %s' % repr(mu))
+    li = [x[0:4] + x[4]  for x in mu]
+    log.debug('saved %s' % repr(li))
+    savecsv(n, li, d)
+    log.debug('saved %s' % repr(li))
 
 # JSON files
 
@@ -131,6 +151,7 @@ def net_addr(a, n):
 class NetworkObj(object):
     """Can be a host, a network or a hostgroup"""
     pass
+
 
 class Sys(NetworkObj):
     def __init__(self, name, ifaces={}):
@@ -190,6 +211,40 @@ class HostGroup(NetworkObj):
         return filter(lambda i: type(i) == Host, self._flatten(self)) # better?
         return [n for n in self._flatten(self) if isinstance(n, Host)]
 
+
+class NetworkObjTable(object):
+    """Contains a set of hosts or networks or hostgroups.
+    They are stored as self._objdict where the key is the object name
+    """
+    def __init__(self):
+        raise NotImplementedError
+
+    def __str__(self):
+        """Pretty-print as a table"""
+        cols = zip(*self)
+        cols_sizes = [(max(map(len,i))) for i in cols] # get the widest entry for each column
+
+        def j((n, li)):
+            return "%d  " % n + "  ".join((item.ljust(pad) for item, pad in zip(li, cols_sizes) ))
+        return '\n'.join(map(j, enumerate(self)))
+
+    def len(self):
+        return len(self._objdict())
+
+    def get(self, id=None, name=None):
+        if name:
+            return self._objdict[name]
+        if id:
+            return self._objdict.values()[id]
+
+
+
+class Hosts(NetworkObjTable):
+    def __init__(self, li):
+        self._li = li
+        pass
+    def aslist(self):
+        return self._li
 
 class FireSet(object):
     """A container for the network objects.
@@ -275,7 +330,7 @@ class FireSet(object):
     def _flattenhg(self, items, addr, net, hgs):
         """Flatten host groups tree, used in compile()"""
         def flatten1(item):
-            li = addr.get(item), net.get(item), self._flattenhg(hgs.get(item), addr, net, hgs)  # should we convert network to string here?
+            li = addr.get(item), net.get(item), self._flattenhg(hgs.get(item), addr, net, hgs)
             log.debug("Flattening... %s" % repr(item))
             return filter(None, li)[0]
         if not items: return None
@@ -291,7 +346,7 @@ class FireSet(object):
             assert rule[0] in ('y', 'n'), 'First field must be "y" or "n" in %s' % repr(rule)
 
         # build dictionaries to perform resolution
-        addr = dict(((name + ":" + iface),ipa) for name,iface,ipa, is_m in self.hosts) # host to ip_addr
+        addr = dict(((name + ":" + iface),ipa) for name,iface,ipa, is_m, routed in self.hosts) # host to ip_addr
         net = dict((name, (n, mask)) for name, n, mask in self.networks) # network name
         hgs = dict((entry[0], (entry[1:])) for entry in self.hostgroups) # host groups
         hg_flat = dict((hg, self._flattenhg(hgs[hg], addr, net, hgs)) for hg in hgs) # flattened to {hg: hosts and networks}
@@ -336,10 +391,11 @@ class FireSet(object):
                 md = ' -m multiport' if ',' in dports else ''
                 dports = "%s --dport %s" % (md, dports)
 
-            # TODO: ensure that 'name' is a-zA-Z0-9_-
+            for x in name:
+                assert validc(x), "Invalid character in '%s': x" % (repr(name), repr(x))
 
             try:
-                log_val = int(log_val)  #TODO: try/except this
+                log_val = int(log_val)
             except:
                 raise Alert, "The logging field in rule \"%s\" must be an integer." % name
 
@@ -398,12 +454,125 @@ class FireSet(object):
         # r[hostname][interface] = [rule, rule, ... ]
         rd = defaultdict(dict)
 
-        for hostname,iface,ipa, is_h in hosts:
+        for hostname,iface,ipa, is_h, routed in hosts:
             myrules = [ r for r in rset if ipa in r ]   #TODO: match subnets as well
             if not iface in rd[hostname]: rd[hostname][iface] = []
             rd[hostname][iface].extend(myrules)
         log.debug("Rules compiled as dict: %s" % repr(rd))
         return rd
+
+
+    def compile_rules(self):
+        """Compile iptables rules to be deployed in a dict:
+        { 'firewall_name': [rules...], ... }
+
+        During the compilation many checks are performed."""
+
+        assert not self.save_needed(), "Configuration must be saved before deployment."
+
+        for rule in self.rules:
+            assert rule[0] in ('y', 'n'), 'First field must be "y" or "n" in %s' % repr(rule)
+
+        # build dictionaries to perform resolution
+        addr = dict(((name + ":" + iface),ipa) for name,iface,ipa,is_m, routed in self.hosts) # host to ip_addr
+        net = dict((name, (n, mask)) for name, n, mask in self.networks) # network name
+        hgs = dict((entry[0], (entry[1:])) for entry in self.hostgroups) # host groups
+        hg_flat = dict((hg, self._flattenhg(hgs[hg], addr, net, hgs)) for hg in hgs) # flattened to {hg: hosts and networks}
+
+        proto_port = dict((name, (proto, ports)) for name, proto, ports in self.services) # protocol
+        proto_port['*'] = (None, '') # special case for "any"      # port format: "2:4,5:10,10:33,40,50"
+
+        def res(n):
+            if n in addr: return (addr[n], )
+            elif n in net: return (net[n][0] + '/' + net[n][1], )
+            elif n in hg_flat: return hg_flat[src][0][0]
+            elif n == '*':
+                return [None]
+            else:
+                raise Alert, "Host %s is not defined." % n
+
+        # for each rule, for each (src,dst) tuple, compiles a list  [ (proto, src, sports, dst, dports, log_val, rule_name, action), ... ]
+        compiled = []
+        for ena, name, src, src_serv, dst, dst_serv, action, log_val, desc in self.rules:  # for each rule
+            if ena == 'n':
+                continue
+            assert action in ('ACCEPT', 'DROP'),  'The Action field must be "ACCEPT" or "DROP" in rule "%s"' % name
+            srcs = res(src)
+            dsts = res(dst)
+            sproto, sports = proto_port[src_serv]
+            dproto, dports = proto_port[dst_serv]
+            assert sproto in protocols + [None], "Unknown source protocol: %s" % sproto
+            assert dproto in protocols + [None], "Unknown dest protocol: %s" % dproto
+
+            if sproto and dproto and sproto != dproto:
+                raise Alert, "Source and destination protocol must be the same in rule \"%s\"." % name
+            if dproto:
+                proto = " -p %s" % dproto.lower()
+            elif sproto:
+                proto = " -p %s" % sproto.lower()
+            else:
+                proto = ''
+
+            if sports:
+                ms = ' -m multiport' if ',' in sports else ''
+                sports = "%s --sport %s" % (ms, sports)
+            if dports:
+                md = ' -m multiport' if ',' in dports else ''
+                dports = "%s --dport %s" % (md, dports)
+
+            for x in name:
+                assert validc(x), "Invalid character in '%s': x" % (repr(name), repr(x))
+
+            try:
+                log_val = int(log_val)
+            except:
+                raise Alert, "The logging field in rule \"%s\" must be an integer." % name
+
+            for src, dst in product(srcs, dsts):
+                compiled.append((proto, src, sports, dst, dports, log_val, name, action))
+#                src_s = " -s %s" % src if src else ''
+#                dst_s = " -d %s" % dst if dst else ''
+#                if log_val:
+#                    compiled.append("-A FORWARD%s%s%s%s%s --log-level %d --log-prefix %s -j LOG" %   (proto, src, sports, dst, dports, log_val, name))
+#                compiled.append("-A FORWARD%s%s%s%s%s -j %s" %   (proto, src, sports, dst, dports, action))
+
+        # now the "compiled" list is ready to be parsed
+        # for each item in "compiled", for each hosts, builds the per-host iptables configuration
+
+        # r[hostname] = [rule, rule, ... ]
+        rd = defaultdict(list)
+        for proto, src, sports, dst, dports, log_val, name, action in compiled: # for each rule
+            for hostname, iface, ipa, is_h, routed in self.hosts:   # for each host
+                # Build INPUT rules: where the host is in the destination
+                _src = " -s %s" % src if src else ''
+                _dst = " -d %s" % dst if dst else ''
+                if dst:
+                    if IPNetwork(ipa) in IPNetwork(dst):
+                        rd[hostname].append("-A INPUT%s%s%s%s%s --log-level %d --log-prefix %s -j LOG" %   (proto, _src, sports, _dst, dports, log_val, name))
+                        rd[hostname].append("-A INPUT%s%s%s%s%s -j %s" %   (proto, _src, sports, _dst, dports, action))
+                else:
+                    rd[hostname].append("-A INPUT%s%s%s%s%s --log-level %d --log-prefix %s -j LOG" %   (proto, _src, sports, _dst, dports, log_val, name))
+                    rd[hostname].append("-A INPUT%s%s%s%s%s -j %s" %   (proto, _src, sports, _dst, dports, action))
+
+                # Build OUTPUT rules: where the host is in the source
+                if src:
+                    if IPNetwork(ipa) in IPNetwork(src):
+                        _src = " -s %s" % src if src else ''
+                        _dst = " -d %s" % dst if dst else ''
+                        rd[hostname].append("-A OUTPUT%s%s%s%s%s --log-level %d --log-prefix %s -j LOG" %   (proto, _src, sports, _dst, dports, log_val, name))
+                        rd[hostname].append("-A OUTPUT%s%s%s%s%s -j %s" %   (proto, _src, sports, _dst, dports, action))
+                else:
+                    rd[hostname].append("-A INPUT%s%s%s%s%s --log-level %d --log-prefix %s -j LOG" %   (proto, _src, sports, _dst, dports, log_val, name))
+                    rd[hostname].append("-A INPUT%s%s%s%s%s -j %s" %   (proto, _src, sports, _dst, dports, action))
+
+
+
+
+        log.debug("Rules compiled as dict")
+        for k, v in rd.iteritems():
+            log.debug("%s -------------------------\n%s" % (k, '\n'.join(v)))
+        return rd
+
 
     def _diff_table(self):      # Ridefined below!
         """Generate an HTML table containing the changes between the existing and the compiled iptables ruleset *on each host* """
@@ -503,7 +672,7 @@ class DumbFireSet(FireSet):
     def __init__(self, repodir='firewall'):
         self._repodir = repodir
         self.rules = loadcsv('rules', d=self._repodir)
-        self.hosts = loadcsv('hosts', d=self._repodir)
+        self.hosts = load_hosts_csv('hosts', d=self._repodir)
         self.hostgroups = loadcsv('hostgroups', d=self._repodir)
         self.services = loadcsv('services', d=self._repodir)
         self.networks = loadcsv('networks', d=self._repodir)
@@ -517,7 +686,10 @@ class DumbFireSet(FireSet):
         """Mem to disk"""
         if not self.save_needed(): return False  #TODO: handle commit message
         for table in ('rules', 'hosts', 'hostgroups', 'services', 'networks'):
-            savecsv(table, self.__dict__[table], d=self._repodir)
+            if table == 'hosts':
+                save_hosts_csv('hosts', self.hosts, d=self._repodir)
+            else:
+                savecsv(table, self.__dict__[table], d=self._repodir)
         unlink("%s/lock" % self._repodir)
         return True
 
@@ -669,9 +841,15 @@ class GitFireSet(FireSet):
         assert table in ('rules', 'hosts', 'hostgroups', 'services', 'networks') ,  "Wrong table name for deletion: %s" % table
         try:
             self.__dict__[table].pop(rid)
-            savecsv(table, self.__dict__[table], d=self._git_repodir)
-        except Exception, e:
-            pass #TODO
+            if table == 'hosts':
+                log.debug('saving hosts')
+                save_hosts_csv('hosts', self.hosts, d=self._git_repodir)
+            else:
+                savecsv(table, self.__dict__[table], d=self._git_repodir)
+        except IndexError, e:
+            log.debug(repr(self.hosts))
+            log.debug(repr(rid))
+            pass #FIXME:  test_gitfireset_long fails here
 
     def rule_moveup(self, rid):
         try:

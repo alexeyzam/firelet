@@ -19,7 +19,7 @@
 div {
     color: #777;
     margin: auto;
-	width: 20em;
+    width: 20em;
     text-align: center;
 }
 input {

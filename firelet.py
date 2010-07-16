@@ -416,10 +416,6 @@ def favicon():
 
 
 
-
-
-
-
 def main():
     global conf
 

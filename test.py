@@ -109,7 +109,7 @@ def test_gitfireset_long():
     fs = GitFireSet(repodir='/tmp/firelet')
     for t in ('rules', 'hosts', 'hostgroups', 'services', 'networks'):
         fs.delete(t, 1)
-        assert fs.save_needed() == True
+        assert fs.save_needed() == True, "save_needed non set when deleting item 1 from %s" % t
         fs.save("%s: n.1 deleted" % t)
         assert fs.save_needed() == False
     fs.rule_moveup(2)
@@ -234,6 +234,14 @@ def test_select_rules():
     rd = fs.compile_dict()
     log.debug( repr(rd) )
     assert rd == {'Bilbo': {'eth1': [], 'eth0': ['-A FORWARD -p tcp -s 10.66.1.2 -d 10.66.1.1 --dport 443 -j ACCEPT', '-A FORWARD -p tcp -s 10.66.1.2 -d 10.66.2.2 --dport 80 -j ACCEPT', '-A FORWARD -p tcp -s 10.66.1.2 -d 10.66.1.3 --dport 6660:6669 -j ACCEPT', '-A FORWARD -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 --log-level 2 --log-prefix imap -j LOG', '-A FORWARD -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 -j ACCEPT']}, 'Fangorn': {'eth0': ['-A FORWARD -p tcp -s 10.66.1.2 -d 10.66.2.2 --dport 80 -j ACCEPT']}, 'Gandalf': {'eth1': ['-A FORWARD -p tcp -s 10.66.1.2 -d 10.66.1.1 --dport 443 -j ACCEPT'], 'eth0': ['-A FORWARD -s 10.66.1.3 -d 172.16.2.223 --log-level 3 --log-prefix NoSmeagol -j LOG', '-A FORWARD -s 10.66.1.3 -d 172.16.2.223 -j DROP', '-A FORWARD -p tcp -s 172.16.2.223 -d 10.0.0.0/255.0.0.0 --dport 22 --log-level 2 --log-prefix ssh_mgmt -j LOG', '-A FORWARD -p tcp -s 172.16.2.223 -d 10.0.0.0/255.0.0.0 --dport 22 -j ACCEPT', '-A FORWARD -p udp -s 172.16.2.223 -d 172.16.2.223 --dport 123 -j ACCEPT']}, 'Smeagol': {'eth0': ['-A FORWARD -s 10.66.1.3 -d 172.16.2.223 --log-level 3 --log-prefix NoSmeagol -j LOG', '-A FORWARD -s 10.66.1.3 -d 172.16.2.223 -j DROP', '-A FORWARD -p tcp -s 10.66.1.2 -d 10.66.1.3 --dport 6660:6669 -j ACCEPT', '-A FORWARD -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 --log-level 2 --log-prefix imap -j LOG', '-A FORWARD -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 -j ACCEPT']}}
+
+@with_setup(setup_dir, teardown_flssh)
+def test_compile_rules():
+    fs = DumbFireSet(repodir='/tmp/firelet')
+    rd = fs.compile_rules()
+    log.debug( repr(rd) )
+#    assert rd == {'Bilbo': {'eth1': [], 'eth0': ['-A FORWARD -p tcp -s 10.66.1.2 -d 10.66.1.1 --dport 443 -j ACCEPT', '-A FORWARD -p tcp -s 10.66.1.2 -d 10.66.2.2 --dport 80 -j ACCEPT', '-A FORWARD -p tcp -s 10.66.1.2 -d 10.66.1.3 --dport 6660:6669 -j ACCEPT', '-A FORWARD -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 --log-level 2 --log-prefix imap -j LOG', '-A FORWARD -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 -j ACCEPT']}, 'Fangorn': {'eth0': ['-A FORWARD -p tcp -s 10.66.1.2 -d 10.66.2.2 --dport 80 -j ACCEPT']}, 'Gandalf': {'eth1': ['-A FORWARD -p tcp -s 10.66.1.2 -d 10.66.1.1 --dport 443 -j ACCEPT'], 'eth0': ['-A FORWARD -s 10.66.1.3 -d 172.16.2.223 --log-level 3 --log-prefix NoSmeagol -j LOG', '-A FORWARD -s 10.66.1.3 -d 172.16.2.223 -j DROP', '-A FORWARD -p tcp -s 172.16.2.223 -d 10.0.0.0/255.0.0.0 --dport 22 --log-level 2 --log-prefix ssh_mgmt -j LOG', '-A FORWARD -p tcp -s 172.16.2.223 -d 10.0.0.0/255.0.0.0 --dport 22 -j ACCEPT', '-A FORWARD -p udp -s 172.16.2.223 -d 172.16.2.223 --dport 123 -j ACCEPT']}, 'Smeagol': {'eth0': ['-A FORWARD -s 10.66.1.3 -d 172.16.2.223 --log-level 3 --log-prefix NoSmeagol -j LOG', '-A FORWARD -s 10.66.1.3 -d 172.16.2.223 -j DROP', '-A FORWARD -p tcp -s 10.66.1.2 -d 10.66.1.3 --dport 6660:6669 -j ACCEPT', '-A FORWARD -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 --log-level 2 --log-prefix imap -j LOG', '-A FORWARD -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 -j ACCEPT']}}
+
 
 #@with_setup(setup_dir, teardown_flssh)
 #def test_deployment():
