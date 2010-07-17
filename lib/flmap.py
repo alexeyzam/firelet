@@ -1,23 +1,27 @@
 from pygraphviz import AGraph,  Edge,  Node
 from netaddr import IPAddress,  IPNetwork
 
-def drawmap(fs):
+def drawmap(fs, rulename=None):
+    """Draw a map of the firewalls and their connections based on their interfaces.
+    If nulename is specified, draw also the sources and dests for a that rule.  #TODO: implement this
+    """
     A = AGraph()
+    A.graph_attr['bgcolor'] = 'transparent'
     for h in fs.hosts:
         A.add_node(h[0])
-    for h in fs.hosts:
-        for h2 in fs.hosts:
-            for net in h(4):
-                for h2 in fs.hosts:
-                    n = [n for n in fs.networks if n[0] == net]
-                    print net, n
-                    if not n: continue
-                    if IPAddr(h2[2]) in IPNetwork(net):
-                        A.add_edge(h[0], h2[0])
-#    Node(A, 'Master').attr['shape']='circle'
-#    A.add_edge('Master', 'q')
+        if h[5] in (1, True, '1'): # network firewall
+            f = Node(A, h[0])
+            f.attr['color']  = 'red'
+    for n in fs.networks:
+        A.add_node(n[0])
+        poly = Node(A, n[0])
+        poly.attr['shape'] = 'polygon'
+        poly.attr['sides'] = '8'
+        for h in fs.hosts:
+            if IPAddress(h[2]) in IPNetwork(n[1] + '/' + n[2]):
+                A.add_edge(h[0], n[0])
 
-    A.layout(prog='circo')                                  # layout with default (neato)
+    A.layout(prog='circo')
     image = A.draw(format='png')    # draw png
     return image
 

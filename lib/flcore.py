@@ -107,17 +107,38 @@ def savecsv(n, stuff, d='firewall'):
 def load_hosts_csv(n, d='firewall'):
     """Read the hosts csv file, group the routed networks as a list"""
     li = loadcsv(n, d)
-    mu = [[x[0], x[1], x[2], x[3], x[4:]] for x in li]
-    log.debug('giving %s' % repr(mu))
+
+    mu = [[x[0], x[1], x[2], x[3], x[4], x[5], x[6], x[7:]] for x in li]
+    for x in mu:
+        assert len(x) == 8, "Wrong lenght '%s'" % repr(x)
+        assert isinstance(x[7], list), 'Wrong %s'% repr(x)
+        if x[7]:
+            assert isinstance(x[7][0], str), 'Wrong %s'% repr(x)
     return mu
 
 def save_hosts_csv(n, mu, d='firewall'):
     """Save hosts on a csv file, flattening the input list."""
-    log.debug('got %s' % repr(mu))
-    li = [x[0:4] + x[4]  for x in mu]
-    log.debug('saved %s' % repr(li))
+    li = []
+    for x in mu:
+        if len(x) == 7:
+            o = x[0:6]
+        elif len(x) == 8 and len(x[7]) == 0:
+            o = x[0:7]
+        elif len(x) == 8 and isinstance(x[7], str):
+            o = x[0:7]
+            raise Exception, "Got str not list"
+        elif len(x) == 8 and isinstance(x[7][0], list):
+            o = x[0:7]
+            raise Exception, "Got list in list"
+        elif len(x) == 8:
+
+            log.debug(repr(x[7][0]))
+            o = x[0:7]+x[7]
+        else:
+            raise Exception, "Wrong list format"
+        li.append(o)
+        assert '[' not in repr(o)[1:-1], "Wrong csv conversion: %s" % repr(o)[1:-1]
     savecsv(n, li, d)
-    log.debug('saved %s' % repr(li))
 
 # JSON files
 
@@ -331,7 +352,7 @@ class FireSet(object):
         """Flatten host groups tree, used in compile()"""
         def flatten1(item):
             li = addr.get(item), net.get(item), self._flattenhg(hgs.get(item), addr, net, hgs)
-            log.debug("Flattening... %s" % repr(item))
+#            log.debug("Flattening... %s" % repr(item))
             return filter(None, li)[0]
         if not items: return None
         return map(flatten1, items)
@@ -346,7 +367,7 @@ class FireSet(object):
             assert rule[0] in ('y', 'n'), 'First field must be "y" or "n" in %s' % repr(rule)
 
         # build dictionaries to perform resolution
-        addr = dict(((name + ":" + iface),ipa) for name,iface,ipa, is_m, routed in self.hosts) # host to ip_addr
+        addr = dict(((name + ":" + iface),ipa) for name,iface,ipa, masklen, locfw, netfw, mng, routed in self.hosts) # host to ip_addr
         net = dict((name, (n, mask)) for name, n, mask in self.networks) # network name
         hgs = dict((entry[0], (entry[1:])) for entry in self.hostgroups) # host groups
         hg_flat = dict((hg, self._flattenhg(hgs[hg], addr, net, hgs)) for hg in hgs) # flattened to {hg: hosts and networks}
@@ -454,7 +475,7 @@ class FireSet(object):
         # r[hostname][interface] = [rule, rule, ... ]
         rd = defaultdict(dict)
 
-        for hostname,iface,ipa, is_h, routed in hosts:
+        for hostname,iface, ipa, masklen, locfw, netfw, mng, routed in hosts:
             myrules = [ r for r in rset if ipa in r ]   #TODO: match subnets as well
             if not iface in rd[hostname]: rd[hostname][iface] = []
             rd[hostname][iface].extend(myrules)
@@ -474,7 +495,7 @@ class FireSet(object):
             assert rule[0] in ('y', 'n'), 'First field must be "y" or "n" in %s' % repr(rule)
 
         # build dictionaries to perform resolution
-        addr = dict(((name + ":" + iface),ipa) for name,iface,ipa,is_m, routed in self.hosts) # host to ip_addr
+        addr = dict(((name + ":" + iface),ipa) for name,iface, ipa, masklen, locfw, netfw, mng, routed in self.hosts) # host to ip_addr
         net = dict((name, (n, mask)) for name, n, mask in self.networks) # network name
         hgs = dict((entry[0], (entry[1:])) for entry in self.hostgroups) # host groups
         hg_flat = dict((hg, self._flattenhg(hgs[hg], addr, net, hgs)) for hg in hgs) # flattened to {hg: hosts and networks}
@@ -542,7 +563,7 @@ class FireSet(object):
         # r[hostname] = [rule, rule, ... ]
         rd = defaultdict(list)
         for proto, src, sports, dst, dports, log_val, name, action in compiled: # for each rule
-            for hostname, iface, ipa, is_h, routed in self.hosts:   # for each host
+            for hostname, iface, ipa, masklen, locfw, netfw, mng, routed in self.hosts:   # for each host
                 # Build INPUT rules: where the host is in the destination
                 _src = " -s %s" % src if src else ''
                 _dst = " -d %s" % dst if dst else ''
@@ -565,6 +586,16 @@ class FireSet(object):
                     rd[hostname].append("-A INPUT%s%s%s%s%s --log-level %d --log-prefix %s -j LOG" %   (proto, _src, sports, _dst, dports, log_val, name))
                     rd[hostname].append("-A INPUT%s%s%s%s%s -j %s" %   (proto, _src, sports, _dst, dports, action))
 
+                # Build FORWARD rules: where the source and destination are both in directly connected or routed networks
+#                if src:
+#                    if IPNetwork(ipa) in IPNetwork(src):
+#                        _src = " -s %s" % src if src else ''
+#                        _dst = " -d %s" % dst if dst else ''
+#                        rd[hostname].append("-A OUTPUT%s%s%s%s%s --log-level %d --log-prefix %s -j LOG" %   (proto, _src, sports, _dst, dports, log_val, name))
+#                        rd[hostname].append("-A OUTPUT%s%s%s%s%s -j %s" %   (proto, _src, sports, _dst, dports, action))
+#                else:
+#                    rd[hostname].append("-A INPUT%s%s%s%s%s --log-level %d --log-prefix %s -j LOG" %   (proto, _src, sports, _dst, dports, log_val, name))
+#                    rd[hostname].append("-A INPUT%s%s%s%s%s -j %s" %   (proto, _src, sports, _dst, dports, action))
 
 
 
@@ -713,6 +744,7 @@ class DumbFireSet(FireSet):
             self.__dict__[table].pop(rid)
             self._put_lock()
         except Exception, e:
+            raise Exception, e
             pass #TODO
 
     def rule_moveup(self, rid):
@@ -746,7 +778,7 @@ class GitFireSet(FireSet):
     """FireSet implementing Git to manage the configuration repository"""
     def __init__(self, repodir='/tmp/firewall'):
         self.rules = loadcsv('rules')
-        self.hosts = loadcsv('hosts')
+        self.hosts = load_hosts_csv('hosts')
         self.hostgroups = loadcsv('hostgroups')
         self.services = loadcsv('services')
         self.networks = loadcsv('networks')
@@ -841,15 +873,13 @@ class GitFireSet(FireSet):
         assert table in ('rules', 'hosts', 'hostgroups', 'services', 'networks') ,  "Wrong table name for deletion: %s" % table
         try:
             self.__dict__[table].pop(rid)
-            if table == 'hosts':
-                log.debug('saving hosts')
-                save_hosts_csv('hosts', self.hosts, d=self._git_repodir)
-            else:
-                savecsv(table, self.__dict__[table], d=self._git_repodir)
         except IndexError, e:
-            log.debug(repr(self.hosts))
-            log.debug(repr(rid))
-            pass #FIXME:  test_gitfireset_long fails here
+            raise "The element n. %d is not present in table '%s'" % (rid, table)
+        if table == 'hosts':
+            log.debug('saving hosts')
+            save_hosts_csv('hosts', self.hosts, d=self._git_repodir)
+        else:
+            savecsv(table, self.__dict__[table], d=self._git_repodir)
 
     def rule_moveup(self, rid):
         try:
