@@ -10,6 +10,7 @@ from struct import pack, unpack
 import logging
 
 from flssh import SSHConnector
+from flutils import Alert, Bunch
 
 log = logging.getLogger()
 
@@ -42,8 +43,6 @@ except ImportError:
 
 protocols = ['IP','TCP', 'UDP', 'OSPF', 'IS-IS', 'SCTP', 'AH', 'ESP']
 
-class Alert(Exception):
-    """Custom exception used to send an alert message to the user"""
 
 #input validation
 
@@ -440,6 +439,7 @@ class FireSet(object):
             assert len(x), "No management IP address for %s " % n
         sx = SSHConnector(d, username='root')
         self._remote_confs = sx.get_confs()
+        assert isinstance(self._remote_confs[0],  Bunch)
         if keep_sessions:
             return sx
         sx._disconnect()
@@ -449,13 +449,18 @@ class FireSet(object):
         """Ensure that the interfaces configured on the hosts match the contents of the host table"""
         log.debug("Checking interfaces...")
         confs = self._remote_confs
+        assert isinstance(confs, dict)
+        for q in confs.values():
+            assert isinstance(q, Bunch), repr(confs)
+            assert len(q) == 2
         log.debug("Confs: %s" % repr(confs) )
         for hostname, iface, ipa, masklen, locfw, netfw, mng, routed in self.hosts:
             if not hostname in confs:
                 raise Alert, "Host %s not available." % hostname
-            if not iface in confs[hostname][3]:
+            iptables,  ip_a_s = confs[hostname]
+            if not iface in ip_a_s:         #TODO: test this in unit testing
                 raise Alert, "Interface %s missing on host %s" % (iface, hostname)
-            ip_addr_v4, ip_addr_v6 = confs[hostname][3][iface]
+            ip_addr_v4, ip_addr_v6 = ip_a_s[iface]
             if ipa not in (ip_addr_v6,  ip_addr_v4.split('/')[0] ):
                 raise Alert,"Wrong address on %s on interface %s: %s and %s(should be %s)" % (hostname, iface, ip_addr_v4, ip_addr_v6, ipa)
 
@@ -861,16 +866,19 @@ class GitFireSet(FireSet):
         return p.communicate()
 
     def save(self, msg):
+        """Commit changes if needed."""
         if not msg:
             msg = '(no message)'
         self._git("add *")
         self._git("commit -m '%s'" % msg)
 
     def reset(self):
+        """Reset Git to last commit."""
         o, e = self._git('reset --hard')
         assert 'HEAD is now at' in o, "Git reset --hard output: '%s' error: '%s'" % (o, e)
 
     def rollback(self, n):
+        """Rollback to n commits ago"""
         try:
             n = int(n)
         except ValueError:
@@ -880,6 +888,7 @@ class GitFireSet(FireSet):
         assert 'HEAD is now at' in o, "Git reset --hard HEAD~%d output: '%s' error: '%s'" % (n, o, e)
 
     def save_needed(self):
+        """True if commit is required: files has been changed"""
         o, e = self._git('status')
 #        log.debug("Git status output: '%s' error: '%s'" % (o, e))
         if 'nothing to commit ' in o:
@@ -937,9 +946,9 @@ class DemoGitFireSet(GitFireSet):
             """Build a dict: {'eth0': (addr, None)} for a given host"""
             i = ((iface, (addr, None)) for hn,  iface, ipa, masklen, locfw, netfw, mng, routed in self.hosts if hn == n   )
             return dict(i)
-        d = {} # {hostname: [[iptables], [ip-addr-show]], ... }
+        d = {} # {hostname: Bunch() }
         for n, iface, addr, masklen, locfw, netfw, mng, routed in self.hosts:
-            d[n] = [ {'filter': self._demo_rulelist[n]}, ip_a_s(n)]
+            d[n] = Bunch(filter=self._demo_rulelist[n], ip_a_s=ip_a_s(n))
         self._remote_confs = d
 
     def deploy(self, ignore_unreachables=False, replace_ruleset=False):
@@ -953,38 +962,6 @@ class DemoGitFireSet(GitFireSet):
         for n, k in self.rd.iteritems():
             rules = sum(k.values(),[])
             self._demo_rulelist[n] = rules
-
-class DemoFireSet(DumbFireSet):
-    """Based on DumbFireSet. Provide a demo version without real network interaction.
-    The status of the simulated remote hosts is kept in memory.
-    """
-    def __init__(self):
-        DumbFireSet.__init__(self)
-        self._demo_rulelist = defaultdict(list)
-
-    def _get_confs(self, keep_sessions=False):
-        def ip_a_s(n):
-            """Build a dict: {'eth0': (addr, None)} for a given host"""
-            i = ((iface, (addr, None)) for hn, iface, ipa, masklen, locfw, netfw, mng, routed in self.hosts if hn == n   )
-            return dict(i)
-        d = {} # {hostname: [[iptables], [ip-addr-show]], ... }
-        for n, iface, addr, is_m in self.hosts:
-            d[n] = [ {'filter': self._demo_rulelist[n]}, ip_a_s(n)]
-        self._remote_confs = d
-
-    def deploy(self, ignore_unreachables=False, replace_ruleset=False):
-        """Check and then deploy the configuration to the simulated firewalls."""
-        if self.save_needed():
-            raise Alert, "Configuration must be saved before deployment."
-        comp_rules = self.compile()
-        sx = self._get_confs(keep_sessions=True)
-        self._check_ifaces()
-        self.rd = self.compile_dict() # r[hostname][interface] = [rule, rule, ... ]
-        for n, k in self.rd.iteritems():
-            rules = sum(k.values(),[])
-            self._demo_rulelist[n] = rules
-
-
 
 
 
