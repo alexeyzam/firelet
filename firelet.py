@@ -413,9 +413,9 @@ def static_file(filename):
 def favicon():
     send_file('favicon.ico', root='static')
 
-@bottle.route('/map')
+@bottle.route('/map') #FIXME: the SVG map is not shown inside the jQuery tab.
 def flmap():
-    return """<img src="map.png">"""
+    return """<img src="map.png" width="700px" style="margin: 10px">"""
 
 @bottle.route('/map.png')
 def flmap_png():
@@ -423,10 +423,14 @@ def flmap_png():
     bottle.response.content_type = 'image/png'
     return drawmap(fs)
 
+@bottle.route('/svgmap')
+def svgmap():
+    from lib.flmap import draw_svg_map
+    bottle.response.content_type = 'image/svg+xml'
+    return draw_svg_map(fs)
 
-
-
-
+#TODO: provide PNG fallback for browser without SVG support?
+#TODO: html links in the SVG map
 
 def main():
     global conf
