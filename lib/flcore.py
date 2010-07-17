@@ -367,7 +367,7 @@ class FireSet(object):
             assert rule[0] in ('y', 'n'), 'First field must be "y" or "n" in %s' % repr(rule)
 
         # build dictionaries to perform resolution
-        addr = dict(((name + ":" + iface),ipa) for name,iface,ipa, masklen, locfw, netfw, mng, routed in self.hosts) # host to ip_addr
+        addr = dict(((name + ":" + iface),ipa) for name, iface, ipa, masklen, locfw, netfw, mng, routed in self.hosts) # host to ip_addr
         net = dict((name, (n, mask)) for name, n, mask in self.networks) # network name
         hgs = dict((entry[0], (entry[1:])) for entry in self.hostgroups) # host groups
         hg_flat = dict((hg, self._flattenhg(hgs[hg], addr, net, hgs)) for hg in hgs) # flattened to {hg: hosts and networks}
@@ -432,9 +432,9 @@ class FireSet(object):
     def _get_confs(self, keep_sessions=False):
         self._remote_confs = None
         d = {}      # {hostname: [management ip address list ], ... }    If the list is empty we cannot reach that host.
-        for n, iface, addr, is_m in self.hosts:
+        for n, iface, addr, masklen, locfw, netfw, mng, routed in self.hosts:
             if n not in d: d[n] = []
-            if int(is_m):                            # IP address flagged for management
+            if int(mng):                            # IP address flagged for management
                 d[n].append(addr)
         for n, x in d.iteritems():
             assert len(x), "No management IP address for %s " % n
@@ -450,19 +450,31 @@ class FireSet(object):
         log.debug("Checking interfaces...")
         confs = self._remote_confs
         log.debug("Confs: %s" % repr(confs) )
-        for name,iface,ipa, is_m in self.hosts:
-            if not name in confs:
-                raise Alert, "Host %s not available." % name
-            if not iface in confs[name][1]:         #TODO: test this in unit testing
-                raise Alert, "Interface %s missing on host %s" % (iface, name)
-            ip_addr_v4, ip_addr_v6 = confs[name][1][iface]
-
+        for hostname, iface, ipa, masklen, locfw, netfw, mng, routed in self.hosts:
+            if not hostname in confs:
+                raise Alert, "Host %s not available." % hostname
+            if not iface in confs[hostname][3]:
+                raise Alert, "Interface %s missing on host %s" % (iface, hostname)
+            ip_addr_v4, ip_addr_v6 = confs[hostname][3][iface]
             if ipa not in (ip_addr_v6,  ip_addr_v4.split('/')[0] ):
-                raise Alert,"Wrong address on %s on interface %s" % (name, iface)
+                raise Alert,"Wrong address on %s on interface %s: %s and %s(should be %s)" % (hostname, iface, ip_addr_v4, ip_addr_v6, ipa)
 
         #TODO: warn if there are extra interfaces?
 
 
+    def _forwarded(self, remote, routed_nets, local_addr, local_masklen):
+        """Tell if a remote net or ipaddr has to be routed through the local host.
+        All params are strings"""
+        if not remote: return True
+        remote_IPN = IPNetwork(remote)
+        if remote_IPN in IPNetwork(local_addr + '/' + local_masklen) and \
+            remote_IPN != IPNetwork(local_addr + '/32'):  # that is input or output traffic, not forw.
+                return True  # remote is in a directly conn. network
+        else:
+            ns = [ IPNetwork(y+'/'+w) for y, w in routed_nets]
+            if sum((remote_IPN in _ for _ in ns)):
+                return True
+        return False
 
 
     def compile_dict(self, hosts=None, rset=None):
@@ -563,7 +575,12 @@ class FireSet(object):
         # r[hostname] = [rule, rule, ... ]
         rd = defaultdict(list)
         for proto, src, sports, dst, dports, log_val, name, action in compiled: # for each rule
-            for hostname, iface, ipa, masklen, locfw, netfw, mng, routed in self.hosts:   # for each host
+            for hostname, iface, ipa, masklen, locfw, netfw, mng, routed in self.hosts:   # for each host interface
+                # Insert first rule
+                if not rd[hostname]:
+                    rd[hostname].append("-A INPUT -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT")
+                    rd[hostname].append("-A OUTPUT -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT")
+                    rd[hostname].append("-A FORWARD -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT")
                 # Build INPUT rules: where the host is in the destination
                 _src = " -s %s" % src if src else ''
                 _dst = " -d %s" % dst if dst else ''
@@ -587,17 +604,22 @@ class FireSet(object):
                     rd[hostname].append("-A INPUT%s%s%s%s%s -j %s" %   (proto, _src, sports, _dst, dports, action))
 
                 # Build FORWARD rules: where the source and destination are both in directly connected or routed networks
-#                if src:
-#                    if IPNetwork(ipa) in IPNetwork(src):
-#                        _src = " -s %s" % src if src else ''
-#                        _dst = " -d %s" % dst if dst else ''
-#                        rd[hostname].append("-A OUTPUT%s%s%s%s%s --log-level %d --log-prefix %s -j LOG" %   (proto, _src, sports, _dst, dports, log_val, name))
-#                        rd[hostname].append("-A OUTPUT%s%s%s%s%s -j %s" %   (proto, _src, sports, _dst, dports, action))
-#                else:
-#                    rd[hostname].append("-A INPUT%s%s%s%s%s --log-level %d --log-prefix %s -j LOG" %   (proto, _src, sports, _dst, dports, log_val, name))
-#                    rd[hostname].append("-A INPUT%s%s%s%s%s -j %s" %   (proto, _src, sports, _dst, dports, action))
+                if netfw in ('0', 0, False):
+                    continue
+                resolved_routed = [net[r] for r in routed] # resolved routed nets [[addr,masklen],[addr,masklen]...]
+                nets = [ IPNetwork(y+'/'+w) for y, w in resolved_routed ]
 
+                src_forw = self._forwarded(src, resolved_routed, ipa, masklen)
+                dst_forw = self._forwarded(dst, resolved_routed, ipa, masklen)
 
+                if src_forw and dst_forw:
+                    _src = " -s %s" % src if src else ''
+                    _dst = " -d %s" % dst if dst else ''
+                    rd[hostname].append("-A FORWARD%s%s%s%s%s --log-level %d --log-prefix %s -j LOG" %   (proto, _src, sports, _dst, dports, log_val, name))
+                    rd[hostname].append("-A FORWARD%s%s%s%s%s -j %s" %   (proto, _src, sports, _dst, dports, action))
+
+            # "for every host"
+        # "for every rule"
 
         log.debug("Rules compiled as dict")
         for k, v in rd.iteritems():
@@ -913,10 +935,10 @@ class DemoGitFireSet(GitFireSet):
     def _get_confs(self, keep_sessions=False):
         def ip_a_s(n):
             """Build a dict: {'eth0': (addr, None)} for a given host"""
-            i = ((iface, (addr, None)) for hn, iface, addr, is_m in self.hosts if hn == n   )
+            i = ((iface, (addr, None)) for hn,  iface, ipa, masklen, locfw, netfw, mng, routed in self.hosts if hn == n   )
             return dict(i)
         d = {} # {hostname: [[iptables], [ip-addr-show]], ... }
-        for n, iface, addr, is_m in self.hosts:
+        for n, iface, addr, masklen, locfw, netfw, mng, routed in self.hosts:
             d[n] = [ {'filter': self._demo_rulelist[n]}, ip_a_s(n)]
         self._remote_confs = d
 
@@ -943,7 +965,7 @@ class DemoFireSet(DumbFireSet):
     def _get_confs(self, keep_sessions=False):
         def ip_a_s(n):
             """Build a dict: {'eth0': (addr, None)} for a given host"""
-            i = ((iface, (addr, None)) for hn, iface, addr, is_m in self.hosts if hn == n   )
+            i = ((iface, (addr, None)) for hn, iface, ipa, masklen, locfw, netfw, mng, routed in self.hosts if hn == n   )
             return dict(i)
         d = {} # {hostname: [[iptables], [ip-addr-show]], ... }
         for n, iface, addr, is_m in self.hosts:

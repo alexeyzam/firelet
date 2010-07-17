@@ -159,6 +159,22 @@ def test_gitfireset_long():
     assert zip(*vl)[2] == (['networks: n.1 deleted'], ['services: n.1 deleted'], ['hostgroups: n.1 deleted'],
                             ['hosts: n.1 deleted'], ['rules: n.1 deleted'])
 
+@with_setup(setup_dir, teardown_flssh)
+def test_gitfireset_check_ifaces():
+    fs = GitFireSet(repodir='/tmp/firelet')
+    fs._remote_confs = {
+        'Bilbo': [None, '10.66.2.1', {'filter': '', 'nat': '-A POSTROUTING -o eth0 -j MASQUERADE'}, {'lo': ('127.0.0.1/8', '::1/128'), 'add': (None, None),
+            'eth1': ('10.66.2.1/24', 'fe80::a00:27ff:fe52:a8b2/64'), 'eth0': ('10.66.1.2/24', 'fe80::a00:27ff:fe81:1366/64')}],
+        'Fangorn': [None, '10.66.2.2', {'filter': '', 'nat': ''}, {'lo': ('127.0.0.1/8', '::1/128'), 'add': (None, None),
+            'eth0': ('10.66.2.2/24', 'fe80::a00:27ff:fe77:6d19/64')}],
+        'Gandalf': [None, '10.66.1.1', {'filter': '', 'nat': '-A POSTROUTING -o eth0 -j MASQUERADE'}, {'lo': ('127.0.0.1/8', '::1/128'), 'add': (None, None),
+            'eth1': ('10.66.1.1/24', 'fe80::a00:27ff:fee6:4b3e/64'), 'eth0': ('172.16.2.223/17', 'fe80::a00:27ff:fe03:d05e/64')}],
+        'Smeagol': [None, '10.66.1.3', {'filter': '', 'nat': ''}, {'lo': ('127.0.0.1/8', '::1/128'), 'add': (None, None),
+            'eth0': ('10.66.1.3/24', 'fe80::a00:27ff:fe75:2c75/64')}]
+    }
+    fs._check_ifaces()
+
+
 
 @with_setup(setup_dir, teardown_flssh)
 def test_dumbfireset():
