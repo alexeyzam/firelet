@@ -14,6 +14,7 @@ from time import time, sleep, localtime
 from lib.confreader import ConfReader
 from lib import mailer
 from lib.flcore import Alert, GitFireSet, DemoGitFireSet, Users, clean
+from lib.flmap import draw_png_map, draw_svg_map
 
 from bottle import HTTPResponse, HTTPError
 
@@ -419,13 +420,11 @@ def flmap():
 
 @bottle.route('/map.png')
 def flmap_png():
-    from lib.flmap import drawmap
     bottle.response.content_type = 'image/png'
-    return drawmap(fs)
+    return draw_png_map(fs)
 
 @bottle.route('/svgmap')
-def svgmap():
-    from lib.flmap import draw_svg_map
+def flmap_svg():
     bottle.response.content_type = 'image/svg+xml'
     return draw_svg_map(fs)
 
