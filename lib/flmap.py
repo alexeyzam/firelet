@@ -14,14 +14,14 @@ def _drawmap(fs, rulename=None):
             f = Node(A, h.hostname)
             f.attr['color']  = 'red'
     for n in fs.networks:
-        A.add_node(n[0])
-        poly = Node(A, n[0])
+        A.add_node(n.name)
+        poly = Node(A, n.name)
         poly.attr['shape'] = 'polygon'
         poly.attr['sides'] = '8'
         for h in fs.hosts:
-            if IPAddress(h.ip_addr) in IPNetwork(n[1] + '/' + n[2]):
-                A.add_edge(h.hostname, n[0])
-                e = Edge(A, h.hostname, n[0])
+            if IPAddress(h.ip_addr) in IPNetwork(n.ip_addr + '/' + n.masklen):
+                A.add_edge(h.hostname, n.name)
+                e = Edge(A, h.hostname, n.name)
                 e.attr['label'] = h.iface
                 e.attr['fontsize'] = '6'
 
