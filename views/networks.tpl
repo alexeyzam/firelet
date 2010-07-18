@@ -28,9 +28,9 @@
         <img src="/static/edit.png" title="Edit network" id="{{rid}}" rel="#editing_form" class="edit">
         <img src="/static/delete.png" title="Delete network" id="{{rid}}" class="delete">
     </td>
-    % for item in network:
-    <td>{{item}}</td>
-    % end
+    <td>{{network.name}}</td>
+    <td>{{network.ip_addr}}</td>
+    <td>{{network.masklen}}</td>
     </tr>
 % end
 </table>

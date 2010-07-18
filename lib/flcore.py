@@ -122,6 +122,15 @@ class Hosts(SmartTable):
         li = [[x.hostname, x.iface, x.ip_addr, x.masklen, x.local_fw, x.network_fw, x.mng] + x.routed for x in self._list]
         savecsv('hosts', li, self._dir)
 
+class Networks(SmartTable):
+    """A list of Bunch instances"""
+    def __init__(self, d='firewall'):
+        self._dir = d
+        li = readcsv('networks', d)
+        self._list = [ Bunch(name=r[0], ip_addr=r[1], masklen=r[2]) for r in li ]
+    def save(self):
+        li = [[x.name, x.ip_addr, x.masklen] for x in self._list]
+        savecsv('networks', li, self._dir)
 
 # CSV files
 
@@ -485,7 +494,7 @@ class FireSet(object):
 
         # build dictionaries to perform resolution
         addr = dict(((h.hostname + ":" + h.iface), h.ip_addr) for h in self.hosts) # host to ip_addr
-        net = dict((name, (n, mask)) for name, n, mask in self.networks) # network name
+        net = dict((n.name, (n.ip_addr, n.masklen)) for n in self.networks) # network name
         hgs = dict((entry[0], (entry[1:])) for entry in self.hostgroups) # host groups
         hg_flat = dict((hg, self._flattenhg(hgs[hg], addr, net, hgs)) for hg in hgs) # flattened to {hg: hosts and networks}
 
@@ -708,7 +717,7 @@ class GitFireSet(FireSet):
         self.hosts = Hosts()
         self.hostgroups = loadcsv('hostgroups')
         self.services = loadcsv('services')
-        self.networks = loadcsv('networks')
+        self.networks = Networks()
         self._git_repodir = repodir
         if 'fatal: Not a git repository' in self._git('status')[1]:
             log.debug('Creating Git repo...')
@@ -808,6 +817,8 @@ class GitFireSet(FireSet):
             raise Alert, "The element n. %d is not present in table '%s'" % (rid, table)
         if table == 'hosts':
             self.hosts.save()
+        if table == 'networks':
+            self.networks.save()
         else:
             savecsv(table, self.__dict__[table], d=self._git_repodir)
 
