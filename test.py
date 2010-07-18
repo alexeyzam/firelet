@@ -99,18 +99,15 @@ def test_load_save_hosts():
     lines = open('/tmp/firelet/hosts.csv', 'r').readlines()
     content = [x.strip() for x in lines]
     content = filter(None, content)
-    h = load_hosts_csv('hosts', d='/tmp/firelet')
-    for x in h:
-        assert len(x) == 8
-        assert isinstance(x[7], list)
-    save_hosts_csv('hosts', h, d='/tmp/firelet')
+    h = Hosts(d='/tmp/firelet')
+    h.save()
     lines = open('/tmp/firelet/hosts.csv', 'r').readlines()
     content2 = [x.strip() for x in lines]
     content2 = filter(None, content2)
-    h2 = load_hosts_csv('hosts', d='/tmp/firelet')
+    h2 = Hosts(d='/tmp/firelet')
     assert content == content2, "load/save hosts loop failed:\n\n%s\n\n%s\n\n" \
         % (repr(content), repr(content2))
-    assert h == h2, "load/save hosts loop failed"
+    assert repr(h) == repr(h2), "load/save hosts loop failed"
 
 @with_setup(setup_dir, teardown_flssh)
 def test_load_save_csv():
@@ -174,38 +171,38 @@ def test_gitfireset_check_ifaces():
 
 
 
-@with_setup(setup_dir, teardown_flssh)
-def test_dumbfireset():
-    fs = DumbFireSet(repodir='/tmp/firelet')
-    assert fs.save_needed() == False
-    fs.save('save')
-    assert fs.save_needed() == False
-    fs.reset()
-    assert fs.save_needed() == False
-    fs.rollback(2)
-    assert fs.save_needed() == False
-    vl = fs.version_list()
-    # assert
-    for t in ('rules', 'hosts', 'hostgroups', 'services', 'networks'):
-        tmp = len(fs.__dict__[t])
-        fs.delete(t, 0)
-        assert fs.save_needed() == True, t
-        assert tmp == len(fs.__dict__[t]) + 1, t
-    fs.save('test')
-    assert fs.save_needed() == False
-    orig_rules = fs.rules[:] # copy
-    fs.rule_moveup(2)
-    assert fs.save_needed() == True
-    assert orig_rules != fs.rules
-    fs.rule_movedown(1)
-    assert orig_rules == fs.rules
-
-    fs.rule_movedown(1)
-    assert orig_rules != fs.rules
-    assert fs.save_needed() == True
-    fs.reset()
-    assert fs.save_needed() == False
-    assert orig_rules == fs.rules
+#@with_setup(setup_dir, teardown_flssh)
+#def test_dumbfireset():
+#    fs = DumbFireSet(repodir='/tmp/firelet')
+#    assert fs.save_needed() == False
+#    fs.save('save')
+#    assert fs.save_needed() == False
+#    fs.reset()
+#    assert fs.save_needed() == False
+#    fs.rollback(2)
+#    assert fs.save_needed() == False
+#    vl = fs.version_list()
+#    # assert
+#    for t in ('rules', 'hosts', 'hostgroups', 'services', 'networks'):
+#        tmp = len(fs.__dict__[t])
+#        fs.delete(t, 0)
+#        assert fs.save_needed() == True, t
+#        assert tmp == len(fs.__dict__[t]) + 1, t
+#    fs.save('test')
+#    assert fs.save_needed() == False
+#    orig_rules = fs.rules[:] # copy
+#    fs.rule_moveup(2)
+#    assert fs.save_needed() == True
+#    assert orig_rules != fs.rules
+#    fs.rule_movedown(1)
+#    assert orig_rules == fs.rules
+#
+#    fs.rule_movedown(1)
+#    assert orig_rules != fs.rules
+#    assert fs.save_needed() == True
+#    fs.reset()
+#    assert fs.save_needed() == False
+#    assert orig_rules == fs.rules
 
 
 
@@ -265,7 +262,7 @@ def test_flattening():
 
 @with_setup(setup_dir, teardown_flssh)
 def test_compilation():
-    fs = DumbFireSet(repodir='/tmp/firelet')
+    fs = GitFireSet(repodir='/tmp/firelet')
     compiled = fs.compile()
 
     r = ['-A FORWARD -p tcp -s 10.66.1.2 -d 10.66.1.1 --dport 443 -j ACCEPT', '-A FORWARD -s 10.66.1.3 -d 172.16.2.223 --log-level 3 --log-prefix NoSmeagol -j LOG', '-A FORWARD -s 10.66.1.3 -d 172.16.2.223 -j DROP', '-A FORWARD -p tcp -s 10.66.1.2 -d 10.66.2.2 --dport 80 -j ACCEPT', '-A FORWARD -p tcp -s 172.16.2.223 -d 10.66.2.0/255.255.255.0 --dport 22 --log-level 2 --log-prefix ssh_mgmt -j LOG', '-A FORWARD -p tcp -s 172.16.2.223 -d 10.66.2.0/255.255.255.0 --dport 22 -j ACCEPT', '-A FORWARD -p tcp -s 10.66.1.2 -d 10.66.1.3 --dport 6660:6669 -j ACCEPT', '-A FORWARD -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 --log-level 2 --log-prefix imap -j LOG', '-A FORWARD -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 -j ACCEPT', '-A FORWARD -p udp -s 172.16.2.223 -d 172.16.2.223 --dport 123 -j ACCEPT', '-A FORWARD --log-level 1 --log-prefix default -j LOG', '-A FORWARD -j DROP']
@@ -274,14 +271,14 @@ def test_compilation():
 
 @with_setup(setup_dir, teardown_flssh)
 def test_select_rules():
-    fs = DumbFireSet(repodir='/tmp/firelet')
+    fs = GitFireSet(repodir='/tmp/firelet')
     rd = fs.compile_dict()
     r = {'Bilbo': {'eth1': [], 'eth0': ['-A FORWARD -p tcp -s 10.66.1.2 -d 10.66.1.1 --dport 443 -j ACCEPT', '-A FORWARD -p tcp -s 10.66.1.2 -d 10.66.2.2 --dport 80 -j ACCEPT', '-A FORWARD -p tcp -s 10.66.1.2 -d 10.66.1.3 --dport 6660:6669 -j ACCEPT', '-A FORWARD -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 --log-level 2 --log-prefix imap -j LOG', '-A FORWARD -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 -j ACCEPT']}, 'Fangorn': {'eth0': ['-A FORWARD -p tcp -s 10.66.1.2 -d 10.66.2.2 --dport 80 -j ACCEPT']}, 'Gandalf': {'eth1': ['-A FORWARD -p tcp -s 10.66.1.2 -d 10.66.1.1 --dport 443 -j ACCEPT'], 'eth0': ['-A FORWARD -s 10.66.1.3 -d 172.16.2.223 --log-level 3 --log-prefix NoSmeagol -j LOG', '-A FORWARD -s 10.66.1.3 -d 172.16.2.223 -j DROP', '-A FORWARD -p tcp -s 172.16.2.223 -d 10.66.2.0/255.255.255.0 --dport 22 --log-level 2 --log-prefix ssh_mgmt -j LOG', '-A FORWARD -p tcp -s 172.16.2.223 -d 10.66.2.0/255.255.255.0 --dport 22 -j ACCEPT', '-A FORWARD -p udp -s 172.16.2.223 -d 172.16.2.223 --dport 123 -j ACCEPT']}, 'Smeagol': {'eth0': ['-A FORWARD -s 10.66.1.3 -d 172.16.2.223 --log-level 3 --log-prefix NoSmeagol -j LOG', '-A FORWARD -s 10.66.1.3 -d 172.16.2.223 -j DROP', '-A FORWARD -p tcp -s 10.66.1.2 -d 10.66.1.3 --dport 6660:6669 -j ACCEPT', '-A FORWARD -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 --log-level 2 --log-prefix imap -j LOG', '-A FORWARD -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 -j ACCEPT']}}
     assert rd == r,  "select_rules generates:\n%s" % repr(rd)
 
 @with_setup(setup_dir, teardown_flssh)
 def test_compile_rules():
-    fs = DumbFireSet(repodir='/tmp/firelet')
+    fs = GitFireSet(repodir='/tmp/firelet')
     rd = fs.compile_rules()
     r = {'Bilbo': ['-A OUTPUT -p tcp -s 10.66.1.2 -d 10.66.1.1 --dport 443 --log-level 0 --log-prefix BG_https -j LOG', '-A OUTPUT -p tcp -s 10.66.1.2 -d 10.66.1.1 --dport 443 -j ACCEPT', '-A OUTPUT -p tcp -s 10.66.1.2 -d 10.66.2.2 --dport 80 --log-level 0 --log-prefix http_ok -j LOG', '-A OUTPUT -p tcp -s 10.66.1.2 -d 10.66.2.2 --dport 80 -j ACCEPT', '-A INPUT -p tcp -s 172.16.2.223 -d 10.66.2.0/255.255.255.0 --dport 22 --log-level 2 --log-prefix ssh_mgmt -j LOG', '-A INPUT -p tcp -s 172.16.2.223 -d 10.66.2.0/255.255.255.0 --dport 22 -j ACCEPT', '-A OUTPUT -p tcp -s 10.66.1.2 -d 10.66.1.3 --dport 6660:6669 --log-level 0 --log-prefix irc -j LOG', '-A OUTPUT -p tcp -s 10.66.1.2 -d 10.66.1.3 --dport 6660:6669 -j ACCEPT', '-A INPUT -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 --log-level 2 --log-prefix imap -j LOG', '-A INPUT -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 -j ACCEPT', '-A INPUT --log-level 1 --log-prefix default -j LOG', '-A INPUT -j DROP', '-A INPUT --log-level 1 --log-prefix default -j LOG', '-A INPUT -j DROP', '-A INPUT --log-level 1 --log-prefix default -j LOG', '-A INPUT -j DROP', '-A INPUT --log-level 1 --log-prefix default -j LOG', '-A INPUT -j DROP'], 'Gandalf': ['-A INPUT -p tcp -s 10.66.1.2 -d 10.66.1.1 --dport 443 --log-level 0 --log-prefix BG_https -j LOG', '-A INPUT -p tcp -s 10.66.1.2 -d 10.66.1.1 --dport 443 -j ACCEPT', '-A INPUT -s 10.66.1.3 -d 172.16.2.223 --log-level 3 --log-prefix NoSmeagol -j LOG', '-A INPUT -s 10.66.1.3 -d 172.16.2.223 -j DROP', '-A OUTPUT -p tcp -s 172.16.2.223 -d 10.66.2.0/255.255.255.0 --dport 22 --log-level 2 --log-prefix ssh_mgmt -j LOG', '-A OUTPUT -p tcp -s 172.16.2.223 -d 10.66.2.0/255.255.255.0 --dport 22 -j ACCEPT', '-A INPUT -p udp -s 172.16.2.223 -d 172.16.2.223 --dport 123 --log-level 0 --log-prefix ntp -j LOG', '-A INPUT -p udp -s 172.16.2.223 -d 172.16.2.223 --dport 123 -j ACCEPT', '-A OUTPUT -p udp -s 172.16.2.223 -d 172.16.2.223 --dport 123 --log-level 0 --log-prefix ntp -j LOG', '-A OUTPUT -p udp -s 172.16.2.223 -d 172.16.2.223 --dport 123 -j ACCEPT', '-A INPUT --log-level 1 --log-prefix default -j LOG', '-A INPUT -j DROP', '-A INPUT --log-level 1 --log-prefix default -j LOG', '-A INPUT -j DROP', '-A INPUT --log-level 1 --log-prefix default -j LOG', '-A INPUT -j DROP', '-A INPUT --log-level 1 --log-prefix default -j LOG', '-A INPUT -j DROP'], 'Fangorn': ['-A INPUT -p tcp -s 10.66.1.2 -d 10.66.2.2 --dport 80 --log-level 0 --log-prefix http_ok -j LOG', '-A INPUT -p tcp -s 10.66.1.2 -d 10.66.2.2 --dport 80 -j ACCEPT', '-A INPUT -p tcp -s 172.16.2.223 -d 10.66.2.0/255.255.255.0 --dport 22 --log-level 2 --log-prefix ssh_mgmt -j LOG', '-A INPUT -p tcp -s 172.16.2.223 -d 10.66.2.0/255.255.255.0 --dport 22 -j ACCEPT', '-A INPUT --log-level 1 --log-prefix default -j LOG', '-A INPUT -j DROP', '-A INPUT --log-level 1 --log-prefix default -j LOG', '-A INPUT -j DROP'], 'Smeagol': ['-A OUTPUT -s 10.66.1.3 -d 172.16.2.223 --log-level 3 --log-prefix NoSmeagol -j LOG', '-A OUTPUT -s 10.66.1.3 -d 172.16.2.223 -j DROP', '-A INPUT -p tcp -s 10.66.1.2 -d 10.66.1.3 --dport 6660:6669 --log-level 0 --log-prefix irc -j LOG', '-A INPUT -p tcp -s 10.66.1.2 -d 10.66.1.3 --dport 6660:6669 -j ACCEPT', '-A OUTPUT -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 --log-level 2 --log-prefix imap -j LOG', '-A OUTPUT -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 -j ACCEPT', '-A INPUT --log-level 1 --log-prefix default -j LOG', '-A INPUT -j DROP', '-A INPUT --log-level 1 --log-prefix default -j LOG', '-A INPUT -j DROP']}
 
@@ -292,7 +289,7 @@ def test_compile_rules():
 #@with_setup(setup_dir, teardown_flssh)
 #def test_deployment():
 #    """Test host connectivity is required"""
-#    fs = DumbFireSet(repodir='/tmp/firelet')
+#    fs = GitFireSet(repodir='/tmp/firelet')
 #    fs.deploy()
 
 

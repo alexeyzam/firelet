@@ -79,6 +79,50 @@ class Table(list):
     def len(self):
         return len(self)
 
+def readcsv(n, d='firewall'):
+    f = open("%s/%s.csv" % (d, n))
+    li = [x for x in f if not x.startswith('#') and x != '\n']
+    r = csv.reader(li, delimiter=' ')
+    f.close()
+    return r
+
+class SmartTable(object):
+    """A list of Bunch instances. Each subclass is responsible to load and save files."""
+    def __init__(self, d='firewall'):
+        self._dir = d
+    def __repr__(self):
+        return repr(self._list)
+    def __iter__(self):
+        return self._list.__iter__()
+    def __len__(self):
+        return len(self._list)
+    def __getitem__(self, i):
+        return self._list.__getitem__(i)
+    def pop(self, i):
+        x = self._list[i]
+        del self._list[i]
+        return x
+
+
+class Hosts(SmartTable):
+    """A list of Bunch instances"""
+    def __init__(self, d='firewall'):
+        self._dir = d
+        li = readcsv('hosts', d)
+        self._list = []
+        for r in li:
+            if len(r) == 7:
+                routed = []
+            else:
+                routed = r[7:]
+            b = Bunch(hostname=r[0], iface=r[1], ip_addr=r[2], masklen=r[3], local_fw=r[4], network_fw=r[5], mng=r[6], routed=routed)
+            self._list.append(b)
+    def save(self):
+        """Flatten the routed network list and save"""
+        li = [[x.hostname, x.iface, x.ip_addr, x.masklen, x.local_fw, x.network_fw, x.mng] + x.routed for x in self._list]
+        savecsv('hosts', li, self._dir)
+
+
 # CSV files
 
 def loadcsv(n, d='firewall'):
@@ -115,29 +159,29 @@ def load_hosts_csv(n, d='firewall'):
             assert isinstance(x[7][0], str), 'Wrong %s'% repr(x)
     return mu
 
-def save_hosts_csv(n, mu, d='firewall'):
-    """Save hosts on a csv file, flattening the input list."""
-    li = []
-    for x in mu:
-        if len(x) == 7:
-            o = x[0:6]
-        elif len(x) == 8 and len(x[7]) == 0:
-            o = x[0:7]
-        elif len(x) == 8 and isinstance(x[7], str):
-            o = x[0:7]
-            raise Exception, "Got str not list"
-        elif len(x) == 8 and isinstance(x[7][0], list):
-            o = x[0:7]
-            raise Exception, "Got list in list"
-        elif len(x) == 8:
-
-            log.debug(repr(x[7][0]))
-            o = x[0:7]+x[7]
-        else:
-            raise Exception, "Wrong list format"
-        li.append(o)
-        assert '[' not in repr(o)[1:-1], "Wrong csv conversion: %s" % repr(o)[1:-1]
-    savecsv(n, li, d)
+#def save_hosts_csv(n, mu, d='firewall'):
+#    """Save hosts on a csv file, flattening the input list."""
+#    li = []
+#    for x in mu:
+#        if len(x) == 7:
+#            o = x[0:6]
+#        elif len(x) == 8 and len(x[7]) == 0:
+#            o = x[0:7]
+#        elif len(x) == 8 and isinstance(x[7], str):
+#            o = x[0:7]
+#            raise Exception, "Got str not list"
+#        elif len(x) == 8 and isinstance(x[7][0], list):
+#            o = x[0:7]
+#            raise Exception, "Got list in list"
+#        elif len(x) == 8:
+#
+#            log.debug(repr(x[7][0]))
+#            o = x[0:7]+x[7]
+#        else:
+#            raise Exception, "Wrong list format"
+#        li.append(o)
+#        assert '[' not in repr(o)[1:-1], "Wrong csv conversion: %s" % repr(o)[1:-1]
+#    savecsv(n, li, d)
 
 # JSON files
 
@@ -259,12 +303,12 @@ class NetworkObjTable(object):
 
 
 
-class Hosts(NetworkObjTable):
-    def __init__(self, li):
-        self._li = li
-        pass
-    def aslist(self):
-        return self._li
+#class Hosts(NetworkObjTable):
+#    def __init__(self, li):
+#        self._li = li
+#        pass
+#    def aslist(self):
+#        return self._li
 
 class FireSet(object):
     """A container for the network objects.
@@ -356,84 +400,12 @@ class FireSet(object):
         if not items: return None
         return map(flatten1, items)
 
-
-    def compile(self):
-        """Compile iptables rules to be deployed in a single, big list. During the compilation many checks are performed."""
-
-        assert not self.save_needed(), "Configuration must be saved before deployment."
-
-        for rule in self.rules:
-            assert rule[0] in ('y', 'n'), 'First field must be "y" or "n" in %s' % repr(rule)
-
-        # build dictionaries to perform resolution
-        addr = dict(((name + ":" + iface),ipa) for name, iface, ipa, masklen, locfw, netfw, mng, routed in self.hosts) # host to ip_addr
-        net = dict((name, (n, mask)) for name, n, mask in self.networks) # network name
-        hgs = dict((entry[0], (entry[1:])) for entry in self.hostgroups) # host groups
-        hg_flat = dict((hg, self._flattenhg(hgs[hg], addr, net, hgs)) for hg in hgs) # flattened to {hg: hosts and networks}
-
-        proto_port = dict((name, (proto, ports)) for name, proto, ports in self.services) # protocol
-        proto_port['*'] = (None, '') # special case for "any"      # port format: "2:4,5:10,10:33,40,50"
-
-        def res(n):
-            if n in addr: return (addr[n], )
-            elif n in net: return (net[n][0] + '/' + net[n][1], )
-            elif n in hg_flat: return hg_flat[src][0][0]
-            elif n == '*':
-                return [None]
-            else:
-                raise Alert, "Host %s is not defined." % n
-
-        compiled = []
-        for ena, name, src, src_serv, dst, dst_serv, action, log_val, desc in self.rules:
-            if ena == 'n':
-                continue
-            assert action in ('ACCEPT', 'DROP'),  'The Action field must be "ACCEPT" or "DROP" in rule "%s"' % name
-            srcs = res(src)
-            dsts = res(dst)
-            sproto, sports = proto_port[src_serv]
-            dproto, dports = proto_port[dst_serv]
-            assert sproto in protocols + [None], "Unknown source protocol: %s" % sproto
-            assert dproto in protocols + [None], "Unknown dest protocol: %s" % dproto
-
-            if sproto and dproto and sproto != dproto:
-                raise Alert, "Source and destination protocol must be the same in rule \"%s\"." % name
-            if dproto:
-                proto = " -p %s" % dproto.lower()
-            elif sproto:
-                proto = " -p %s" % sproto.lower()
-            else:
-                proto = ''
-
-            if sports:
-                ms = ' -m multiport' if ',' in sports else ''
-                sports = "%s --sport %s" % (ms, sports)
-            if dports:
-                md = ' -m multiport' if ',' in dports else ''
-                dports = "%s --dport %s" % (md, dports)
-
-            for x in name:
-                assert validc(x), "Invalid character in '%s': x" % (repr(name), repr(x))
-
-            try:
-                log_val = int(log_val)
-            except:
-                raise Alert, "The logging field in rule \"%s\" must be an integer." % name
-
-            for src, dst in product(srcs, dsts):
-                src = " -s %s" % src if src else ''
-                dst = " -d %s" % dst if dst else ''
-                if log_val:
-                    compiled.append("-A FORWARD%s%s%s%s%s --log-level %d --log-prefix %s -j LOG" %   (proto, src, sports, dst, dports, log_val, name))
-                compiled.append("-A FORWARD%s%s%s%s%s -j %s" %   (proto, src, sports, dst, dports, action))
-
-        return compiled
-
     def _get_confs(self, keep_sessions=False):
         self._remote_confs = None
         d = {}      # {hostname: [management ip address list ], ... }    If the list is empty we cannot reach that host.
-        for n, iface, addr, masklen, locfw, netfw, mng, routed in self.hosts:
-            if n not in d: d[n] = []
-            if int(mng):                            # IP address flagged for management
+        for h in self.hosts:
+            if h.hostname not in d: d[n] = []
+            if int(h.mng):                            # IP address flagged for management
                 d[n].append(addr)
         for n, x in d.iteritems():
             assert len(x), "No management IP address for %s " % n
@@ -454,15 +426,15 @@ class FireSet(object):
             assert isinstance(q, Bunch), repr(confs)
             assert len(q) == 2
         log.debug("Confs: %s" % repr(confs) )
-        for hostname, iface, ipa, masklen, locfw, netfw, mng, routed in self.hosts:
-            if not hostname in confs:
-                raise Alert, "Host %s not available." % hostname
-            iptables,  ip_a_s = confs[hostname]
-            if not iface in ip_a_s:         #TODO: test this in unit testing
+        for h in self.hosts:
+            if not h.hostname in confs:
+                raise Alert, "Host %s not available." % h.hostname
+            ip_a_s = confs[h.hostname].ip_a_s
+            if not h.iface in ip_a_s:         #TODO: test this in unit testing
                 raise Alert, "Interface %s missing on host %s" % (iface, hostname)
-            ip_addr_v4, ip_addr_v6 = ip_a_s[iface]
-            if ipa not in (ip_addr_v6,  ip_addr_v4.split('/')[0] ):
-                raise Alert,"Wrong address on %s on interface %s: %s and %s(should be %s)" % (hostname, iface, ip_addr_v4, ip_addr_v6, ipa)
+            ip_addr_v4, ip_addr_v6 = ip_a_s[h.iface]
+            if h.ip_addr not in (ip_addr_v6,  ip_addr_v4.split('/')[0] ):
+                raise Alert,"Wrong address on %s on interface %s: %s and %s(should be %s)" % (h.hostname, iface, ip_addr_v4, ip_addr_v6, h.ip_addr)
 
         #TODO: warn if there are extra interfaces?
 
@@ -512,7 +484,7 @@ class FireSet(object):
             assert rule[0] in ('y', 'n'), 'First field must be "y" or "n" in %s' % repr(rule)
 
         # build dictionaries to perform resolution
-        addr = dict(((name + ":" + iface),ipa) for name,iface, ipa, masklen, locfw, netfw, mng, routed in self.hosts) # host to ip_addr
+        addr = dict(((h.hostname + ":" + h.iface), h.ip_addr) for h in self.hosts) # host to ip_addr
         net = dict((name, (n, mask)) for name, n, mask in self.networks) # network name
         hgs = dict((entry[0], (entry[1:])) for entry in self.hostgroups) # host groups
         hg_flat = dict((hg, self._flattenhg(hgs[hg], addr, net, hgs)) for hg in hgs) # flattened to {hg: hosts and networks}
@@ -580,48 +552,48 @@ class FireSet(object):
         # r[hostname] = [rule, rule, ... ]
         rd = defaultdict(list)
         for proto, src, sports, dst, dports, log_val, name, action in compiled: # for each rule
-            for hostname, iface, ipa, masklen, locfw, netfw, mng, routed in self.hosts:   # for each host interface
+            for h in self.hosts:   # for each host interface
                 # Insert first rule
-                if not rd[hostname]:
-                    rd[hostname].append("-A INPUT -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT")
-                    rd[hostname].append("-A OUTPUT -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT")
-                    rd[hostname].append("-A FORWARD -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT")
+                if not rd[h.hostname]:
+                    rd[h.hostname].append("-A INPUT -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT")
+                    rd[h.hostname].append("-A OUTPUT -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT")
+                    rd[h.hostname].append("-A FORWARD -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT")
                 # Build INPUT rules: where the host is in the destination
                 _src = " -s %s" % src if src else ''
                 _dst = " -d %s" % dst if dst else ''
                 if dst:
-                    if IPNetwork(ipa) in IPNetwork(dst):
-                        rd[hostname].append("-A INPUT%s%s%s%s%s --log-level %d --log-prefix %s -j LOG" %   (proto, _src, sports, _dst, dports, log_val, name))
-                        rd[hostname].append("-A INPUT%s%s%s%s%s -j %s" %   (proto, _src, sports, _dst, dports, action))
+                    if IPNetwork(h.ip_addr) in IPNetwork(dst):
+                        rd[h.hostname].append("-A INPUT%s%s%s%s%s --log-level %d --log-prefix %s -j LOG" %   (proto, _src, sports, _dst, dports, log_val, name))
+                        rd[h.hostname].append("-A INPUT%s%s%s%s%s -j %s" %   (proto, _src, sports, _dst, dports, action))
                 else:
-                    rd[hostname].append("-A INPUT%s%s%s%s%s --log-level %d --log-prefix %s -j LOG" %   (proto, _src, sports, _dst, dports, log_val, name))
-                    rd[hostname].append("-A INPUT%s%s%s%s%s -j %s" %   (proto, _src, sports, _dst, dports, action))
+                    rd[h.hostname].append("-A INPUT%s%s%s%s%s --log-level %d --log-prefix %s -j LOG" %   (proto, _src, sports, _dst, dports, log_val, name))
+                    rd[h.hostname].append("-A INPUT%s%s%s%s%s -j %s" %   (proto, _src, sports, _dst, dports, action))
 
                 # Build OUTPUT rules: where the host is in the source
                 if src:
-                    if IPNetwork(ipa) in IPNetwork(src):
+                    if IPNetwork(h.ip_addr) in IPNetwork(src):
                         _src = " -s %s" % src if src else ''
                         _dst = " -d %s" % dst if dst else ''
-                        rd[hostname].append("-A OUTPUT%s%s%s%s%s --log-level %d --log-prefix %s -j LOG" %   (proto, _src, sports, _dst, dports, log_val, name))
-                        rd[hostname].append("-A OUTPUT%s%s%s%s%s -j %s" %   (proto, _src, sports, _dst, dports, action))
+                        rd[h.hostname].append("-A OUTPUT%s%s%s%s%s --log-level %d --log-prefix %s -j LOG" %   (proto, _src, sports, _dst, dports, log_val, name))
+                        rd[h.hostname].append("-A OUTPUT%s%s%s%s%s -j %s" %   (proto, _src, sports, _dst, dports, action))
                 else:
-                    rd[hostname].append("-A INPUT%s%s%s%s%s --log-level %d --log-prefix %s -j LOG" %   (proto, _src, sports, _dst, dports, log_val, name))
-                    rd[hostname].append("-A INPUT%s%s%s%s%s -j %s" %   (proto, _src, sports, _dst, dports, action))
+                    rd[h.hostname].append("-A INPUT%s%s%s%s%s --log-level %d --log-prefix %s -j LOG" %   (proto, _src, sports, _dst, dports, log_val, name))
+                    rd[h.hostname].append("-A INPUT%s%s%s%s%s -j %s" %   (proto, _src, sports, _dst, dports, action))
 
                 # Build FORWARD rules: where the source and destination are both in directly connected or routed networks
-                if netfw in ('0', 0, False):
+                if h.network_fw in ('0', 0, False):
                     continue
-                resolved_routed = [net[r] for r in routed] # resolved routed nets [[addr,masklen],[addr,masklen]...]
+                resolved_routed = [net[r] for r in h.routed] # resolved routed nets [[addr,masklen],[addr,masklen]...]
                 nets = [ IPNetwork(y+'/'+w) for y, w in resolved_routed ]
 
-                src_forw = self._forwarded(src, resolved_routed, ipa, masklen)
-                dst_forw = self._forwarded(dst, resolved_routed, ipa, masklen)
+                src_forw = self._forwarded(src, resolved_routed, h.ip_addr, h.masklen)
+                dst_forw = self._forwarded(dst, resolved_routed, h.ip_addr, h.masklen)
 
                 if src_forw and dst_forw:
                     _src = " -s %s" % src if src else ''
                     _dst = " -d %s" % dst if dst else ''
-                    rd[hostname].append("-A FORWARD%s%s%s%s%s --log-level %d --log-prefix %s -j LOG" %   (proto, _src, sports, _dst, dports, log_val, name))
-                    rd[hostname].append("-A FORWARD%s%s%s%s%s -j %s" %   (proto, _src, sports, _dst, dports, action))
+                    rd[h.hostname].append("-A FORWARD%s%s%s%s%s --log-level %d --log-prefix %s -j LOG" %   (proto, _src, sports, _dst, dports, log_val, name))
+                    rd[h.hostname].append("-A FORWARD%s%s%s%s%s -j %s" %   (proto, _src, sports, _dst, dports, action))
 
             # "for every host"
         # "for every rule"
@@ -631,6 +603,9 @@ class FireSet(object):
             log.debug("%s -------------------------\n%s" % (k, '\n'.join(v)))
         return rd
 
+
+#    def compile(self, hosts=None, rset=None):
+#        return self.compile_dict(hosts, rset)
 
     def _diff_table(self):      # Ridefined below!
         """Generate an HTML table containing the changes between the existing and the compiled iptables ruleset *on each host* """
@@ -724,88 +699,13 @@ class FireSet(object):
         pass
 
 
-class DumbFireSet(FireSet):
-    """Simple FireSet implementation without versioning. The changes are kept in memory."""
-
-    def __init__(self, repodir='firewall'):
-        self._repodir = repodir
-        self.rules = loadcsv('rules', d=self._repodir)
-        self.hosts = load_hosts_csv('hosts', d=self._repodir)
-        self.hostgroups = loadcsv('hostgroups', d=self._repodir)
-        self.services = loadcsv('services', d=self._repodir)
-        self.networks = loadcsv('networks', d=self._repodir)
-
-#TODO: save_needed could become a bool attribute with getter and setter
-
-    def _put_lock(self):
-        open("%s/lock" % self._repodir, 'w').close()
-
-    def save(self, msg):
-        """Mem to disk"""
-        if not self.save_needed(): return False  #TODO: handle commit message
-        for table in ('rules', 'hosts', 'hostgroups', 'services', 'networks'):
-            if table == 'hosts':
-                save_hosts_csv('hosts', self.hosts, d=self._repodir)
-            else:
-                savecsv(table, self.__dict__[table], d=self._repodir)
-        unlink("%s/lock" % self._repodir)
-        return True
-
-    def save_needed(self):
-        try:
-            open("%s/lock" % self._repodir, 'r').close()
-            return True
-        except:
-            return False
-
-    def reset(self):
-        """Disk to mem"""
-        if not self.save_needed(): return
-        for table in ('rules', 'hosts', 'hostgroups', 'services', 'networks'):
-            self.__dict__[table] = loadcsv(table, d=self._repodir)
-        unlink("%s/lock" % self._repodir)
-
-    def delete(self, table, rid):
-        assert table in ('rules', 'hosts', 'hostgroups', 'services', 'networks') ,  "TODO"
-        try:
-            self.__dict__[table].pop(rid)
-            self._put_lock()
-        except Exception, e:
-            raise Exception, e
-            pass #TODO
-
-    def rule_moveup(self, rid):
-        try:
-            rules = self.rules
-            rules[rid], rules[rid - 1] = rules[rid - 1], rules[rid]
-            self.rules = rules
-            self._put_lock()
-        except Exception, e:
-            log.debug("Error in rule_moveup: %s" % e)
-            #            say("Cannot move rule %d up." % rid)
-
-    def rule_movedown(self, rid):
-        try:
-            rules = self.rules
-            rules[rid], rules[rid + 1] = rules[rid + 1], rules[rid]
-            self.rules = rules[:]
-            self._put_lock()
-        except Exception, e:
-            #            say("Cannot move rule %d down." % rid)
-            pass
-
-    def rollback(self, n):
-        pass
-
-    def version_list(self):
-        return (('timestamp', 'version id','author','changelog'), )
 
 
 class GitFireSet(FireSet):
     """FireSet implementing Git to manage the configuration repository"""
     def __init__(self, repodir='/tmp/firewall'):
         self.rules = loadcsv('rules')
-        self.hosts = load_hosts_csv('hosts')
+        self.hosts = Hosts()
         self.hostgroups = loadcsv('hostgroups')
         self.services = loadcsv('services')
         self.networks = loadcsv('networks')
@@ -905,10 +805,9 @@ class GitFireSet(FireSet):
         try:
             self.__dict__[table].pop(rid)
         except IndexError, e:
-            raise "The element n. %d is not present in table '%s'" % (rid, table)
+            raise Alert, "The element n. %d is not present in table '%s'" % (rid, table)
         if table == 'hosts':
-            log.debug('saving hosts')
-            save_hosts_csv('hosts', self.hosts, d=self._git_repodir)
+            self.hosts.save()
         else:
             savecsv(table, self.__dict__[table], d=self._git_repodir)
 

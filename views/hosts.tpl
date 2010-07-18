@@ -59,17 +59,35 @@ div#help_ovr {
 
 <table id="items">
     <thead>
-        <tr><th></th><th>Name</th><th>Iface</th><th>IP Address</th><th>Role</th></tr>
+        <tr><th></th><th>Name</th><th>Iface</th><th>IP Address</th><th>Netmask l.</th><th>Local Fw</th>
+            <th>Network Fw</th><th>Management</th><th>Routed networks</th></tr>
     </thead>
-% for rid, host in hosts:
+% for rid, h in hosts:
     <tr id="{{rid}}">
     <td class="hea">
         <img src="/static/edit.png" title="Edit host" id="{{rid}}" rel="#editing_form" class="edit">
         <img src="/static/delete.png" title="Delete host" id="{{rid}}" class="delete">
     </td>
-    % for item in host:
-    <td>{{item}}</td>
-    % end
+    <td>{{h.hostname}}</td>
+    <td>{{h.iface}}</td>
+    <td>{{h.ip_addr}}</td>
+    <td>{{h.masklen}}</td>
+    <td>
+            % if h.local_fw=='1':
+            <img src="/static/mark.png">
+            % end
+    </td>
+    <td>
+            % if h.network_fw =='1':
+            <img src="/static/mark.png">
+            % end
+    </td>
+    <td>
+            % if h.mng =='1':
+            <img src="/static/mark.png">
+            % end
+    </td>
+    <td>{{' '.join(h.routed)}}</td>
     </tr>
 % end
 </table>

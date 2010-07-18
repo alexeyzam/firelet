@@ -5,6 +5,6 @@ do
     find . -name '*pyc' -delete;
     echo -e '\n\n\n\n'
     clear
-    nosetests -x test.py
+    nosetests test.py
     inotifywait -e MOVE_SELF *.py lib/*.py 2>/dev/null
 done
