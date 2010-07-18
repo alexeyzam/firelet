@@ -42,9 +42,9 @@ div#help_ovr {
         <img src="/static/edit.png" title="Edit service" id="{{rid}}" rel="#editing_form" class="edit">
         <img src="/static/delete.png" title="Delete service" id="{{rid}}" class="delete">
     </td>
-    % for item in service:
-    <td>{{item}}</td>
-    % end
+    <td>{{service.name}}</td>
+    <td>{{service.proto}}</td>
+    <td>{{service.ports}}</td>
     </tr>
 % end
 </table>
