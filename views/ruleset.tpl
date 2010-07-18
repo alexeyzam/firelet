@@ -45,17 +45,27 @@ div#help_ovr {
             <img class="action" src="/static/new_below.png" title="New rule below" action="newbelow">
             <img class="action" src="/static/move_up.png" title="Move rule up" action="moveup">
             <img class="action" src="/static/move_down.png" title="Move rule down" action="movedown">
-            %if rule[0] == "y":
+            %if rule.enabled == "1":
             <img class="action" src="/static/disable.png" title="Disable rule" action="disable">
-            %elif rule[0] == "n":
+            %elif rule.enabled == "0":
             <img class="action" src="/static/enable.png" title="Enable rule" action="enable">
             %end
             <img class="action" src="/static/delete.png" title="Delete rule" action="delete">
             <img src="/static/edit.png" title="Edit rule" id="{{rid}}" rel="#editing_form" class="edit">
         </td>
-        % for item in rule:
-        <td>{{item}}</td>
-        % end
+        <td>
+                % if rule.enabled =='1':
+                <img src="/static/mark.png">
+                % end
+        </td>
+        <td>{{rule.name}}</td>
+        <td>{{rule.src}}</td>
+        <td>{{rule.src_serv}}</td>
+        <td>{{rule.dst}}</td>
+        <td>{{rule.dst_serv}}</td>
+        <td>{{rule.action}}</td>
+        <td>{{rule.log_level}}</td>
+        <td>{{rule.desc}}</td>
     </tr>
     % end
 </table>

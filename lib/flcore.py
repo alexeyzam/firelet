@@ -104,6 +104,19 @@ class SmartTable(object):
         return x
 
 
+class Rules(SmartTable):
+    """A list of Bunch instances"""
+    def __init__(self, d='firewall'):
+        self._dir = d
+        li = readcsv('rules', d)
+        self._list = [ Bunch(enabled=r[0], name=r[1], src=r[2], src_serv=r[3], dst=r[4],
+                             dst_serv=r[5], action=r[6], log_level=r[7], desc=r[8]) for r in li ]
+    def save(self):
+        li = [[x.enabled, x.name, x.src, x.src_serv, x.dst, x.dst_serv,
+                    x.action, x.log_level, x.desc] for x in self._list]
+        savecsv('rules', li, self._dir)
+
+
 class Hosts(SmartTable):
     """A list of Bunch instances"""
     def __init__(self, d='firewall'):
@@ -122,6 +135,7 @@ class Hosts(SmartTable):
         li = [[x.hostname, x.iface, x.ip_addr, x.masklen, x.local_fw, x.network_fw, x.mng] + x.routed for x in self._list]
         savecsv('hosts', li, self._dir)
 
+
 class Networks(SmartTable):
     """A list of Bunch instances"""
     def __init__(self, d='firewall'):
@@ -131,6 +145,7 @@ class Networks(SmartTable):
     def save(self):
         li = [[x.name, x.ip_addr, x.masklen] for x in self._list]
         savecsv('networks', li, self._dir)
+
 
 class Services(SmartTable):
     """A list of Bunch instances"""
@@ -484,7 +499,7 @@ class FireSet(object):
         # r[hostname][interface] = [rule, rule, ... ]
         rd = defaultdict(dict)
 
-        for hostname,iface, ipa, masklen, locfw, netfw, mng, routed in hosts:
+        for hostname,iface, ipa, masklen, locfw, netfw, mng, routed in hosts:  #FIXME: using SmartTable now
             myrules = [ r for r in rset if ipa in r ]   #TODO: match subnets as well
             if not iface in rd[hostname]: rd[hostname][iface] = []
             rd[hostname][iface].extend(myrules)
@@ -501,7 +516,7 @@ class FireSet(object):
         assert not self.save_needed(), "Configuration must be saved before deployment."
 
         for rule in self.rules:
-            assert rule[0] in ('y', 'n'), 'First field must be "y" or "n" in %s' % repr(rule)
+            assert rule.enabled in ('1', '0'), 'First field must be "1" or "0" in %s' % repr(rule)
 
         # build dictionaries to perform resolution
         addr = dict(((h.hostname + ":" + h.iface), h.ip_addr) for h in self.hosts) # host to ip_addr
@@ -523,19 +538,20 @@ class FireSet(object):
 
         # for each rule, for each (src,dst) tuple, compiles a list  [ (proto, src, sports, dst, dports, log_val, rule_name, action), ... ]
         compiled = []
-        for ena, name, src, src_serv, dst, dst_serv, action, log_val, desc in self.rules:  # for each rule
-            if ena == 'n':
+#        for ena, name, src, src_serv, dst, dst_serv, action, log_val, desc in self.rules:  # for each rule
+        for rule in self.rules:  # for each rule
+            if rule.enabled == '0':
                 continue
-            assert action in ('ACCEPT', 'DROP'),  'The Action field must be "ACCEPT" or "DROP" in rule "%s"' % name
-            srcs = res(src)
-            dsts = res(dst)
-            sproto, sports = proto_port[src_serv]
-            dproto, dports = proto_port[dst_serv]
+            assert rule.action in ('ACCEPT', 'DROP'),  'The Action field must be "ACCEPT" or "DROP" in rule "%s"' % rule.name
+            srcs = res(rule.src)
+            dsts = res(rule.dst)
+            sproto, sports = proto_port[rule.src_serv]
+            dproto, dports = proto_port[rule.dst_serv]
             assert sproto in protocols + [None], "Unknown source protocol: %s" % sproto
             assert dproto in protocols + [None], "Unknown dest protocol: %s" % dproto
 
             if sproto and dproto and sproto != dproto:
-                raise Alert, "Source and destination protocol must be the same in rule \"%s\"." % name
+                raise Alert, "Source and destination protocol must be the same in rule \"%s\"." % rule.name
             if dproto:
                 proto = " -p %s" % dproto.lower()
             elif sproto:
@@ -550,16 +566,16 @@ class FireSet(object):
                 md = ' -m multiport' if ',' in dports else ''
                 dports = "%s --dport %s" % (md, dports)
 
-            for x in name:
-                assert validc(x), "Invalid character in '%s': x" % (repr(name), repr(x))
+            for x in rule.name:
+                assert validc(x), "Invalid character in '%s': x" % (repr(rule.name), repr(x))
 
             try:
                 log_val = int(log_val)
             except:
-                raise Alert, "The logging field in rule \"%s\" must be an integer." % name
+                raise Alert, "The logging field in rule \"%s\" must be an integer." % rule.name
 
             for src, dst in product(srcs, dsts):
-                compiled.append((proto, src, sports, dst, dports, log_val, name, action))
+                compiled.append((proto, rule.src, sports, rule.dst, dports, rule.log_val, rule.name, rule.action))
 #                src_s = " -s %s" % src if src else ''
 #                dst_s = " -d %s" % dst if dst else ''
 #                if log_val:
@@ -724,7 +740,7 @@ class FireSet(object):
 class GitFireSet(FireSet):
     """FireSet implementing Git to manage the configuration repository"""
     def __init__(self, repodir='/tmp/firewall'):
-        self.rules = loadcsv('rules')
+        self.rules = Rules()
         self.hosts = Hosts()
         self.hostgroups = loadcsv('hostgroups')
         self.services = Services()
@@ -820,27 +836,33 @@ class GitFireSet(FireSet):
 
     # GitFireSet editing
 
-    def delete(self, table, rid):
-        assert table in ('rules', 'hosts', 'hostgroups', 'services', 'networks') ,  "Wrong table name for deletion: %s" % table
-        try:
-            self.__dict__[table].pop(rid)
-        except IndexError, e:
-            raise Alert, "The element n. %d is not present in table '%s'" % (rid, table)
+    def _write(self, table):
+        """Write the changes to disk without committing on Git"""
         if table == 'hosts':
             self.hosts.save()
         elif table == 'networks':
             self.networks.save()
         elif table == 'services':
             self.services.save()
+        elif table == 'rules':
+            self.rules.save()
         else:
             savecsv(table, self.__dict__[table], d=self._git_repodir)
+
+    def delete(self, table, rid):
+        assert table in ('rules', 'hosts', 'hostgroups', 'services', 'networks') ,  "Wrong table name for deletion: %s" % table
+        try:
+            self.__dict__[table].pop(rid)
+        except IndexError, e:
+            raise Alert, "The element n. %d is not present in table '%s'" % (rid, table)
+        self._write(table)
 
     def rule_moveup(self, rid):
         try:
             rules = self.rules
             rules[rid], rules[rid - 1] = rules[rid - 1], rules[rid]
             self.rules = rules
-            savecsv('rules', rules, d=self._git_repodir)
+            self.rules.save()
         except Exception, e:
             log.debug("Error in rule_moveup: %s" % e)
             #            say("Cannot move rule %d up." % rid)
@@ -850,7 +872,7 @@ class GitFireSet(FireSet):
             rules = self.rules
             rules[rid], rules[rid + 1] = rules[rid + 1], rules[rid]
             self.rules = rules[:]
-            savecsv('rules', rules, d=self._git_repodir)
+            self.rules.save()
         except Exception, e:
             #            say("Cannot move rule %d down." % rid)
             pass
@@ -885,7 +907,6 @@ class DemoGitFireSet(GitFireSet):
         for n, k in self.rd.iteritems():
             rules = sum(k.values(),[])
             self._demo_rulelist[n] = rules
-
 
 
 
