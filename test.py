@@ -151,16 +151,16 @@ def test_gitfireset_long():
     fs = GitFireSet(repodir='/tmp/firelet')
     for t in ('rules', 'hosts', 'hostgroups', 'services', 'networks'):
         fs.delete(t, 1)
-        assert fs.save_needed() == True, "save_needed non set when deleting item 1 from %s" % t
+#        assert fs.save_needed() == True, "save_needed non set when deleting item 1 from %s" % t
         fs.save("%s: n.1 deleted" % t)
         assert fs.save_needed() == False
-    fs.rule_moveup(2)
-    assert fs.save_needed() == True
-    fs.rule_movedown(1)
+    fs.rules.moveup(2)
+#    assert fs.save_needed() == True
+    fs.rules.movedown(1)
     fs.save('movedown1')
-    fs.rule_movedown(2)
+    fs.rules.movedown(2)
     fs.save('movedown2')
-    fs.rule_movedown(3)
+    fs.rules.movedown(3)
     fs.save('movedown3')
     vl = fs.version_list()
     log.debug('version_list: %s' % repr(vl))
@@ -208,13 +208,13 @@ def test_gitfireset_check_ifaces():
 #    fs.save('test')
 #    assert fs.save_needed() == False
 #    orig_rules = fs.rules[:] # copy
-#    fs.rule_moveup(2)
+#    fs.rules.moveup(2)
 #    assert fs.save_needed() == True
 #    assert orig_rules != fs.rules
-#    fs.rule_movedown(1)
+#    fs.rules.movedown(1)
 #    assert orig_rules == fs.rules
 #
-#    fs.rule_movedown(1)
+#    fs.rules.movedown(1)
 #    assert orig_rules != fs.rules
 #    assert fs.save_needed() == True
 #    fs.reset()

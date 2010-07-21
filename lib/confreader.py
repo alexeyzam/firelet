@@ -23,6 +23,7 @@ class ConfReader(object):
             'listen_address': 'localhost',
             'listen_port': 8082,
             'logfile': 'firelet.log',
+            'data_dir': '/var/lib/firelet',
             'demo_mode': False,
             'smtp_server_addr': '',
             'email_source': 'firelet@localhost.local',
