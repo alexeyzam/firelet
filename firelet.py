@@ -57,6 +57,7 @@ def say(s, level='info'):
     """level can be: info, warning, alert"""
     if level == 'error':
         level = 'alert'
+    log.debug(s)
     ts = datetime.now().strftime("%H:%M:%S")
     msg_list.append((level, ts, s))
     if len(msg_list) > 10:
@@ -114,6 +115,7 @@ def login():
         bottle.redirect('')
     except (Alert, AssertionError), e:
         say("Login denied for \"%s\": %s" % (user, e), level="warning")
+        log.debug("Login denied for \"%s\": %s" % (user, e))
         bottle.redirect('')
 
 @bottle.route('/logout')
@@ -493,7 +495,7 @@ def main():
         globals()['fs'] = DemoGitFireSet()
         say("Demo mode.")
         say("%d hosts, %d rules, %d networks loaded." % (len(fs.hosts), len(fs.rules), len(fs.networks)))
-        globals()['users'] = Users(d='demo')
+        globals()['users'] = Users()
 #        reload = True
 
 

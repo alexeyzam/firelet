@@ -935,7 +935,7 @@ class Users(object):
     users = {'username': ['role','pwdhash','email'], ... }
     """
 
-    def __init__(self, d=''):
+    def __init__(self, d='firewall'):
         self._dir = d
         try:
             self._users = loadjson('users', d=d)
