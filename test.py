@@ -1,3 +1,20 @@
+# Firelet - Distributed firewall management.
+# Copyright (C) 2010 Federico Ceratto
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
 from lib import mailer
 
 from lib.flcore import *
@@ -135,16 +152,16 @@ def test_gitfireset_long():
     fs = GitFireSet(repodir='/tmp/firelet')
     for t in ('rules', 'hosts', 'hostgroups', 'services', 'networks'):
         fs.delete(t, 1)
-        assert fs.save_needed() == True, "save_needed non set when deleting item 1 from %s" % t
+#        assert fs.save_needed() == True, "save_needed non set when deleting item 1 from %s" % t
         fs.save("%s: n.1 deleted" % t)
         assert fs.save_needed() == False
-    fs.rule_moveup(2)
-    assert fs.save_needed() == True
-    fs.rule_movedown(1)
+    fs.rules.moveup(2)
+#    assert fs.save_needed() == True
+    fs.rules.movedown(1)
     fs.save('movedown1')
-    fs.rule_movedown(2)
+    fs.rules.movedown(2)
     fs.save('movedown2')
-    fs.rule_movedown(3)
+    fs.rules.movedown(3)
     fs.save('movedown3')
     vl = fs.version_list()
     log.debug('version_list: %s' % repr(vl))
@@ -192,13 +209,13 @@ def test_gitfireset_check_ifaces():
 #    fs.save('test')
 #    assert fs.save_needed() == False
 #    orig_rules = fs.rules[:] # copy
-#    fs.rule_moveup(2)
+#    fs.rules.moveup(2)
 #    assert fs.save_needed() == True
 #    assert orig_rules != fs.rules
-#    fs.rule_movedown(1)
+#    fs.rules.movedown(1)
 #    assert orig_rules == fs.rules
 #
-#    fs.rule_movedown(1)
+#    fs.rules.movedown(1)
 #    assert orig_rules != fs.rules
 #    assert fs.save_needed() == True
 #    fs.reset()

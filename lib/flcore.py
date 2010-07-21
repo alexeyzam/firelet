@@ -1,3 +1,19 @@
+# Firelet - Distributed firewall management.
+# Copyright (C) 2010 Federico Ceratto
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 import csv
 
 from hashlib import sha512
@@ -180,7 +196,7 @@ class Table(list):
     def len(self):
         return len(self)
 
-def readcsv(n, d='firewall'):
+def readcsv(n, d):
     f = open("%s/%s.csv" % (d, n))
     li = [x for x in f if not x.startswith('#') and x != '\n']
     r = csv.reader(li, delimiter=' ')
@@ -189,7 +205,7 @@ def readcsv(n, d='firewall'):
 
 class SmartTable(object):
     """A list of Bunch instances. Each subclass is responsible to load and save files."""
-    def __init__(self, d='firewall'):
+    def __init__(self, d):
         self._dir = d
     def __repr__(self):
         return repr(self._list)
@@ -207,20 +223,50 @@ class SmartTable(object):
 
 class Rules(SmartTable):
     """A list of Bunch instances"""
-    def __init__(self, d='firewall'):
+    def __init__(self, d):
         self._dir = d
         li = readcsv('rules', d)
         self._list = [ Bunch(enabled=r[0], name=r[1], src=r[2], src_serv=r[3], dst=r[4],
                              dst_serv=r[5], action=r[6], log_level=r[7], desc=r[8]) for r in li ]
+
     def save(self):
         li = [[x.enabled, x.name, x.src, x.src_serv, x.dst, x.dst_serv,
                     x.action, x.log_level, x.desc] for x in self._list]
         savecsv('rules', li, self._dir)
 
+    def moveup(self, rid):
+        try:
+            rules = self._list
+            rules[rid], rules[rid - 1] = rules[rid - 1], rules[rid]
+            self._list = rules
+            self.save()
+        except Exception, e:
+            log.debug("Error in rules.moveup: %s" % e)
+            #            say("Cannot move rule %d up." % rid)
+
+    def movedown(self, rid):
+        try:
+            rules = self._list
+            rules[rid], rules[rid + 1] = rules[rid + 1], rules[rid]
+            self._list = rules[:]
+            self.save()
+        except Exception, e:
+            #            say("Cannot move rule %d down." % rid)
+            pass
+
+    def rule_disable(self, rid):
+        self._list[rid][0] = 'n'
+        self.save()
+
+    def rule_enable(self, rid):
+        self._list[rid][0] = 'y'
+        self.save()
+
+
 
 class Hosts(SmartTable):
     """A list of Bunch instances"""
-    def __init__(self, d='firewall'):
+    def __init__(self, d):
         self._dir = d
         li = readcsv('hosts', d)
         self._list = []
@@ -236,7 +282,7 @@ class Hosts(SmartTable):
 
 class Networks(SmartTable):
     """A list of Bunch instances"""
-    def __init__(self, d='firewall'):
+    def __init__(self, d):
         self._dir = d
         li = readcsv('networks', d)
         self._list = [ Network(r) for r in li ]
@@ -247,7 +293,7 @@ class Networks(SmartTable):
 
 class Services(SmartTable):
     """A list of Bunch instances"""
-    def __init__(self, d='firewall'):
+    def __init__(self, d):
         self._dir = d
         li = readcsv('services', d)
         self._list = [ Bunch(name=r[0], proto=r[1], ports=r[2]) for r in li ]
@@ -258,7 +304,7 @@ class Services(SmartTable):
 
 # CSV files
 
-def loadcsv(n, d='firewall'):
+def loadcsv(n, d):
     try:
         f = open("%s/%s.csv" % (d, n))
         li = [x for x in f if not x.startswith('#') and x != '\n']
@@ -270,7 +316,8 @@ def loadcsv(n, d='firewall'):
     except IOError:
         return [] #FIXME: why?
 
-def savecsv(n, stuff, d='firewall'):
+def savecsv(n, stuff, d):
+    log.debug('Writing "%s" in "%s"...' % (n, d))
     f = open("%s/%s.csv" % (d, n))
     comments = [x for x in f if x.startswith('#')]
     f.close()
@@ -280,7 +327,7 @@ def savecsv(n, stuff, d='firewall'):
     writer.writerows(stuff)
     f.close()
 
-def load_hosts_csv(n, d='firewall'):
+def load_hosts_csv(n, d):
     """Read the hosts csv file, group the routed networks as a list"""
     li = loadcsv(n, d)
 
@@ -292,7 +339,7 @@ def load_hosts_csv(n, d='firewall'):
             assert isinstance(x[7][0], str), 'Wrong %s'% repr(x)
     return mu
 
-#def save_hosts_csv(n, mu, d='firewall'):
+#def save_hosts_csv(n, mu, d):
 #    """Save hosts on a csv file, flattening the input list."""
 #    li = []
 #    for x in mu:
@@ -318,14 +365,14 @@ def load_hosts_csv(n, d='firewall'):
 
 # JSON files
 
-def loadjson(n, d='firewall'):
+def loadjson(n, d):
     f = open("%s/%s.json" % (d, n))
     s = f.read()
     f.close()
     return json.loads(s)
 
 
-def savejson(n, obj, d='firewall'):
+def savejson(n, obj, d):
     s = json.dumps(obj)
     f = open("%s/%s.json" % (d, n), 'wb')
     f.write(s)
@@ -356,7 +403,7 @@ class FireSet(object):
     """A container for the network objects.
     Upon instancing the objects are loaded.
     """
-    def __init__(self, repodir='firewall'):
+    def __init__(self, repodir):
         raise NotImplementedError
 
     # FireSet management methods
@@ -394,31 +441,6 @@ class FireSet(object):
         except Exception, e:
             Alert,  "Unable to delete item %d in table %s: %s" % (rid, table, e)
 
-    def rule_moveup(self, rid):
-        try:
-            rules[rid], rules[rid - 1] = rules[rid - 1], rules[rid]
-        except Exception, e:
-            #            say("Cannot move rule %d up." % rid)
-            pass
-
-    def rule_movedown(self, rid):
-        try:
-            rules[rid], rules[rid + 1] = rules[rid + 1], rules[rid]
-        except Exception, e:
-            #            say("Cannot move rule %d down." % rid)
-            pass
-
-    def rule_disable(self, rid):
-        try:
-            self.rules[rid][0] = 'n'
-        except Exception, e:
-            pass
-
-    def rule_enable(self, rid):
-        try:
-            self.rules[rid][0] = 'y'
-        except Exception, e:
-            pass
 
 
     # deployment-related methods
@@ -536,7 +558,7 @@ class FireSet(object):
 
         for rule in self.rules:
             assert rule.enabled in ('1', '0'), 'First field must be "1" or "0" in %s' % repr(rule)
-
+        log.debug('Building dictionaries...')
         # build dictionaries to perform resolution
         addr = dict(((h.hostname + ":" + h.iface), h.ip_addr) for h in self.hosts) # host to ip_addr
         net = dict((n.name, (n.ip_addr, n.masklen)) for n in self.networks) # network name
@@ -560,6 +582,7 @@ class FireSet(object):
             else:
                 raise Alert, "Item %s is not defined." % n
 
+        log.debug('Compiling ruleset...')
         # for each rule, for each (src,dst) tuple, compiles a list  [ (proto, src, sports, dst, dports, log_val, rule_name, action), ... ]
         compiled = []
 #        for ena, name, src, src_serv, dst, dst_serv, action, log_val, desc in self.rules:  # for each rule
@@ -601,7 +624,8 @@ class FireSet(object):
             for src, dst in product(srcs, dsts):
                 compiled.append((proto, rule.src, sports, rule.dst, dports, log_val, rule.name, rule.action))
 
-        log.debug(repr(compiled))
+        log.debug('Splicing ruleset...')
+        # r[hostname] = [rule, rule, ... ]
         rd = defaultdict(list)
         for proto, src, sports, dst, dports, log_val, name, action in compiled: # for each rule
             src = res(src)
@@ -653,14 +677,14 @@ class FireSet(object):
             # "for every host"
         # "for every rule"
 
-        log.debug("Rules compiled as dict")
+        log.debug("Rules compiled")
         for k, v in rd.iteritems():
             log.debug("%s -------------------------\n%s" % (k, '\n'.join(v)))
         return rd
 
 
-#    def compile(self, hosts=None, rset=None):
-#        return self.compile_dict(hosts, rset)
+    def compile(self, hosts=None, rset=None):
+        return self.compile_rules(hosts, rset)
 
     def _diff_table(self):      # Ridefined below!
         """Generate an HTML table containing the changes between the existing and the compiled iptables ruleset *on each host* """
@@ -759,11 +783,11 @@ class FireSet(object):
 class GitFireSet(FireSet):
     """FireSet implementing Git to manage the configuration repository"""
     def __init__(self, repodir='/tmp/firewall'):
-        self.rules = Rules()
-        self.hosts = Hosts()
-        self.hostgroups = loadcsv('hostgroups')
-        self.services = Services()
-        self.networks = Networks()
+        self.rules = Rules(repodir)
+        self.hosts = Hosts(repodir)
+        self.hostgroups = loadcsv('hostgroups', repodir)
+        self.services = Services(repodir)
+        self.networks = Networks(repodir)
         self._git_repodir = repodir
         if 'fatal: Not a git repository' in self._git('status')[1]:
             log.debug('Creating Git repo...')
@@ -816,6 +840,7 @@ class GitFireSet(FireSet):
 
     def _git(self, cmd):
         from subprocess import Popen, PIPE
+        log.debug('Executing "/usr/bin/git %s" in "%s"' % (cmd, self._git_repodir))
         p = Popen('/usr/bin/git %s' % cmd, shell=True, cwd=self._git_repodir, stdout=PIPE, stderr=PIPE)
         p.wait()
         return p.communicate()
@@ -845,7 +870,7 @@ class GitFireSet(FireSet):
     def save_needed(self):
         """True if commit is required: files has been changed"""
         o, e = self._git('status')
-#        log.debug("Git status output: '%s' error: '%s'" % (o, e))
+        log.debug("Git status output: '%s' error: '%s'" % (o, e))
         if 'nothing to commit ' in o:
             return False
         elif '# On branch master' in o:
@@ -876,25 +901,7 @@ class GitFireSet(FireSet):
             raise Alert, "The element n. %d is not present in table '%s'" % (rid, table)
         self._write(table)
 
-    def rule_moveup(self, rid):
-        try:
-            rules = self.rules
-            rules[rid], rules[rid - 1] = rules[rid - 1], rules[rid]
-            self.rules = rules
-            self.rules.save()
-        except Exception, e:
-            log.debug("Error in rule_moveup: %s" % e)
-            #            say("Cannot move rule %d up." % rid)
 
-    def rule_movedown(self, rid):
-        try:
-            rules = self.rules
-            rules[rid], rules[rid + 1] = rules[rid + 1], rules[rid]
-            self.rules = rules[:]
-            self.rules.save()
-        except Exception, e:
-            #            say("Cannot move rule %d down." % rid)
-            pass
 
 
 class DemoGitFireSet(GitFireSet):
@@ -938,7 +945,7 @@ class Users(object):
     users = {'username': ['role','pwdhash','email'], ... }
     """
 
-    def __init__(self, d=''):
+    def __init__(self, d):
         self._dir = d
         try:
             self._users = loadjson('users', d=d)

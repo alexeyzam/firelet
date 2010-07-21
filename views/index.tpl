@@ -186,14 +186,19 @@ table td:hover {
 table td.hea {
     width: 200px;
 }
+
 table td.hea:hover {
     background-color: #eee;
 }
 
-
 table td img {
     margin: 1px;
 }
+
+table td {
+    padding: 0 .5em 0 .5em;
+}
+
 
 .diff_chg {
     color: red;

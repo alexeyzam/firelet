@@ -32,6 +32,7 @@ div#help_ovr {
 </div>
 
 <table id="items">
+    <tr><th></th><th>Name</th><th>Siblings</th></tr>
 % for rid, hostgroup in hostgroups:
     <tr id="{{rid}}">
     <td class="hea">

@@ -1,5 +1,21 @@
 #!/usr/bin/env python
 
+# Firelet - Distributed firewall management.
+# Copyright (C) 2010 Federico Ceratto
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 import logging as log
 from beaker.middleware import SessionMiddleware
 import bottle
@@ -41,6 +57,7 @@ def say(s, level='info'):
     """level can be: info, warning, alert"""
     if level == 'error':
         level = 'alert'
+    log.debug(s)
     ts = datetime.now().strftime("%H:%M:%S")
     msg_list.append((level, ts, s))
     if len(msg_list) > 10:
@@ -98,6 +115,7 @@ def login():
         bottle.redirect('')
     except (Alert, AssertionError), e:
         say("Login denied for \"%s\": %s" % (user, e), level="warning")
+        log.debug("Login denied for \"%s\": %s" % (user, e))
         bottle.redirect('')
 
 @bottle.route('/logout')
@@ -477,7 +495,7 @@ def main():
         globals()['fs'] = DemoGitFireSet()
         say("Demo mode.")
         say("%d hosts, %d rules, %d networks loaded." % (len(fs.hosts), len(fs.rules), len(fs.networks)))
-        globals()['users'] = Users(d='demo')
+        globals()['users'] = Users()
 #        reload = True
 
 
