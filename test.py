@@ -272,7 +272,7 @@ def test_flattening():
     hg2 = HostGroup(childs=[Host(['h', 'eth0', '1.1.1.1',24, '1', '1', '1', [] ])])
     hg3 = HostGroup(childs=[Network(['n', '2.2.2.0', 24]), hg2])
     hg = HostGroup(childs=[hg2, hg3])
-    assert ['h', 'h'] == [h.name for h in hg.hosts()]
+    assert ['h', 'h'] == [h.hostname for h in hg.hosts()]
     assert ['n'] == [h.name for h in hg.networks()], repr(hg.networks())
 
 

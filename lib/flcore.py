@@ -108,11 +108,29 @@ class Host(NetworkObj):
         self.mng=r[6]
         self.routed=r[7]
 
+    def ipt(self):
+        """String representation for iptables"""
+        return "%s" % self.ip_addr
+
+    def __contains__(self, other):
+        """A host is "contained" in another host only when they have the same address"""""
+        if isinstance(other, Host):
+            return other.ip_addr == self.ip_addr
+
+        elif isinstance(other, Network):
+            addr_ok = net_addr(other.ip_addr, self.masklen) == self.ip_addr
+            net_ok = other.masklen >= self.masklen
+            return addr_ok and net_ok
+
 
 class Network(NetworkObj):
     def __init__(self, r):
         self.name = r[0]
         self.update(r[1], r[2])
+
+    def ipt(self):
+        """String representation for iptables"""
+        return "%s/%s" % (self.ip_addr, self.masklen)
 
     def update(self, addr, masklen):
         """Get the correct network address and update attributes"""
@@ -136,22 +154,55 @@ class Network(NetworkObj):
 class HostGroup(NetworkObj):
     """A Host Group contains hosts, networks, and other host groups"""
 
-    def __init__(self, childs=[]):
+    def __init__(self, li):
+        self.name = li[0]
+        if len(li) == 1:
+            childs = []
+        else:
+            childs = li[1:]
         self.childs = childs
 
     def _flatten(self, i):
-        if hasattr(i, 'childs'):
-            return sum(map(self._flatten, i.childs), [])
-        return [i]
+        """Flatten the host groups hierarchy and returns a list of strings"""
+        if hasattr(i, 'childs'):  # "i" is a hostgroup _object_!
+            childs = i.childs
+            leaves =  sum(map(self._flatten, childs), [])
+            for x in leaves:
+                assert isinstance(x, str)
+            return leaves
+        if i in self._hbn:  # if "i" is a host group, fetch its childs:
+            childs = self._hbn[i]
+            leaves =  sum(map(self._flatten, childs), [])
+            for x in leaves:
+                assert isinstance(x, str)
+            return leaves
+        else: # it's a host or a network name (string)
+            return [i]
 
-    def networks(self):
-        """Flatten the hostgroup and return its networks"""
-        return [n for n in self._flatten(self) if isinstance(n, Network)]
+    def flat(self, host_by_name, net_by_name, hg_by_name):
+        """Flatten the host groups hyerarchy and returns Host or Network instances"""
+        self._hbn = hg_by_name
+        li = self._flatten(self)
+        del(self._hbn)
+        def res(o):
+            assert isinstance(o, str), repr(o)
+            if o in host_by_name:
+                return host_by_name[o]
+            elif o in net_by_name:
+                return net_by_name[o]
+            else:
+                raise Exception,  "%s is not in %s or %s" % (o, repr(host_by_name), repr(net_by_name))
 
-    def hosts(self):
-        """Flatten the hostgroup and return its hosts"""
-        return filter(lambda i: type(i) == Host, self._flatten(self)) # better?
-        return [n for n in self._flatten(self) if isinstance(n, Host)]
+        return map(res, li)
+
+##    def networks(self):
+##        """Flatten the hostgroup and return its networks"""
+##        return [n for n in self._flatten(self) if isinstance(n, Network)]
+##
+##    def hosts(self):
+##        """Flatten the hostgroup and return its hosts"""
+##        return filter(lambda i: type(i) == Host, self._flatten(self)) # better?
+##        return [n for n in self._flatten(self) if isinstance(n, Host)]
 
 
 class NetworkObjTable(object):
@@ -263,7 +314,6 @@ class Rules(SmartTable):
         self.save()
 
 
-
 class Hosts(SmartTable):
     """A list of Bunch instances"""
     def __init__(self, d):
@@ -278,6 +328,17 @@ class Hosts(SmartTable):
         """Flatten the routed network list and save"""
         li = [[x.hostname, x.iface, x.ip_addr, x.masklen, x.local_fw, x.network_fw, x.mng] + x.routed for x in self._list]
         savecsv('hosts', li, self._dir)
+
+
+class HostGroups(SmartTable):
+    """A list of Bunch instances"""
+    def __init__(self, d):
+        self._dir = d
+        li = readcsv('hostgroups', d)
+        self._list = [ HostGroup(r) for r in li ]
+    def save(self):
+        li = [[x.name] + x.childs for x in self._list]
+        savecsv('hostgroups', li, self._dir)
 
 
 class Networks(SmartTable):
@@ -523,7 +584,7 @@ class FireSet(object):
         if not remote: return True
         if me.ip_addr == remote.ip_addr:
             return False # this is input or output traffic, not to be forwarded
-        if remote in Network('', me.ip_addr, me.masklen):
+        if remote in Network(['', me.ip_addr, me.masklen]):
             return True # remote is in a directly conn. network
         for rnet in routed_nets:
             if remote in rnet:
@@ -548,7 +609,7 @@ class FireSet(object):
         return rd
 
 
-    def compile(self):
+    def compile_rules(self):
         """Compile iptables rules to be deployed in a dict:
         { 'firewall_name': [rules...], ... }
 
@@ -561,26 +622,34 @@ class FireSet(object):
         log.debug('Building dictionaries...')
         # build dictionaries to perform resolution
         addr = dict(((h.hostname + ":" + h.iface), h.ip_addr) for h in self.hosts) # host to ip_addr
-        net = dict((n.name, (n.ip_addr, n.masklen)) for n in self.networks) # network name
-        hgs = dict((entry[0], (entry[1:])) for entry in self.hostgroups) # host groups
-        hg_flat = dict((hg, self._flattenhg(hgs[hg], addr, net, hgs)) for hg in hgs) # flattened to {hg: hosts and networks}
+        net = dict((n.name, (n.ip_addr, n.masklen)) for n in self.networks) # network name to addressing
+#        hgs = dict((entry[0], (entry[1:])) for entry in self.hostgroups) # host groups
+#        hg_flat = dict((hg, self._flattenhg(hgs[hg], addr, net, hgs)) for hg in hgs) # flattened to {hg: hosts and networks}
 
         proto_port = dict((sr.name, (sr.proto, sr.ports)) for sr in self.services) # protocol
         proto_port['*'] = (None, '') # special case for "any"      # port format: "2:4,5:10,10:33,40,50"
 
-        host_by_name = dict((h.hostname, h) for h in self.hosts)
+        host_by_name = dict((h.hostname + ":" + h.iface, h) for h in self.hosts)
         net_by_name = dict((n.name, n) for n in self.networks)
+
+        hg_by_name = dict((hg.name, hg.childs) for hg in self.hostgroups)  # hg name  to its child names
+
 #        flat_hg_by_name = dict((hg.name, self._oo_flatten(hg, host_by_name, )) for hg in hgs) #TODO finish this
+
+        flat_hg = dict((hg.name, hg.flat(host_by_name, net_by_name, hg_by_name)) for hg in self.hostgroups)
 
         def res(n):
             """Resolve flattened hostgroups, hosts and networks by name and provides None for '*' """
-            if n in host_by_name: return host_by_name[n]
-            elif n in net_by_name: return net_by_name[n]
-#            elif n in hg_flat: return hg_flat[n][0][0]
+            if n in host_by_name:
+                return [host_by_name[n]]
+            elif n in net_by_name:
+                return [net_by_name[n]]
+            elif n in flat_hg:
+                return flat_hg[n]
             elif n == '*':
                 return [None]
             else:
-                raise Alert, "Item %s is not defined." % n
+                raise Alert, "Item %s is not defined." % n + repr(host_by_name)
 
         log.debug('Compiling ruleset...')
         # for each rule, for each (src,dst) tuple, compiles a list  [ (proto, src, sports, dst, dports, log_val, rule_name, action), ... ]
@@ -591,7 +660,10 @@ class FireSet(object):
                 continue
             assert rule.action in ('ACCEPT', 'DROP'),  'The Action field must be "ACCEPT" or "DROP" in rule "%s"' % rule.name
             srcs = res(rule.src)
-            dsts = res(rule.dst)
+            dsts = res(rule.dst)    # list of Host and Network instances
+
+
+
             sproto, sports = proto_port[rule.src_serv]
             dproto, dports = proto_port[rule.dst_serv]
             assert sproto in protocols + [None], "Unknown source protocol: %s" % sproto
@@ -622,15 +694,18 @@ class FireSet(object):
                 raise Alert, "The logging field in rule '%s' is '%s' and must be an integer." % (rule.name, rule.log_level)
 
             for src, dst in product(srcs, dsts):
-                compiled.append((proto, rule.src, sports, rule.dst, dports, log_val, rule.name, rule.action))
+                assert isinstance(src, Host) or isinstance(src, Network) or src == None, repr(src)
+                assert isinstance(dst, Host) or isinstance(dst, Network) or dst == None, repr(dst)
+                compiled.append((proto, src, sports, dst, dports, log_val, rule.name, rule.action))
+
+
 
         log.debug('Splicing ruleset...')
         # r[hostname] = [rule, rule, ... ]
         rd = defaultdict(list)
-        for proto, src, sports, dst, dports, log_val, name, action in compiled: # for each rule
-            src = res(src)
-            dst = res(dst)
-            log.debug(repr(dst))
+        for proto, src, sports, dst, dports, log_val, name, action in compiled: # for each compiled rule
+            _src = " -s %s" % src.ipt() if src else ''
+            _dst = " -d %s" % dst.ipt() if dst else ''
             for h in self.hosts:   # for each host (interface)
                 # Insert first rule
                 if not rd[h.hostname]:
@@ -638,10 +713,9 @@ class FireSet(object):
                     rd[h.hostname].append("-A OUTPUT -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT")
                     rd[h.hostname].append("-A FORWARD -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT")
                 # Build INPUT rules: where the host is in the destination
-                _src = " -s %s" % src if src else ''
-                _dst = " -d %s" % dst if dst else ''
                 if dst:
-                    if IPNetwork(h.ip_addr) in IPNetwork(dst):
+                    log.debug(repr(dst))
+                    if h in dst:
                         rd[h.hostname].append("-A INPUT%s%s%s%s%s --log-level %d --log-prefix %s -j LOG" %   (proto, _src, sports, _dst, dports, log_val, name))
                         rd[h.hostname].append("-A INPUT%s%s%s%s%s -j %s" %   (proto, _src, sports, _dst, dports, action))
                 else:
@@ -650,9 +724,7 @@ class FireSet(object):
 
                 # Build OUTPUT rules: where the host is in the source
                 if src:
-                    if IPNetwork(h.ip_addr) in IPNetwork(src):
-                        _src = " -s %s" % src if src else ''
-                        _dst = " -d %s" % dst if dst else ''
+                    if h in src:
                         rd[h.hostname].append("-A OUTPUT%s%s%s%s%s --log-level %d --log-prefix %s -j LOG" %   (proto, _src, sports, _dst, dports, log_val, name))
                         rd[h.hostname].append("-A OUTPUT%s%s%s%s%s -j %s" %   (proto, _src, sports, _dst, dports, action))
                 else:
@@ -663,14 +735,12 @@ class FireSet(object):
                 if h.network_fw in ('0', 0, False):
                     continue
                 resolved_routed = [net[r] for r in h.routed] # resolved routed nets [[addr,masklen],[addr,masklen]...]
-                nets = [ IPNetwork(y+'/'+w) for y, w in resolved_routed ]
+                nets = [ IPNetwork("%s/%s" %(y, w)) for y, w in resolved_routed ]
 
-                src_forw = self._forwarded(src, resolved_routed, h.ip_addr, h.masklen)
-                dst_forw = self._forwarded(dst, resolved_routed, h.ip_addr, h.masklen)
+                src_forw = self._oo_forwarded(src, h, resolved_routed)
+                dst_forw = self._oo_forwarded(dst, h, resolved_routed)
 
                 if src_forw and dst_forw:
-                    _src = " -s %s" % src if src else ''
-                    _dst = " -d %s" % dst if dst else ''
                     rd[h.hostname].append("-A FORWARD%s%s%s%s%s --log-level %d --log-prefix %s -j LOG" %   (proto, _src, sports, _dst, dports, log_val, name))
                     rd[h.hostname].append("-A FORWARD%s%s%s%s%s -j %s" %   (proto, _src, sports, _dst, dports, action))
 
@@ -684,7 +754,7 @@ class FireSet(object):
 
 
     def compile(self, hosts=None, rset=None):
-        return self.compile_rules(hosts, rset)
+        return self.compile_rules()
 
     def _diff_table(self):      # Ridefined below!
         """Generate an HTML table containing the changes between the existing and the compiled iptables ruleset *on each host* """
@@ -782,10 +852,10 @@ class FireSet(object):
 
 class GitFireSet(FireSet):
     """FireSet implementing Git to manage the configuration repository"""
-    def __init__(self, repodir='/tmp/firewall'):
+    def __init__(self, repodir='/var/lib/firelet'):
         self.rules = Rules(repodir)
         self.hosts = Hosts(repodir)
-        self.hostgroups = loadcsv('hostgroups', repodir)
+        self.hostgroups = HostGroups(repodir)
         self.services = Services(repodir)
         self.networks = Networks(repodir)
         self._git_repodir = repodir
