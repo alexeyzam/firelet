@@ -14,9 +14,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pxssh import pxssh, ExceptionPxssh
+from pxssh import pxssh
+from flutils import Bunch
+
 import logging
 log = logging.getLogger()
+
+
+
 
 class SSHConnector(object):
     """Manage a pool of pxssh connections to the firewalls. Get the running configuation and deploy new configurations.
@@ -72,14 +77,14 @@ class SSHConnector(object):
         """
         bad = self._connect()
         assert len(bad) < 1, "Oops" + repr(bad)
-        confs = {} # {hostname: [[iptables], [ip-addr-show]], ... }
+        confs = {} # {hostname:  Bunch(), ... }
 
         for hostname, p in self._pool.iteritems():
             iptables = self._interact(p, 'sudo /sbin/iptables-save')
             iptables_p = self.parse_iptables_save(iptables)
             ip_a_s = self._interact(p,'/bin/ip addr show')
             ip_a_s_p = self.parse_ip_addr_show(ip_a_s)
-            confs[hostname] = [iptables_p, ip_a_s_p]
+            confs[hostname] = Bunch(iptables=iptables, ip_a_s=ip_a_s_p)
         if not keep_sessions:
             log.debug("Closing connections.")
             d = self._disconnect()
@@ -108,17 +113,17 @@ class SSHConnector(object):
         def good(x):
             return x.startswith(('-A PREROUTING', '-A POSTROUTING', '-A OUTPUT', '-A INPUT', '-A FORWARD'))
 
-        i = {'nat':{}, 'filter':{} }
 
         block = get_block(s, '*nat')
         b = filter(good, block)
-        i['nat'] = '\n'.join(b)
+        nat = '\n'.join(b)
     #    for q in ('PREROUTING', 'POSTROUTING', 'OUTPUT'):
     #        i['nat'][q] = '\n'.join(x for x in block if x.startswith('-A %s' % q))
 
         block = get_block(s, '*filter')
         b = filter(good, block)
-        i['filter'] = b
+
+        return Bunch(nat=nat, filter=b)
 
     #    for q in ('INPUT', 'OUTPUT', 'FORWARD'):
     #        i['filter'][q] = '\n'.join(x for x in block if x.startswith('-A %s' % q))

@@ -1,12 +1,35 @@
 
 <style>
-
+img#help { float: right; }
+div#help_ovr {
+    background-color:#fff;
+    display:none;
+    width: 70em;
+    padding:15px;
+    text-align:left;
+    border:2px solid #333;
+    opacity:0.98;
+    -moz-border-radius:6px;
+    -webkit-border-radius:6px;
+    -moz-box-shadow: 0 0 50px #ccc;
+    -webkit-box-shadow: 0 0 50px #ccc;
+}
 #triggers img {
     border:0;
     cursor:pointer;
     margin-left:11px;
 }
 </style>
+
+<img id="help" src="static/help.png" rel="div#help_ovr" title="Help">
+<div id="help_ovr">
+    <h4>Contextual help: Manage</h4>
+    <p>TODO</p>
+    <p>Here some nice Lorem ipsum:</p>
+    <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+    <br/>
+    <p>Press ESC to close this window</p>
+</div>
 
 <table id="items">
     <thead>
@@ -22,51 +45,66 @@
             <img class="action" src="/static/new_below.png" title="New rule below" action="newbelow">
             <img class="action" src="/static/move_up.png" title="Move rule up" action="moveup">
             <img class="action" src="/static/move_down.png" title="Move rule down" action="movedown">
-            %if rule[0] == "y":
+            %if rule.enabled == "1":
             <img class="action" src="/static/disable.png" title="Disable rule" action="disable">
-            %elif rule[0] == "n":
+            %elif rule.enabled == "0":
             <img class="action" src="/static/enable.png" title="Enable rule" action="enable">
             %end
             <img class="action" src="/static/delete.png" title="Delete rule" action="delete">
+            <img src="/static/edit.png" title="Edit rule" id="{{rid}}" rel="#editing_form" class="edit">
         </td>
-        % for item in rule:
-        <td>{{item}}</td>
-        % end
+        <td>
+                % if rule.enabled =='1':
+                <img src="/static/mark.png">
+                % end
+        </td>
+        <td>{{rule.name}}</td>
+        <td>{{rule.src}}</td>
+        <td>{{rule.src_serv}}</td>
+        <td>{{rule.dst}}</td>
+        <td>{{rule.dst_serv}}</td>
+        <td>{{rule.action}}</td>
+        <td>{{rule.log_level}}</td>
+        <td>{{rule.desc}}</td>
     </tr>
     % end
 </table>
 
 
 <script>
-$("table#items tr td img[title]").tooltip({
-    tip: '.tooltip',
-    effect: 'fade',
-    fadeOutSpeed: 100,
-    predelay: 800,
-    position: "bottom right",
-    offset: [15, 15]
-});
-
-$("table#items tr td img").fadeTo("fast", 0.6);
-
-$("table#items tr td img").hover(function() {
-  $(this).fadeTo("fast", 1);
-}, function() {
-  $(this).fadeTo("fast", 0.6);
-});
-
 $(function() {
-    $('img.action').click(function() {
-        td = this.parentElement.parentElement;
-        name = td.children[1].innerText;
-        action = $(this).attr('action');
-        $('.tooltip').hide();
-        $.post("ruleset", { action: action, name: name, rid: td.id},
-            function(data){
-                $('div.tabpane div').load('/ruleset');
-            });
-    });
-});
 
+    $("table#items tr td img[title]").tooltip({
+        tip: '.tooltip',
+        effect: 'fade',
+        fadeOutSpeed: 100,
+        predelay: 800,
+        position: "bottom right",
+        offset: [15, 15]
+    });
+
+    $("table#items tr td img").fadeTo("fast", 0.6);
+
+    $("table#items tr td img").hover(function() {
+      $(this).fadeTo("fast", 1);
+    }, function() {
+      $(this).fadeTo("fast", 0.6);
+    });
+
+    $(function() {
+        $('img.action').click(function() {
+            td = this.parentElement.parentElement;
+            name = td.children[1].innerText;
+            action = $(this).attr('action');
+            $('.tooltip').hide();
+            $.post("ruleset", { action: action, name: name, rid: td.id},
+                function(data){
+                    $('div.tabpane div').load('/ruleset');
+                });
+        });
+    });
+    // Help overlay
+    $("img#help[rel]").overlay({ mask: {loadSpeed: 200, opacity: 0.9, }, });
+});
 </script>
 

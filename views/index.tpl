@@ -1,7 +1,36 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <html>
 <head>
-    <meta content="text/html; charset=utf-8" http-equiv="content-type">
+<meta content="text/html; charset=utf-8" http-equiv="content-type">
+%if not logged_in:
+<div>
+    <h2>Login</h2>
+    <p>Please insert your credentials:</p>
+    <form action="login" method="post">
+        <input type="text" name="user" />
+        <input type="password" name="pwd" />
+        <br/><br/>
+        <button type="submit" > OK </button>
+        <button type="button" class="close"> Cancel </button>
+    </form>
+    <br />
+</div>
+<style>
+div {
+    color: #777;
+    margin: auto;
+    width: 20em;
+    text-align: center;
+}
+input {
+    background: #f8f8f8;
+    border: 1px solid #777;
+    margin: auto;
+}
+input:hover { background: #fefefe}
+</style>
+%end
+%if logged_in:
 <title>Firelet</title>
 
 <script src="static/jquery.tools.min.js"></script>
@@ -195,8 +224,8 @@ div#savereset {
 .modal {
     background-color:#fff;
     display:none;
-    width:350px;
-    padding:15px;
+    width: 18em;
+    padding:2em;
     text-align:left;
     border:2px solid #333;
 
@@ -207,7 +236,7 @@ div#savereset {
     -webkit-box-shadow: 0 0 50px #ccc;
 }
 
-div#new_form {
+div#editing_form {
     background-color:#fff;
     display:none;
     width:350px;
@@ -255,7 +284,6 @@ div#gradient {
   z-index: 4000;
 }
 
-
 </style>
 
 </head>
@@ -263,17 +291,7 @@ div#gradient {
 
     <div id="header"><div>Firelet</div></div>
     <div id="pageLogin">
-
-
-
-
-
-%if not show_logout:
-    <span><a href="/login" class="loginform" rel="#loginform">Login</a></span>
-%end
-%if show_logout:
     <span><a id="logout" href="/logout">Logout</a></span>
-%end
     </div>
     <div id="savereset">
         <span>
@@ -291,7 +309,7 @@ div#gradient {
         <li><a href="networks">Networks</a></li>
         <li><a href="services">Services</a></li>
         <li><a href="manage">Manage</a></li>
-        <li><a href="monitor">Monitor</a></li>
+        <li><a href="map">Map</a></li>
     </ul>
 
     <div class="tabpane"><div style="display:block"></div></div>
@@ -325,10 +343,11 @@ div#gradient {
 <!-- login dialog -->
 <div class="modal" id="loginform">
     <h2>Login</h2>
-    <p>Please insert your credentials</p>
+    <p>Please insert your credentials:</p>
     <form>
-        <input type="text" name="user" value="username" />
-        <input type="text" name="pwd" value="password" />
+        <input type="text" name="user" value="username here, pwd below" />
+        <input type="password" name="pwd" value="" />
+        <br/><br/>
         <button type="submit"> OK </button>
         <button type="button" class="close"> Cancel </button>
     </form>
@@ -402,52 +421,11 @@ $(function() {
     });
 
     $("#savediag form").submit(function(e) {
-        // close the overlay
-        //triggers.eq(1).overlay().close();
-        // get user input
         var input = $("input", this).val();
-        // do something with the answer
-        triggers.eq(1).html(input);
-        $.post("save",{msg: input});
-        // do not submit the form
+        $.post("save",{msg: input}, function(json) {
+            triggers.eq(0).overlay().close();
+        },"json");
         return e.preventDefault();
-        triggers.hide();
-    });
-
-    // Login form
-
-    var login = $(".loginform").overlay({
-        mask: {
-            color: '#ebecff',
-            loadSpeed: 200,
-            opacity: 0.9
-        },
-        closeOnClick: false
-    });
-
-    $("#loginform form").submit(function(e) {
-        // close the overlay
-        //login.eq(1).overlay().close();
-        e.preventDefault();
-        var user = $("input[name=user]", this).val();
-        var pwd = $("input[name=pwd]", this).val();
-
-        //login.eq(1).html(input);
-        $.post("login",{user: user, pwd: pwd}, function(json){
-            console.log(json);
-            if (json.logged_in === true) {
-                location.reload();
-                over.eq(0).overlay().close();
-            }
-        }, "json"
-        );
-
-    });
-
-
-    $('a#logout').click(function() {
-        $.getJSON("logout", function(json){ location.reload(); });
-
     });
 
 });
@@ -457,3 +435,4 @@ $(function() {
 </body>
 
 </html>
+% end

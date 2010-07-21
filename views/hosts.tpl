@@ -1,6 +1,19 @@
 
 <style>
-
+img#help { float: right; }
+div#help_ovr {
+    background-color:#fff;
+    display:none;
+    width: 70em;
+    padding:15px;
+    text-align:left;
+    border:2px solid #333;
+    opacity:0.98;
+    -moz-border-radius:6px;
+    -webkit-border-radius:6px;
+    -moz-box-shadow: 0 0 50px #ccc;
+    -webkit-box-shadow: 0 0 50px #ccc;
+}
 #triggers img {
     border:0;
     cursor:pointer;
@@ -33,31 +46,60 @@
 }
 </style>
 
+<img id="help" src="static/help.png" rel="div#help_ovr" title="Help">
+<div id="help_ovr">
+    <h4>Contextual help: Manage</h4>
+    <p>TODO</p>
+    <p>Here some nice Lorem ipsum:</p>
+    <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+    <br/>
+    <p>Press ESC to close this window</p>
+</div>
+
+
 <table id="items">
     <thead>
-        <tr><th></th><th>Name</th><th>Iface</th><th>IP Address</th><th>Role</th></tr>
+        <tr><th></th><th>Name</th><th>Iface</th><th>IP Address</th><th>Netmask l.</th><th>Local Fw</th>
+            <th>Network Fw</th><th>Management</th><th>Routed networks</th></tr>
     </thead>
-% for rid, host in hosts:
+% for rid, h in hosts:
     <tr id="{{rid}}">
     <td class="hea">
-        <img src="/static/delete.png" title="Delete host" class="delete">
+        <img src="/static/edit.png" title="Edit host" id="{{rid}}" rel="#editing_form" class="edit">
+        <img src="/static/delete.png" title="Delete host" id="{{rid}}" class="delete">
     </td>
-    % for item in host:
-    <td>{{item}}</td>
-    % end
+    <td>{{h.hostname}}</td>
+    <td>{{h.iface}}</td>
+    <td>{{h.ip_addr}}</td>
+    <td>{{h.masklen}}</td>
+    <td>
+            % if h.local_fw=='1':
+            <img src="/static/mark.png">
+            % end
+    </td>
+    <td>
+            % if h.network_fw =='1':
+            <img src="/static/mark.png">
+            % end
+    </td>
+    <td>
+            % if h.mng =='1':
+            <img src="/static/mark.png">
+            % end
+    </td>
+    <td>{{' '.join(h.routed)}}</td>
     </tr>
 % end
 </table>
 
-<p><img src="static/new.png" rel="#new_form"/> New host</p>
-
+<p><img src="static/new.png" rel="#editing_form" class="new"> New host</p>
 
 <!-- New item form -->
-<div id="new_form">
-    <form id="new_form">
+<div id="editing_form">
+    <form id="editing_form">
 
        <fieldset>
-          <h3>New host creation</h3>
+          <h3>Host editing</h3>
 
           <p> Enter bad values and then press the submit button. </p>
 
@@ -77,84 +119,102 @@
 
           <p>
             <label>Local firewall</label>
-            <input type="checkbox" />
+            <input type="checkbox" name="localfw" />
           </p>
           <p>
             <label>Network firewall</label>
-            <input type="checkbox" />
+            <input type="checkbox" name="netfw" />
           </p>
 
-          <button type="submit">Submit form</button>
+          <button type="submit">Submit</button>
           <button type="reset">Reset</button>
        </fieldset>
     </form>
     <p>Enter and Esc keys are supported.</p>
 </div>
 
-
-
 <script>
-$("table#items tr td img[title]").tooltip({
-    tip: '.tooltip',
-    effect: 'fade',
-    fadeOutSpeed: 100,
-    predelay: 800,
-    position: "bottom right",
-    offset: [15, 15]
-});
-
-$("table#items tr td img").fadeTo("fast", 0.6);
-
-$("table#items tr td img").hover(function() {
-  $(this).fadeTo("fast", 1);
-}, function() {
-  $(this).fadeTo("fast", 0.6);
-});
-
 $(function() {
+    $("table#items tr td img[title]").tooltip({
+        tip: '.tooltip',
+        effect: 'fade',
+        fadeOutSpeed: 100,
+        predelay: 800,
+        position: "bottom right",
+        offset: [15, 15]
+    });
+
+    $("table#items tr td img").fadeTo("fast", 0.6);
+
+    $("table#items tr td img").hover(function() {
+      $(this).fadeTo("fast", 1);
+    }, function() {
+      $(this).fadeTo("fast", 0.6);
+    });
+
+
     $('img.delete').click(function() {
-        td = this.parentElement.parentElement;
-        $.post("hosts", { action: 'delete', rid: td.id},
+        $.post("hosts", { action: 'delete', rid: this.id},
             function(data){
                 $('div.tabpane div').load('/hosts');
             });
     });
-});
 
+    // Open the overlay form to create a new element
+    $("img.new[rel]").overlay({
+            mask: { loadSpeed: 200, opacity: 0.9 },
+            onBeforeLoad: function() {
+                $("form#editing_form input").each(function(n,f) {
+                    f.value = '';
+                    f.checked = false;
+                });
+            },
+            closeOnClick: false
+    });
 
-var over = $("img[rel]").overlay({
-        mask: {
-            loadSpeed: 200,
-            opacity: 0.9
+    // If the form is being used to edit an existing item,
+    // load the actual values
+    $("img.edit[rel]").overlay({
+        mask: { loadSpeed: 200, opacity: 0.9 },
+        onBeforeLoad: function(event, tabIndex) {
+            rid = this.getTrigger()[0].id;
+            $.post("hosts",{'action':'fetch','rid':rid}, function(json){
+                $("form#editing_form input[type=text]").each(function(n,f) {
+                    f.value = json[f.name];
+                });
+                $("form#editing_form input[type=checkbox]").each(function(n,f) {
+                    f.checked = Boolean(json[f.name]);
+                });
+            }, "json");
         },
         closeOnClick: false
+    });
+
+
+    // Send editing_form field values on submit
+
+    $("form#editing_form").validator().submit(function(e) {
+        var form = $(this);
+        // client-side validation OK
+        if (!e.isDefaultPrevented()) {
+        ff = $('form#editing_form').serializeArray();
+        $.post("hosts", ff,
+            function(json){
+                if (json.ok === true) {
+                    over.eq(0).overlay().close();
+                } else {
+                    form.data("validator").invalidate(json);
+                }
+            }, "json"
+        );
+            e.preventDefault();     // prevent default form submission logic
+        }
+    });
+
+
+
+    // Help overlay
+    $("img#help[rel]").overlay({ mask: {loadSpeed: 200, opacity: 0.9, }, });
 });
-
-
-// initialize validator for new_form
-
-$("form#new_form").validator().submit(function(e) {
-    var form = $(this);
-    // client-side validation OK
-    if (!e.isDefaultPrevented()) {
-    ff = $('form#new_form').serializeArray();
-
-    $.post("hosts_new", ff,
-        function(json){
-            if (json.ok === true) {
-                over.eq(0).overlay().close();
-            } else {
-                form.data("validator").invalidate(json);
-            }
-        }, "json"
-    );
-
-        e.preventDefault();     // prevent default form submission logic
-    }
-});
-
-
-
-
 </script>
 

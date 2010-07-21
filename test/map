@@ -1,10 +1,10 @@
 # Use monospaced font
 
-2.223          1.1             1.2         2.1           2.2
---eth0-Gandalf-eth1---netCat---eth0-Bilbo-eth1---moria---eth0-Fangorn
-                             |
-                             +-eth0-Smeagol
-                               1.3
+     2.223          1.1                1.2         2.1           2.2
+shire--eth0-Gandalf-eth1---rivendell---eth0-Bilbo-eth1---moria---eth0-Fangorn
+                                     |
+                                     +-eth0-Smeagol
+                                       1.3
 
 10.66.1.1
 10.66.1.2

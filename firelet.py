@@ -29,13 +29,27 @@ from time import time, sleep, localtime
 
 from lib.confreader import ConfReader
 from lib import mailer
-from lib.flcore import FireSet, GitFireSet, DumbFireSet, Users
+from lib.flcore import Alert, GitFireSet, DemoGitFireSet, Users, clean
+from lib.flmap import draw_png_map, draw_svg_map
+
+from bottle import HTTPResponse, HTTPError
+
+class LoggedHTTPError(bottle.HTTPResponse):
+    """ Used to generate an error page """
+    def __init__(self, code=500, output='Unknown Error', exception=None, traceback=None, header=None):
+        super(bottle.HTTPError, self).__init__(output, code, header)
+        log.debug(            """Internal error '%s':\n  Output: %s\n  Header: %s\n  %s--- End of traceback ---"""% (exception, output, header, traceback))
+
+
+bottle.HTTPError = LoggedHTTPError
 
 #TODO: HG, H, N, Rule, Service creation
 #TODO: Rule up/down move
 #TODO: say() as a custom log target
 #TODO: full rule checking upon Save
 #TODO: move fireset editing in flcore
+#TODO: setup three roles
+#TODO: display only login form to unauth users
 
 msg_list = []
 
@@ -45,23 +59,17 @@ def say(s, level='info'):
         level = 'alert'
     ts = datetime.now().strftime("%H:%M:%S")
     msg_list.append((level, ts, s))
-    if len(msg_list) > 40:
+    if len(msg_list) > 10:
         msg_list.pop(0)
 
 
-fs = DumbFireSet()
-say("Configuration loaded.")
-say("%d hosts, %d rules, %d networks loaded." % (len(fs.hosts), len(fs.rules), len(fs.networks)))
-
-users = Users(d='firewall')
-
-
 def pg(name, default=''):
-    return request.POST.get(name, default).strip()
+    s = request.POST.get(name, default)[:64]
+    return clean(s).strip()
 
-def int_pg(name, default=''):
-    v = request.POST.get(name, default).strip()
-    if not v: return None
+def int_pg(name, default=None):
+    v = request.POST.get(name, default)
+    if v == None: return None
     try:
         return int(v)
     except:
@@ -72,21 +80,16 @@ def int_pg(name, default=''):
 
 # #  authentication  # #
 
-#    def _validate(user, pwd):
-#        if user == 'admin' and pwd == 'admin':
-#            return (True, 'admin')
-#        return False, ''
-
 def _require(role='auth'):
     """Ensure the user has admin role or is authenticated at least"""
     s = bottle.request.environ.get('beaker.session')
     if not s:
         say("User needs to be authenticated.", level="warning") #TODO: not really explanatory in a multiuser session.
-        raise Exception, "User needs to be authenticated."
+        raise Alert, "User needs to be authenticated."
     if role == 'auth': return
     myrole = s.get('role', '')
     if myrole == role: return
-    say("A %s account is required." % repr(role))
+    say("An %s account is required." % repr(role))
     raise Exception
 
 
@@ -97,7 +100,7 @@ def login():
     s = bottle.request.environ.get('beaker.session')
     if 'username' in s:  # user is authenticated <--> username is set
         say("Already logged in as \"%s\"." % s['username'])
-        return
+        return {'logged_in': True}
     user = pg('user', '')
     pwd = pg('pwd', '')
     try:
@@ -108,21 +111,20 @@ def login():
         s['role'] = role
         s = bottle.request.environ.get('beaker.session')
         s.save()
-        return {'logged_in': True}
-    except Exception, e:
+        bottle.redirect('')
+    except (Alert, AssertionError), e:
         say("Login denied for \"%s\": %s" % (user, e), level="warning")
-        return {'logged_in': False}
-
-
+        bottle.redirect('')
 
 @bottle.route('/logout')
 def logout():
     s = bottle.request.environ.get('beaker.session')
-    if 'username' in s:
-        s.delete()
-        say('User logged out.')
-    else:
-        say('User already logged out.', level='warning')
+    u = s.get('username', None)
+    if u:
+        say('User %s logged out.' % u)
+    s.delete()
+    bottle.redirect('')
+
 
 
 #
@@ -141,28 +143,34 @@ def messages():
 @view('index')
 def index():
     s = bottle.request.environ.get('beaker.session')
-    show_logout = True if s and 'username' in s else False
-    msg = None
+    logged_in = True if s and 'username' in s else False
 
     try:
         title = conf.title
     except:
         title = 'test'
-    return dict(msg=msg, title=title, show_logout=show_logout)
+    return dict(msg=None, title=title, logged_in=logged_in)
 
 # #  tables interaction  # #
 #
-# GETs are used to list contents
-# POSTs are used to make changes
+# GETs are used to list all table contents
+# POSTs are used to make changes or to populate editing forms
+# POST "verbs" are sent using the "action" key, and the "rid" key
+# specifies the target:
+#   - delete
+#   - moveup/movedown/enable/disable   see ruleset()
+#   - edit: updates an element if rid is not null, otherwise creates
+#             a new one
 
 @bottle.route('/ruleset')
 @view('ruleset')
 def ruleset():
+    _require()
     return dict(rules=enumerate(fs.rules))
 
 @bottle.route('/ruleset', method='POST')
 def ruleset():
-    _require('admin')
+    _require('editor')
     action = pg('action', '')
     name = pg('name', '')
     rid = int_pg('rid')
@@ -197,11 +205,12 @@ def ruleset():
 @bottle.route('/hostgroups')
 @view('hostgroups')
 def hostgroups():
+    _require()
     return dict(hostgroups=enumerate(fs.hostgroups))
 
 @bottle.route('/hostgroups', method='POST')
 def hostgroups():
-    _require('admin')
+    _require('editor')
     action = pg('action', '')
     rid = int_pg('rid')
     if action == 'delete':
@@ -219,12 +228,13 @@ def hostgroups():
 @bottle.route('/hosts')
 @view('hosts')
 def hosts():
+    _require()
     return dict(hosts=enumerate(fs.hosts))
 
 
 @bottle.route('/hosts', method='POST')
 def hosts():
-    _require('admin')
+    _require('editor')
     action = pg('action', '')
     rid = int_pg('rid')
     if action == 'delete':
@@ -235,33 +245,42 @@ def hosts():
         except Exception, e:
             say("Unable to delete %s - %s" % (rid, e), level="alert")
             abort(500)
-
-@bottle.route('/hosts_new', method='POST')
-def hosts_new():
-    _require('admin')
-    hostname = pg('hostname')
-    iface = pg('iface')
-    ip_addr = pg('ip_addr')
-    print hostname, iface, ip_addr
-    if hostname.startswith("test"):
-#        print repr(hosts) #FIXME
-#        hosts.append((hostname, iface, ip_addr))
-        say('Host %s added.' % hostname, level="success")
-        return {'ok': True}
-
-    say('Unable to add %s.' % hostname, level="alert")
-    return {'ok': False, 'hostname':'Must start with "test"'}
-
+    elif action == 'edit':
+        hostname = pg('hostname')
+        iface = pg('iface')
+        ip_addr = pg('ip_addr')
+        if rid == None:     # new host
+            try:
+                say('Host %s added.' % hostname, level="success") #TODO: complete this
+                return {'ok': True}
+            except Alert, e:
+                say('Unable to add %s.' % hostname, level="alert")
+                return {'ok': False, 'hostname':'Must start with "test"'} #TODO: complete this
+        else:   # update host
+            try:
+                say('Host %s added.' % hostname, level="success") #TODO: complete this
+                return {'ok': True}
+            except Alert, e:
+                say('Unable to add %s.' % hostname, level="alert")
+                return {'ok': False, 'hostname':'Must start with "test"'} #TODO: complete this
+    elif action == 'fetch':
+        try:
+            n, iface, ipaddr, f = fs.fetch('hosts', rid)
+            f = int(f)
+            return {'hostname':n, 'iface':iface, 'ip_addr':ipaddr, 'localfw': f, 'netfw': f}
+        except Alert, e:
+            say('TODO')
 
 
 @bottle.route('/networks')
 @view('networks')
 def networks():
+    _require()
     return dict(networks=enumerate(fs.networks))
 
 @bottle.route('/networks', method='POST')
 def networks():
-    _require('admin')
+    _require('editor')
     action = pg('action', '')
     rid = int_pg('rid')
     if action == 'delete':
@@ -278,12 +297,12 @@ def networks():
 @bottle.route('/services')
 @view('services')
 def services():
+    _require()
     return dict(services=enumerate(fs.services))
 
 @bottle.route('/services', method='POST')
 def services():
-    print repr(request.POST.get('rid'))
-    _require('admin')
+    _require('editor')
     action = pg('action', '')
     rid = int_pg('rid')
     if action == 'delete':
@@ -301,15 +320,20 @@ def services():
 @bottle.route('/manage')
 @view('manage')
 def manage():
-    return dict()
+    _require()
+    s = bottle.request.environ.get('beaker.session')
+    myrole = s.get('role', '')
+    cd = True if myrole == 'admin' else False
+    return dict(can_deploy=cd)
 
 @bottle.route('/save_needed')
 def save_needed():
+    _require()
     return {'sn': fs.save_needed()}
 
 @bottle.route('/save', method='POST')
 def savebtn():
-    _require('admin')
+    _require()
     msg = pg('msg', '')
     if not fs.save_needed():
         say('Save not needed.', level="warning")
@@ -323,7 +347,7 @@ def savebtn():
 
 @bottle.route('/reset', method='POST')
 def resetbtn():
-    _require('admin')
+    _require()
     if not fs.save_needed():
         say('Reset not needed.', level="warning")
         return
@@ -334,14 +358,18 @@ def resetbtn():
 
 @bottle.route('/check', method='POST')
 def checkbtn():
-    _require('admin')
+    _require()
     say('Configuration check started...')
     try:
 #        import time
 #        time.sleep(1)
         diff_table = fs.check()
-    except Exception, e:
+    except Alert, e:
         say("Check failed: %s" % e,  level="alert")
+        return dict(diff_table="Check failed: %s" % e)
+    except Exception, e:
+        import traceback
+        log.debug(traceback.format_exc())
         return
     say('Configuration check successful.', level="success")
     return dict(diff_table=diff_table)
@@ -356,19 +384,39 @@ def deploybtn():
     except Exception, e:
         say("Compilation failed: %s" % e,  level="alert")
         return
-    #TODO: remove this
-    for h, x in fs.rd.iteritems():
-        for y in x.values():
-            for line in y[0]:
-                say(h + "  " + line)
     say('Configuration deployed.', level="success")
     return
 
+@bottle.route('/version_list')
+@view('version_list')
+def version_list():
+    _require()
+    li = fs.version_list()
+    return dict(version_list=li)
+
+@bottle.route('/version_diff', method='POST')
+@view('version_diff')
+def version_diff():
+    _require()
+    cid = pg('commit_id') #TODO validate cid?
+    li = fs.version_diff(cid)
+    if li:
+        return dict(li=li)
+    return dict(li=(('(No changes.)', 'title')))
+
+@bottle.route('/rollback', method='POST')
+def rollback():
+    _require('admin')
+    cid = pg('commit_id') #TODO validate cid?
+    fs.rollback(cid)
+    say("Configuration rolled back.")
+    return
 
 # serving files
 
 @bottle.route('/static/:filename#[a-zA-Z0-9_\.?\/?]+#')
 def static_file(filename):
+    _require()
     if filename == '/jquery-ui.js':
         send_file('/usr/share/javascript/jquery-ui/jquery-ui.js') #TODO: support other distros
     elif filename == 'jquery.min.js':
@@ -382,12 +430,22 @@ def static_file(filename):
 def favicon():
     send_file('favicon.ico', root='static')
 
+@bottle.route('/map') #FIXME: the SVG map is not shown inside the jQuery tab.
+def flmap():
+    return """<img src="map.png" width="700px" style="margin: 10px">"""
 
+@bottle.route('/map.png')
+def flmap_png():
+    bottle.response.content_type = 'image/png'
+    return draw_png_map(fs)
 
+@bottle.route('/svgmap')
+def flmap_svg():
+    bottle.response.content_type = 'image/svg+xml'
+    return draw_svg_map(fs)
 
-
-
-
+#TODO: provide PNG fallback for browser without SVG support?
+#TODO: html links in the SVG map
 
 def main():
     global conf
@@ -412,7 +470,7 @@ def main():
         bottle.debug(True)
         say("Firelet started in debug mode.", level="success")
         bottle_debug(True)
-        reload = True
+        reload = False
     else:
         debug_mode = False
         log.basicConfig(level=log.INFO,
@@ -421,7 +479,23 @@ def main():
                     filename=conf.logfile,
                     filemode='w')
         reload = False
+
+
+
         say("Firelet started.", level="success")
+
+    if conf.demo_mode == 'False':
+        globals()['fs'] = GitFireSet()
+        say("Configuration loaded.")
+        say("%d hosts, %d rules, %d networks loaded." % (len(fs.hosts), len(fs.rules), len(fs.networks)))
+        globals()['users'] = Users(d='firewall')
+    elif conf.demo_mode == 'True':
+        globals()['fs'] = DemoGitFireSet()
+        say("Demo mode.")
+        say("%d hosts, %d rules, %d networks loaded." % (len(fs.hosts), len(fs.rules), len(fs.networks)))
+        globals()['users'] = Users(d='demo')
+#        reload = True
+
 
 
     session_opts = {
@@ -432,7 +506,6 @@ def main():
     app = SessionMiddleware(app, session_opts)
 
     run(app=app, host=conf.listen_address, port=conf.listen_port, reloader=reload)
-
 
 
 if __name__ == "__main__":
