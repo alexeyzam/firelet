@@ -1,5 +1,4 @@
 from pygraphviz import AGraph,  Edge,  Node
-from netaddr import IPAddress,  IPNetwork
 
 def _drawmap(fs, rulename=None):
     """Draw a map of the firewalls and their connections based on their interfaces.
@@ -13,16 +12,16 @@ def _drawmap(fs, rulename=None):
         if h.network_fw in (1, True, '1'): # network firewall
             f = Node(A, h.hostname)
             f.attr['color']  = 'red'
-    for n in fs.networks:
-        A.add_node(n.name)
-        poly = Node(A, n.name)
+    for net in fs.networks:
+        A.add_node(net.name)
+        poly = Node(A, net.name)
         poly.attr['shape'] = 'polygon'
         poly.attr['sides'] = '8'
-        for h in fs.hosts:
-            if IPAddress(h.ip_addr) in IPNetwork(n.ip_addr + '/' + n.masklen):
-                A.add_edge(h.hostname, n.name)
-                e = Edge(A, h.hostname, n.name)
-                e.attr['label'] = h.iface
+        for host in fs.hosts:
+            if host in net:
+                A.add_edge(host.hostname, net.name)
+                e = Edge(A, host.hostname, net.name)
+                e.attr['label'] = host.iface
                 e.attr['fontsize'] = '6'
 
     A.layout(prog='circo')

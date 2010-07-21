@@ -3,6 +3,7 @@ from lib import mailer
 from lib.flcore import *
 import shutil
 from lib.flssh import SSHConnector
+from lib.flmap import draw_svg_map
 from nose.tools import assert_raises, with_setup
 
 import logging
@@ -211,48 +212,48 @@ def test_gitfireset_check_ifaces():
 
 
 def test_network_update():
-    assert Network('','255.255.255.255',8).ip_addr == '255.0.0.0'
-    assert Network('','255.255.255.255',16).ip_addr == '255.255.0.0'
-    assert Network('','255.255.255.255',24).ip_addr == '255.255.255.0'
-    assert Network('','255.255.255.255',27).ip_addr == '255.255.255.224'
-    assert Network('','255.255.255.255',28).ip_addr == '255.255.255.240'
-    assert Network('','255.255.255.255',29).ip_addr == '255.255.255.248'
-    assert Network('','255.255.255.255',30).ip_addr == '255.255.255.252'
+    assert Network(['','255.255.255.255',8]).ip_addr == '255.0.0.0'
+    assert Network(['','255.255.255.255',16]).ip_addr == '255.255.0.0'
+    assert Network(['','255.255.255.255',24]).ip_addr == '255.255.255.0'
+    assert Network(['','255.255.255.255',27]).ip_addr == '255.255.255.224'
+    assert Network(['','255.255.255.255',28]).ip_addr == '255.255.255.240'
+    assert Network(['','255.255.255.255',29]).ip_addr == '255.255.255.248'
+    assert Network(['','255.255.255.255',30]).ip_addr == '255.255.255.252'
 
 
 def test_contain_nets():
-    assert Network('', '255.255.255.255', 16) in Network('', '255.255.255.255', 8)
-    assert Network('', '255.255.255.255', 16) in Network('', '255.255.255.255', 16)
-    assert Network('', '255.255.255.255', 8) not in Network('', '255.255.255.255', 16)
-    assert Network('', '1.0.0.0', 17) in Network('', '1.0.0.0', 16)
-    assert Network('', '1.0.0.0', 16) in Network('', '1.0.0.0', 16)
-    assert Network('', '1.0.0.0', 15) not in Network('', '1.0.0.0', 16)
-    assert Network('', '42.42.42.42', 15) not in Network('','42.42.42.42', 16)
-    assert Network('', '42.42.42.42', 16) in Network('','42.42.42.42', 16)
-    assert Network('', '42.42.42.42', 17) in Network('','42.42.42.42', 16)
+    assert Network(['', '255.255.255.255', 16]) in Network(['', '255.255.255.255', 8])
+    assert Network(['', '255.255.255.255', 16]) in Network(['', '255.255.255.255', 16])
+    assert Network(['', '255.255.255.255', 8]) not in Network(['', '255.255.255.255', 16])
+    assert Network(['', '1.0.0.0', 17]) in Network(['', '1.0.0.0', 16])
+    assert Network(['', '1.0.0.0', 16]) in Network(['', '1.0.0.0', 16])
+    assert Network(['', '1.0.0.0', 15]) not in Network(['', '1.0.0.0', 16])
+    assert Network(['', '42.42.42.42', 15]) not in Network(['','42.42.42.42', 16])
+    assert Network(['', '42.42.42.42', 16]) in Network(['','42.42.42.42', 16])
+    assert Network(['', '42.42.42.42', 17]) in Network(['','42.42.42.42', 16])
 
 def test_contain_hosts():
-    assert Host('h', 'eth0', '1.1.1.1') in Network('h', '1.1.1.0', 28)
-    assert Host('h', 'eth0', '1.1.1.15') in Network('h', '1.1.1.0', 28)
-    assert Host('h', 'eth0', '1.1.1.16') not in Network('h', '1.1.1.0', 28)
-    assert Host('h', 'eth0', '1.1.1.1') in Network('h', '1.1.1.0', 24)
-    assert Host('h', 'eth0', '1.1.1.1') in Network('h', '1.1.1.0', 8)
-    assert Host('h', 'eth0', '1.1.1.1') not in Network('h', '1.1.2.0', 24)
-    assert Host('h', 'eth0', '1.1.1.1') not in Network('h', '10.1.1.0', 8)
+    assert Host(['h', 'eth0', '1.1.1.1', 24, '1', '1', '1', [] ]) in Network(['h', '1.1.1.0', 28])
+    assert Host(['h', 'eth0', '1.1.1.15',24, '1', '1', '1', [] ]) in Network(['h', '1.1.1.0', 28])
+    assert Host(['h', 'eth0', '1.1.1.16',24, '1', '1', '1', [] ]) not in Network(['h', '1.1.1.0', 28])
+    assert Host(['h', 'eth0', '1.1.1.1',24, '1', '1', '1', [] ]) in Network(['h', '1.1.1.0', 24])
+    assert Host(['h', 'eth0', '1.1.1.1',24, '1', '1', '1', [] ]) in Network(['h', '1.1.1.0', 8])
+    assert Host(['h', 'eth0', '1.1.1.1',24, '1', '1', '1', [] ]) not in Network(['h', '1.1.2.0', 24])
+    assert Host(['h', 'eth0', '1.1.1.1',24, '1', '1', '1', [] ]) not in Network(['h', '10.1.1.0', 8])
 
 def test_compare():
     from netaddr import IPNetwork
     for x in xrange(0, 32):
         n=IPNetwork('255.1.1.1/%d' % x)
         ok = n.network
-        mine = Network('','255.1.1.1', x).ip_addr
+        mine = Network(['','255.1.1.1', x]).ip_addr
         log.debug( 'ok: %s mine: %s len: %d' % (ok,  mine, x))
         assert str(mine) == str(ok)
 
 
 def test_flattening():
-    hg2 = HostGroup(childs=[Host('h', 'b', 'i')])
-    hg3 = HostGroup(childs=[Network('n', '2.2.2.0', 24), hg2])
+    hg2 = HostGroup(childs=[Host(['h', 'eth0', '1.1.1.1',24, '1', '1', '1', [] ])])
+    hg3 = HostGroup(childs=[Network(['n', '2.2.2.0', 24]), hg2])
     hg = HostGroup(childs=[hg2, hg3])
     assert ['h', 'h'] == [h.name for h in hg.hosts()]
     assert ['n'] == [h.name for h in hg.networks()], repr(hg.networks())
@@ -282,7 +283,7 @@ def test_compile_rules():
     rd = fs.compile_rules()
     r = {'Bilbo': ['-A OUTPUT -p tcp -s 10.66.1.2 -d 10.66.1.1 --dport 443 --log-level 0 --log-prefix BG_https -j LOG', '-A OUTPUT -p tcp -s 10.66.1.2 -d 10.66.1.1 --dport 443 -j ACCEPT', '-A OUTPUT -p tcp -s 10.66.1.2 -d 10.66.2.2 --dport 80 --log-level 0 --log-prefix http_ok -j LOG', '-A OUTPUT -p tcp -s 10.66.1.2 -d 10.66.2.2 --dport 80 -j ACCEPT', '-A INPUT -p tcp -s 172.16.2.223 -d 10.66.2.0/255.255.255.0 --dport 22 --log-level 2 --log-prefix ssh_mgmt -j LOG', '-A INPUT -p tcp -s 172.16.2.223 -d 10.66.2.0/255.255.255.0 --dport 22 -j ACCEPT', '-A OUTPUT -p tcp -s 10.66.1.2 -d 10.66.1.3 --dport 6660:6669 --log-level 0 --log-prefix irc -j LOG', '-A OUTPUT -p tcp -s 10.66.1.2 -d 10.66.1.3 --dport 6660:6669 -j ACCEPT', '-A INPUT -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 --log-level 2 --log-prefix imap -j LOG', '-A INPUT -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 -j ACCEPT', '-A INPUT --log-level 1 --log-prefix default -j LOG', '-A INPUT -j DROP', '-A INPUT --log-level 1 --log-prefix default -j LOG', '-A INPUT -j DROP', '-A INPUT --log-level 1 --log-prefix default -j LOG', '-A INPUT -j DROP', '-A INPUT --log-level 1 --log-prefix default -j LOG', '-A INPUT -j DROP'], 'Gandalf': ['-A INPUT -p tcp -s 10.66.1.2 -d 10.66.1.1 --dport 443 --log-level 0 --log-prefix BG_https -j LOG', '-A INPUT -p tcp -s 10.66.1.2 -d 10.66.1.1 --dport 443 -j ACCEPT', '-A INPUT -s 10.66.1.3 -d 172.16.2.223 --log-level 3 --log-prefix NoSmeagol -j LOG', '-A INPUT -s 10.66.1.3 -d 172.16.2.223 -j DROP', '-A OUTPUT -p tcp -s 172.16.2.223 -d 10.66.2.0/255.255.255.0 --dport 22 --log-level 2 --log-prefix ssh_mgmt -j LOG', '-A OUTPUT -p tcp -s 172.16.2.223 -d 10.66.2.0/255.255.255.0 --dport 22 -j ACCEPT', '-A INPUT -p udp -s 172.16.2.223 -d 172.16.2.223 --dport 123 --log-level 0 --log-prefix ntp -j LOG', '-A INPUT -p udp -s 172.16.2.223 -d 172.16.2.223 --dport 123 -j ACCEPT', '-A OUTPUT -p udp -s 172.16.2.223 -d 172.16.2.223 --dport 123 --log-level 0 --log-prefix ntp -j LOG', '-A OUTPUT -p udp -s 172.16.2.223 -d 172.16.2.223 --dport 123 -j ACCEPT', '-A INPUT --log-level 1 --log-prefix default -j LOG', '-A INPUT -j DROP', '-A INPUT --log-level 1 --log-prefix default -j LOG', '-A INPUT -j DROP', '-A INPUT --log-level 1 --log-prefix default -j LOG', '-A INPUT -j DROP', '-A INPUT --log-level 1 --log-prefix default -j LOG', '-A INPUT -j DROP'], 'Fangorn': ['-A INPUT -p tcp -s 10.66.1.2 -d 10.66.2.2 --dport 80 --log-level 0 --log-prefix http_ok -j LOG', '-A INPUT -p tcp -s 10.66.1.2 -d 10.66.2.2 --dport 80 -j ACCEPT', '-A INPUT -p tcp -s 172.16.2.223 -d 10.66.2.0/255.255.255.0 --dport 22 --log-level 2 --log-prefix ssh_mgmt -j LOG', '-A INPUT -p tcp -s 172.16.2.223 -d 10.66.2.0/255.255.255.0 --dport 22 -j ACCEPT', '-A INPUT --log-level 1 --log-prefix default -j LOG', '-A INPUT -j DROP', '-A INPUT --log-level 1 --log-prefix default -j LOG', '-A INPUT -j DROP'], 'Smeagol': ['-A OUTPUT -s 10.66.1.3 -d 172.16.2.223 --log-level 3 --log-prefix NoSmeagol -j LOG', '-A OUTPUT -s 10.66.1.3 -d 172.16.2.223 -j DROP', '-A INPUT -p tcp -s 10.66.1.2 -d 10.66.1.3 --dport 6660:6669 --log-level 0 --log-prefix irc -j LOG', '-A INPUT -p tcp -s 10.66.1.2 -d 10.66.1.3 --dport 6660:6669 -j ACCEPT', '-A OUTPUT -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 --log-level 2 --log-prefix imap -j LOG', '-A OUTPUT -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 -j ACCEPT', '-A INPUT --log-level 1 --log-prefix default -j LOG', '-A INPUT -j DROP', '-A INPUT --log-level 1 --log-prefix default -j LOG', '-A INPUT -j DROP']}
 
-#    assert rd == r,  "compile_rules generates:\n%s" % repr(rd)
+    assert rd == r,  "compile_rules generates:\n%s" % repr(rd)
     assert isinstance(rd, dict)    #FIXME: enable testing
 
 
@@ -292,6 +293,12 @@ def test_compile_rules():
 #    fs = GitFireSet(repodir='/tmp/firelet')
 #    fs.deploy()
 
+@with_setup(setup_dir, teardown_flssh)
+def test_svg_map():
+    fs = GitFireSet(repodir='/tmp/firelet')
+    svg = draw_svg_map(fs)
+    assert 'DOCTYPE svg PUBLIC' in svg, "No SVG output?"
+    assert 'rivendell' in svg, "No rivendell in the map"
 
 # #  Test JSON lib  # #
 
@@ -303,10 +310,9 @@ def test_json1():
     assert d == json_loop(d)
 
 def test_json2():
-    d = {'string':'string', 's2':6, 's3':7.7, 's4':True, 's5':False}
+    d = {'string':'string', 's2':6, 's3':7, 's4':True, 's5':False}
     assert d == json_loop(d)
-    #TODO: should I feel confident about that floating point number?
-    assert json.dumps(d) == '{"s3": 7.7000000000000002, "s2": 6, "string": "string", "s5": false, "s4": true}'
+    assert json.dumps(d) == '{"s3": 7, "s2": 6, "string": "string", "s5": false, "s4": true}'
 
 def test_json3():
     d = {'d1':{'d2':{'d3':{'d4':{'d5':{'this is getting':'boring'}}}}}}
