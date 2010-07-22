@@ -122,6 +122,9 @@ class Host(NetworkObj):
             net_ok = other.masklen >= self.masklen
             return addr_ok and net_ok
 
+    def mynetwork(self):
+        """Return unnamed network directly connected to the host"""
+        return Network(['', self.ip_addr, self.masklen])
 
 class Network(NetworkObj):
     def __init__(self, r):
@@ -578,16 +581,18 @@ class FireSet(object):
                 return True
         return False
 
-    def _oo_forwarded(self, remote, me, routed_nets):
-        """Tell if a remote net or ipaddr has to be routed through the local host.
+    def _oo_forwarded(self, src, dst, me, routed_nets, other_ifaces):
+        """Tell if a src network or ipaddr has to be routed through the local host.
         All params are Host or Network instances"""
-        if not remote: return True
-        if me.ip_addr == remote.ip_addr:
-            return False # this is input or output traffic, not to be forwarded
-        if remote in Network(['', me.ip_addr, me.masklen]):
-            return True # remote is in a directly conn. network
+        if not src: return True
+        if me.ip_addr == src.ip_addr: # this is input or output traffic, not to be forwarded
+            return False
+        if src in me.mynetwork(): # src is in a directly conn. network
+            if dst in me.mynetwork(): # but dst is in the same network
+                return False
+            return True
         for rnet in routed_nets:
-            if remote in rnet:
+            if src in rnet and dst not in rnet:
                 return True
         return False
 
@@ -629,19 +634,20 @@ class FireSet(object):
         proto_port = dict((sr.name, (sr.proto, sr.ports)) for sr in self.services) # protocol
         proto_port['*'] = (None, '') # special case for "any"      # port format: "2:4,5:10,10:33,40,50"
 
-        host_by_name = dict((h.hostname + ":" + h.iface, h) for h in self.hosts)
+        host_by_name_col_iface = dict((h.hostname + ":" + h.iface, h) for h in self.hosts)
+        host_by_name = dict((h.hostname, h) for h in self.hosts)
         net_by_name = dict((n.name, n) for n in self.networks)
 
         hg_by_name = dict((hg.name, hg.childs) for hg in self.hostgroups)  # hg name  to its child names
 
-#        flat_hg_by_name = dict((hg.name, self._oo_flatten(hg, host_by_name, )) for hg in hgs) #TODO finish this
+#        flat_hg_by_name = dict((hg.name, self._oo_flatten(hg, host_by_name_col_iface, )) for hg in hgs) #TODO finish this
 
-        flat_hg = dict((hg.name, hg.flat(host_by_name, net_by_name, hg_by_name)) for hg in self.hostgroups)
+        flat_hg = dict((hg.name, hg.flat(host_by_name_col_iface, net_by_name, hg_by_name)) for hg in self.hostgroups)
 
         def res(n):
             """Resolve flattened hostgroups, hosts and networks by name and provides None for '*' """
-            if n in host_by_name:
-                return [host_by_name[n]]
+            if n in host_by_name_col_iface:
+                return [host_by_name_col_iface[n]]
             elif n in net_by_name:
                 return [net_by_name[n]]
             elif n in flat_hg:
@@ -649,7 +655,7 @@ class FireSet(object):
             elif n == '*':
                 return [None]
             else:
-                raise Alert, "Item %s is not defined." % n + repr(host_by_name)
+                raise Alert, "Item %s is not defined." % n + repr(host_by_name_col_iface)
 
         log.debug('Compiling ruleset...')
         # for each rule, for each (src,dst) tuple, compiles a list  [ (proto, src, sports, dst, dports, log_val, rule_name, action), ... ]
@@ -696,40 +702,44 @@ class FireSet(object):
             for src, dst in product(srcs, dsts):
                 assert isinstance(src, Host) or isinstance(src, Network) or src == None, repr(src)
                 assert isinstance(dst, Host) or isinstance(dst, Network) or dst == None, repr(dst)
-                compiled.append((proto, src, sports, dst, dports, log_val, rule.name, rule.action))
+                compiled.append((proto, src, sports, dst, dports, log_val,  rule.name, rule.action))
 
 
 
         log.debug('Splicing ruleset...')
         # r[hostname] = [rule, rule, ... ]
         rd = defaultdict(list)
+        rd = {}
         for proto, src, sports, dst, dports, log_val, name, action in compiled: # for each compiled rule
             _src = " -s %s" % src.ipt() if src else ''
             _dst = " -d %s" % dst.ipt() if dst else ''
             for h in self.hosts:   # for each host (interface)
-                # Insert first rule
-                if not rd[h.hostname]:
-                    rd[h.hostname].append("-A INPUT -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT")
-                    rd[h.hostname].append("-A OUTPUT -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT")
-                    rd[h.hostname].append("-A FORWARD -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT")
+                # Insert first rules
+                if h.hostname not in rd:
+                    rd[h.hostname] = {}
+                    rd[h.hostname]['INPUT'] = ["-m state --state RELATED,ESTABLISHED -j ACCEPT"]
+                    rd[h.hostname]['OUTPUT'] = ["-m state --state RELATED,ESTABLISHED -j ACCEPT"]
+                    if h.network_fw == '1':
+                        rd[h.hostname]['FORWARD'] = ["-m state --state RELATED,ESTABLISHED -j ACCEPT"]
+                    else:
+                        rd[h.hostname]['FORWARD'] = ["-j DROP"]
+#                    rd[h.hostname].append("-A INPUT -s lo -j ACCEPT")
+#                    rd[h.hostname].append("-A OUTPUT -d lo -j ACCEPT")
+
+                if src and dst and src.ipt() == dst.ipt():
+                    continue
+
                 # Build INPUT rules: where the host is in the destination
-                if dst:
-                    log.debug(repr(dst))
-                    if h in dst:
-                        rd[h.hostname].append("-A INPUT%s%s%s%s%s --log-level %d --log-prefix %s -j LOG" %   (proto, _src, sports, _dst, dports, log_val, name))
-                        rd[h.hostname].append("-A INPUT%s%s%s%s%s -j %s" %   (proto, _src, sports, _dst, dports, action))
-                else:
-                    rd[h.hostname].append("-A INPUT%s%s%s%s%s --log-level %d --log-prefix %s -j LOG" %   (proto, _src, sports, _dst, dports, log_val, name))
-                    rd[h.hostname].append("-A INPUT%s%s%s%s%s -j %s" %   (proto, _src, sports, _dst, dports, action))
+                if dst and h in dst or not dst:
+                    if log_val:
+                        rd[h.hostname]['INPUT'].append("-i %s %s%s%s%s%s -j LOG --log-level %d --log-prefix %s" %   (h.iface, proto,  _src, sports, _dst, dports, log_val, name))
+                    rd[h.hostname]['INPUT'].append("%s%s%s%s%s -j %s" %   (proto, _src, sports, _dst, dports, action))
 
                 # Build OUTPUT rules: where the host is in the source
-                if src:
-                    if h in src:
-                        rd[h.hostname].append("-A OUTPUT%s%s%s%s%s --log-level %d --log-prefix %s -j LOG" %   (proto, _src, sports, _dst, dports, log_val, name))
-                        rd[h.hostname].append("-A OUTPUT%s%s%s%s%s -j %s" %   (proto, _src, sports, _dst, dports, action))
-                else:
-                    rd[h.hostname].append("-A INPUT%s%s%s%s%s --log-level %d --log-prefix %s -j LOG" %   (proto, _src, sports, _dst, dports, log_val, name))
-                    rd[h.hostname].append("-A INPUT%s%s%s%s%s -j %s" %   (proto, _src, sports, _dst, dports, action))
+                if src and h in src or not src:
+                    if log_val:
+                        rd[h.hostname]['OUTPUT'].append("%s%s%s%s%s -j LOG --log-level %d --log-prefix %s" %   (proto, _src, sports, _dst, dports, log_val, name))
+                    rd[h.hostname]['OUTPUT'].append("%s%s%s%s%s -j %s" %   (proto, _src, sports, _dst, dports, action))
 
                 # Build FORWARD rules: where the source and destination are both in directly connected or routed networks
                 if h.network_fw in ('0', 0, False):
@@ -737,19 +747,24 @@ class FireSet(object):
                 resolved_routed = [net[r] for r in h.routed] # resolved routed nets [[addr,masklen],[addr,masklen]...]
                 nets = [ IPNetwork("%s/%s" %(y, w)) for y, w in resolved_routed ]
 
-                src_forw = self._oo_forwarded(src, h, resolved_routed)
-                dst_forw = self._oo_forwarded(dst, h, resolved_routed)
+                other_ifaces = [k for k in self.hosts if k.hostname == h.hostname and k.iface != h.iface]
 
-                if src_forw and dst_forw:
-                    rd[h.hostname].append("-A FORWARD%s%s%s%s%s --log-level %d --log-prefix %s -j LOG" %   (proto, _src, sports, _dst, dports, log_val, name))
-                    rd[h.hostname].append("-A FORWARD%s%s%s%s%s -j %s" %   (proto, _src, sports, _dst, dports, action))
+
+                forw = self._oo_forwarded(src, dst, h, resolved_routed, other_ifaces)
+
+                if forw:
+                    rd[h.hostname]['FORWARD'].append("%s%s%s%s%s -j LOG --log-level %d --log-prefix %s" %   (proto, _src, sports, _dst, dports, log_val, name))
+                    rd[h.hostname]['FORWARD'].append("%s%s%s%s%s -j %s" %   (proto, _src, sports, _dst, dports, action))
 
             # "for every host"
         # "for every rule"
 
         log.debug("Rules compiled")
         for k, v in rd.iteritems():
-            log.debug("%s -------------------------\n%s" % (k, '\n'.join(v)))
+            log.debug("------------------------- %s -------------------------" % k)
+            for chain, li in v.iteritems():
+                for x in li:
+                    log.debug("%s %s" % (chain, x))
         return rd
 
 

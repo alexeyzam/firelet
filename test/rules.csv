@@ -8,7 +8,7 @@
 1 NoSmeagol Smeagol:eth0 * Gandalf:eth0 * DROP 3 "No way"
 1 http_ok Bilbo:eth0 * Fangorn:eth0 HTTP ACCEPT 0 "Web server"
 1 ssh_mgmt Gandalf:eth0 * moria SSH ACCEPT 2 "Ssh access from Gandalf"
-1 irc Bilbo:eth0 * Smeagol:eth0 IRC ACCEPT 0 "IRC is fun"
+1 irc Fangorn:eth0 * Smeagol:eth0 IRC ACCEPT 0 "IRC is fun"
 1 imap Smeagol:eth0 * Bilbo:eth0 EveryIMAP ACCEPT 2 "IMAP, three ports"
 1 ntp AllSystems * Servers NTP ACCEPT 0 ntp
 1 default * * * * DROP 1 "Default drop"
