@@ -240,6 +240,7 @@ def hosts():
     _require('editor')
     action = pg('action', '')
     rid = int_pg('rid')
+    log.debug(action)
     if action == 'delete':
         try:
             fs.delete('hosts', rid)
@@ -268,11 +269,12 @@ def hosts():
                 return {'ok': False, 'hostname':'Must start with "test"'} #TODO: complete this
     elif action == 'fetch':
         try:
-            n, iface, ipaddr, f = fs.fetch('hosts', rid)
-            f = int(f)
-            return {'hostname':n, 'iface':iface, 'ip_addr':ipaddr, 'localfw': f, 'netfw': f}
+            h = fs.fetch('hosts', rid)
+            return {'hostname': h.hostname, 'iface': h.iface, 'ip_addr': h.ip_addr, 'local_fw': int(h.local_fw), 'network_fw': int(h.network_fw), 'mng': int(h.mng)}
         except Alert, e:
             say('TODO')
+    else:
+        log.error('Unknown action requested: "%s"' % action)
 
 
 @bottle.route('/networks')

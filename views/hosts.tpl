@@ -94,7 +94,7 @@ div#help_ovr {
 
 <p><img src="static/new.png" rel="#editing_form" class="new"> New host</p>
 
-<!-- New item form -->
+<!-- Item editing or creation form -->
 <div id="editing_form">
     <form id="editing_form">
 
@@ -119,11 +119,15 @@ div#help_ovr {
 
           <p>
             <label>Local firewall</label>
-            <input type="checkbox" name="localfw" />
+            <input type="checkbox" name="local_fw" />
           </p>
           <p>
             <label>Network firewall</label>
-            <input type="checkbox" name="netfw" />
+            <input type="checkbox" name="network_fw" />
+          </p>
+          <p>
+            <label>Management interface</label>
+            <input type="checkbox" name="mng" />
           </p>
 
           <button type="submit">Submit</button>
@@ -198,6 +202,9 @@ $(function() {
         // client-side validation OK
         if (!e.isDefaultPrevented()) {
         ff = $('form#editing_form').serializeArray();
+        ff['action']='save';
+        alert(ff);
+
         $.post("hosts", ff,
             function(json){
                 if (json.ok === true) {
