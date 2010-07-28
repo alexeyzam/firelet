@@ -623,10 +623,11 @@ class FireSet(object):
         # r[hostname][interface] = [rule, rule, ... ]
         rd = defaultdict(dict)
 
-        for hostname,iface, ipa, masklen, locfw, netfw, mng, routed in hosts:  #FIXME: using SmartTable now
-            myrules = [ r for r in rset if ipa in r ]   #TODO: match subnets as well
-            if not iface in rd[hostname]: rd[hostname][iface] = []
-            rd[hostname][iface].extend(myrules)
+#        for hostname,iface, ipa, masklen, locfw, netfw, mng, routed in hosts:  #FIXME: using SmartTable now
+        for h in hosts:
+            myrules = [ r for r in rset if h.ip_addr in r ]   #TODO: match subnets as well
+            if not h.iface in rd[h.hostname]: rd[h.hostname][h.iface] = []
+            rd[h.hostname][h.iface].extend(myrules)
         log.debug("Rules compiled as dict: %s" % repr(rd))
         return rd
 
@@ -992,8 +993,10 @@ class GitFireSet(FireSet):
             self.services.save()
         elif table == 'rules':
             self.rules.save()
+        elif table == 'hostgroups':
+            self.hostgroups.save()
         else:
-            savecsv(table, self.__dict__[table], d=self._git_repodir)
+            raise Exception, "Table %s not existing" % table
 
     def delete(self, table, rid):
         assert table in ('rules', 'hosts', 'hostgroups', 'services', 'networks') ,  "Wrong table name for deletion: %s" % table
