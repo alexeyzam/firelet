@@ -81,19 +81,20 @@ def int_pg(name, default=None):
 
 # #  authentication  # #
 
-def _require(role='auth'):
-    """Ensure the user has admin role or is authenticated at least"""
+def _require(role='readonly'):
+    """Ensure the user has the required role (or higher).
+    Order: admin > editor > readonly
+    """
+    m = {'admin': 15, 'editor': 10, 'readonly': 5}
     s = bottle.request.environ.get('beaker.session')
     if not s:
         say("User needs to be authenticated.", level="warning") #TODO: not really explanatory in a multiuser session.
         raise Alert, "User needs to be authenticated."
-    if role == 'auth': return
     myrole = s.get('role', '')
-    if myrole == role: return
-    say("An %s account is required." % repr(role))
+    if m[myrole] >= m[role]:
+        return
+    say("An account with '%s' level or higher is required." % repr(role))
     raise Exception
-
-
 
 @bottle.route('/login', method='POST')
 def login():
