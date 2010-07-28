@@ -21,6 +21,7 @@ from lib.flcore import *
 import shutil
 from lib.flssh import SSHConnector
 from lib.flmap import draw_svg_map
+from lib.flutils import flag
 from nose.tools import assert_raises, with_setup
 
 import logging
@@ -389,5 +390,17 @@ def test_bunch():
     assert repr(b) == "{'a': 3, 'c': 42, 'b': '44', '_a': 0}", "Bunch repr is incorrect: %s" % repr(b)
     assert b.c == 42
 
+
+def test_flag_true():
+    for x in (1, True, '1', 'True', 'y', 'on' ):
+        assert flag(x) == '1'
+
+def test_flag_false():
+    for x in (0, False, '0', 'False', 'n', 'off', ''):
+        assert flag(x) == '0'
+
+def test_flag_raise():
+    for x in ('true', 'false'):
+        assert_raises(Exception, flag, x)
 
 
