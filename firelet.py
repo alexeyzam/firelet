@@ -31,6 +31,7 @@ from lib.confreader import ConfReader
 from lib import mailer
 from lib.flcore import Alert, GitFireSet, DemoGitFireSet, Users, clean
 from lib.flmap import draw_png_map, draw_svg_map
+from lib.flutils import flag
 
 from bottle import HTTPResponse, HTTPError
 
@@ -227,6 +228,11 @@ def hostgroups():
             say("Unable to delete %s - %s" % (rid, e), level="alert")
             abort(500)
 
+def ack(s=None):
+    """Acknowledge successful form processing and returns ajax confirmation."""
+    if s:
+        say(s, level="success")
+    return {'ok': True}
 
 @bottle.route('/hosts')
 @view('hosts')
@@ -234,13 +240,11 @@ def hosts():
     _require()
     return dict(hosts=enumerate(fs.hosts))
 
-
 @bottle.route('/hosts', method='POST')
 def hosts():
     _require('editor')
     action = pg('action', '')
     rid = int_pg('rid')
-    log.debug(action)
     if action == 'delete':
         try:
             fs.delete('hosts', rid)
@@ -249,16 +253,19 @@ def hosts():
         except Exception, e:
             say("Unable to delete %s - %s" % (rid, e), level="alert")
             abort(500)
-    elif action == 'edit':
-        hostname = pg('hostname')
-        iface = pg('iface')
-        ip_addr = pg('ip_addr')
+    elif action == 'save':
+        d = {}
+        for f in ('hostname', 'iface', 'ip_addr', 'masklen', 'local_fw', 'network_fw', 'mng'):
+            d[f] = pg(f)
+        d['routed'] = pg('routed').split()
         if rid == None:     # new host
             try:
-                say('Host %s added.' % hostname, level="success") #TODO: complete this
-                return {'ok': True}
+                fs.hosts.add(d)
+                log.debug(d)
+                ack('Host %s added.' % d['hostname'])
+
             except Alert, e:
-                say('Unable to add %s.' % hostname, level="alert")
+                say('Unable to add %s.' % d['hostname'], level="alert")
                 return {'ok': False, 'hostname':'Must start with "test"'} #TODO: complete this
         else:   # update host
             try:
@@ -270,7 +277,8 @@ def hosts():
     elif action == 'fetch':
         try:
             h = fs.fetch('hosts', rid)
-            return {'hostname': h.hostname, 'iface': h.iface, 'ip_addr': h.ip_addr, 'local_fw': int(h.local_fw), 'network_fw': int(h.network_fw), 'mng': int(h.mng)}
+#            log.debug(h.__dict__)
+            return {'hostname': h.hostname, 'iface': h.iface, 'ip_addr': h.ip_addr, 'masklen': h.masklen,'local_fw': int(h.local_fw), 'network_fw': int(h.network_fw), 'mng': int(h.mng)}
         except Alert, e:
             say('TODO')
     else:

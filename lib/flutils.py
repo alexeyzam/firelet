@@ -11,4 +11,10 @@ class Bunch(object):
     def __len__(self):
         return len(self.__dict__)
 
-
+def flag(s):    #TODO: unit testing
+    if s in (1, True, '1', 'True', 'y', 'on' ):
+        return '1'
+    elif s in (0, False, '0', 'False', 'n', 'off', ''):
+        return '0'
+    else:
+        raise Exception, '"%s" is not a valid flag value' % s

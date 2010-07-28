@@ -100,7 +100,6 @@ div#help_ovr {
 
        <fieldset>
           <h3>Host editing</h3>
-
           <p> Enter bad values and then press the submit button. </p>
 
           <p>
@@ -115,8 +114,10 @@ div#help_ovr {
              <label>IP address *</label>
              <input type="text" name="ip_addr" pattern="[0-9.:]{7,}" maxlength="30" />
           </p>
-
-
+          <p>
+             <label>Netmask length *</label>
+             <input type="text" name="masklen" pattern="[0-9]{1,2}" maxlength="2" />
+          </p>
           <p>
             <label>Local firewall</label>
             <input type="checkbox" name="local_fw" />
@@ -132,6 +133,7 @@ div#help_ovr {
 
           <button type="submit">Submit</button>
           <button type="reset">Reset</button>
+          <input type="hidden" name="action" value="save" />
        </fieldset>
     </form>
     <p>Enter and Esc keys are supported.</p>
@@ -202,9 +204,6 @@ $(function() {
         // client-side validation OK
         if (!e.isDefaultPrevented()) {
         ff = $('form#editing_form').serializeArray();
-        ff['action']='save';
-        alert(ff);
-
         $.post("hosts", ff,
             function(json){
                 if (json.ok === true) {

@@ -26,7 +26,7 @@ from struct import pack, unpack
 import logging
 
 from flssh import SSHConnector
-from flutils import Alert, Bunch
+from flutils import Alert, Bunch, flag
 
 log = logging.getLogger()
 
@@ -331,6 +331,23 @@ class Hosts(SmartTable):
         """Flatten the routed network list and save"""
         li = [[x.hostname, x.iface, x.ip_addr, x.masklen, x.local_fw, x.network_fw, x.mng] + x.routed for x in self._list]
         savecsv('hosts', li, self._dir)
+    def add(self, f): #TODO: unit testing
+        """Add a new item based on a dict of fields"""
+        names = ["%s:%s" % (x.hostname, x.iface) for x in self._list]
+        me = "%s:%s" % (f['hostname'], f['iface'])
+        assert me not in names, "Host '%s' already defined" % me
+        li = [f[x] for x in ('hostname', 'iface', 'ip_addr', 'masklen', 'local_fw', 'network_fw', 'mng', 'routed')]
+        self._list.append(Host(li))
+        self.save()
+
+#        self.hostname=r[0]
+#        self.iface=r[1]
+#        self.ip_addr=r[2]
+#        self.masklen=r[3]
+#        self.local_fw=r[4]
+#        self.network_fw=r[5]
+#        self.mng=r[6]
+#        self.routed=r[7]
 
 
 class HostGroups(SmartTable):
@@ -533,7 +550,7 @@ class FireSet(object):
         d = {}      # {hostname: [management ip address list ], ... }    If the list is empty we cannot reach that host.
         for h in self.hosts:
             if h.hostname not in d: d[n] = []
-            if int(h.mng):                            # IP address flagged for management
+            if flag(h.mng):                            # IP address flagged for management
                 d[n].append(addr)
         for n, x in d.iteritems():
             assert len(x), "No management IP address for %s " % n
