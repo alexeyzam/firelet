@@ -417,11 +417,12 @@ def rollback():
     say("Configuration rolled back.")
     return
 
-# serving files
+# serving static files
 
 @bottle.route('/static/:filename#[a-zA-Z0-9_\.?\/?]+#')
 def static_file(filename):
     _require()
+    bottle.response.headers['Cache-Control'] = 'max-age=3600, public'
     if filename == '/jquery-ui.js':
         send_file('/usr/share/javascript/jquery-ui/jquery-ui.js') #TODO: support other distros
     elif filename == 'jquery.min.js':
