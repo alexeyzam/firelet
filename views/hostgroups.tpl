@@ -33,15 +33,14 @@ div#help_ovr {
 
 <table id="items">
     <tr><th></th><th>Name</th><th>Siblings</th></tr>
-% for rid, hostgroup in hostgroups:
+% for rid, hg in hostgroups:
     <tr id="{{rid}}">
     <td class="hea">
         <img src="/static/edit.png" title="Edit host group" id="{{rid}}" rel="#editing_form" class="edit">
         <img src="/static/delete.png" title="Delete host group" id="{{rid}}" class="delete">
     </td>
-    % for item in hostgroup:
-    <td>{{item}}</td>
-    % end
+    <td>{{hg.name}}</td>
+    <td>{{' '.join(hg.childs)}}</td>
     </tr>
 % end
 </table>
