@@ -258,27 +258,30 @@ def hosts():
         for f in ('hostname', 'iface', 'ip_addr', 'masklen', 'local_fw', 'network_fw', 'mng'):
             d[f] = pg(f)
         d['routed'] = pg('routed').split()
+        for x in ('local_fw', 'network_fw', 'mng'):
+            d[x] = flag(d[x])
         if rid == None:     # new host
             try:
                 fs.hosts.add(d)
                 log.debug(d)
                 ack('Host %s added.' % d['hostname'])
-
             except Alert, e:
                 say('Unable to add %s.' % d['hostname'], level="alert")
                 return {'ok': False, 'hostname':'Must start with "test"'} #TODO: complete this
         else:   # update host
             try:
-                say('Host %s added.' % hostname, level="success") #TODO: complete this
-                return {'ok': True}
+                fs.hosts.update(d, rid=rid, token=pg('token'))
+                ack('Host updated.')
             except Alert, e:
-                say('Unable to add %s.' % hostname, level="alert")
+                say('Unable to edit %s.' % hostname, level="alert")
                 return {'ok': False, 'hostname':'Must start with "test"'} #TODO: complete this
     elif action == 'fetch':
         try:
             h = fs.fetch('hosts', rid)
-#            log.debug(h.__dict__)
-            return {'hostname': h.hostname, 'iface': h.iface, 'ip_addr': h.ip_addr, 'masklen': h.masklen,'local_fw': int(h.local_fw), 'network_fw': int(h.network_fw), 'mng': int(h.mng)}
+            d = h.attr_dict()
+            for x in ('local_fw', 'network_fw', 'mng'):
+                d[x] = int(d[x])
+            return d
         except Alert, e:
             say('TODO')
     else:

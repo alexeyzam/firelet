@@ -134,6 +134,8 @@ div#help_ovr {
           <button type="submit">Submit</button>
           <button type="reset">Reset</button>
           <input type="hidden" name="action" value="save" />
+          <input type="hidden" name="rid" value="" />
+          <input type="hidden" name="token" value="" />
        </fieldset>
     </form>
     <p>Enter and Esc keys are supported.</p>
@@ -184,6 +186,7 @@ $(function() {
         mask: { loadSpeed: 200, opacity: 0.9 },
         onBeforeLoad: function(event, tabIndex) {
             rid = this.getTrigger()[0].id;
+            $("form#editing_form input[name=rid]").get(0).value = rid;
             $.post("hosts",{'action':'fetch','rid':rid}, function(json){
                 $("form#editing_form input[type=text]").each(function(n,f) {
                     f.value = json[f.name];
@@ -191,6 +194,7 @@ $(function() {
                 $("form#editing_form input[type=checkbox]").each(function(n,f) {
                     f.checked = Boolean(json[f.name]);
                 });
+                $("form#editing_form input[name=token]").get(0).value = json['token'];
             }, "json");
         },
         closeOnClick: false

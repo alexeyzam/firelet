@@ -16,6 +16,7 @@
 
 import csv
 
+from copy import deepcopy
 from hashlib import sha512
 from collections import defaultdict
 from git import InvalidGitRepositoryError, NoSuchPathError
@@ -88,8 +89,21 @@ class NetworkObj(object):
     """
     def __repr__(self):
         return repr(self.__dict__)
+
     def __len__(self):
         return len(self.__dict__)
+
+    def _token(self):
+        return hex(abs(hash(str(self.__dict__))))[2:]
+
+    def attr_dict(self):
+        d = deepcopy(self.__dict__)
+        d['token'] = self._token()
+        return d
+
+    def update(self, d):
+        for k in self.__dict__:
+            self.__dict__[k] = d[k]
 
 
 class Sys(NetworkObj):
@@ -125,6 +139,7 @@ class Host(NetworkObj):
     def mynetwork(self):
         """Return unnamed network directly connected to the host"""
         return Network(['', self.ip_addr, self.masklen])
+
 
 class Network(NetworkObj):
     def __init__(self, r):
@@ -261,18 +276,35 @@ class SmartTable(object):
     """A list of Bunch instances. Each subclass is responsible to load and save files."""
     def __init__(self, d):
         self._dir = d
+
     def __repr__(self):
         return repr(self._list)
+
     def __iter__(self):
         return self._list.__iter__()
+
     def __len__(self):
         return len(self._list)
+
     def __getitem__(self, i):
         return self._list.__getitem__(i)
+
     def pop(self, i):
         x = self._list[i]
         del self._list[i]
         return x
+
+    def update(self, d, rid=None, token=None):
+        """Update internal dictionary based on d"""
+        assert rid, "Malformed input row ID is missing."
+        try:
+            item = self.__getitem__(int(rid))
+        except IndexError:
+            raise Alert, "Item to be updated not found: one or more items has been modified in the meantime."
+        if token:
+            assert token == item._token(), "Unable to update: one or more items has been modified in the meantime."
+        item.update(d)
+        self.save()
 
 
 class Rules(SmartTable):
