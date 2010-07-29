@@ -264,14 +264,14 @@ def hosts():
             try:
                 fs.hosts.add(d)
                 log.debug(d)
-                ack('Host %s added.' % d['hostname'])
+                return ack('Host %s added.' % d['hostname'])
             except Alert, e:
                 say('Unable to add %s.' % d['hostname'], level="alert")
                 return {'ok': False, 'hostname':'Must start with "test"'} #TODO: complete this
         else:   # update host
             try:
                 fs.hosts.update(d, rid=rid, token=pg('token'))
-                ack('Host updated.')
+                return ack('Host updated.')
             except Alert, e:
                 say('Unable to edit %s.' % hostname, level="alert")
                 return {'ok': False, 'hostname':'Must start with "test"'} #TODO: complete this

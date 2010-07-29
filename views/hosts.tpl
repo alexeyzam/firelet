@@ -208,19 +208,18 @@ $(function() {
         // client-side validation OK
         if (!e.isDefaultPrevented()) {
         ff = $('form#editing_form').serializeArray();
-        $.post("hosts", ff,
-            function(json){
-                if (json.ok === true) {
-                    over.eq(0).overlay().close();
-                } else {
-                    form.data("validator").invalidate(json);
-                }
-            }, "json"
-        );
+        $.post("hosts", ff, function(json){
+            if (json.ok === true) {
+                $("img[rel]").each(function() {
+                    $(this).overlay().close();
+                });
+            } else {
+                form.data("validator").invalidate(json);
+            }
+        }, "json");
             e.preventDefault();     // prevent default form submission logic
         }
     });
-
 
 
     // Help overlay
