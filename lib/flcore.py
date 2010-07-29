@@ -296,7 +296,7 @@ class SmartTable(object):
 
     def update(self, d, rid=None, token=None):
         """Update internal dictionary based on d"""
-        assert rid, "Malformed input row ID is missing."
+        assert rid != None, "Malformed input row ID is missing."
         try:
             item = self.__getitem__(int(rid))
         except IndexError:

@@ -213,6 +213,7 @@ $(function() {
                 $("img[rel]").each(function() {
                     $(this).overlay().close();
                 });
+                $('div.tabpane div').load('/hosts');
             } else {
                 form.data("validator").invalidate(json);
             }
