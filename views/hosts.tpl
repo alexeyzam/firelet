@@ -44,6 +44,30 @@ div#help_ovr {
     -moz-box-shadow:0 0 6px #ddd;
     -webkit-box-shadow:0 0 6px #ddd;
 }
+div#multisel {
+    margin: 0;
+    padding: 0.1em;
+    display: block;
+    border: 0;
+    background-color: transparent;
+}
+div#multisel div#selected {
+    margin: 0 0 0 4em;
+    padding: 0 2px 0 2px;
+    display: block;
+    border: 1px #333 solid;
+    width: 20em;
+    background: #fafafa;
+}
+div#multisel div#selected p {
+    margin: 0;
+    padding: 0;
+    height: 1em;
+    cursor: default;
+}
+div#multisel div#selected p:hover {
+    text-decoration: line-through;
+}
 </style>
 
 <img id="help" src="static/help.png" rel="div#help_ovr" title="Help">
@@ -97,7 +121,6 @@ div#help_ovr {
 <!-- Item editing or creation form -->
 <div id="editing_form">
     <form id="editing_form">
-
        <fieldset>
           <h3>Host editing</h3>
           <p> Enter bad values and then press the submit button. </p>
@@ -130,7 +153,26 @@ div#help_ovr {
             <label>Management interface</label>
             <input type="checkbox" name="mng" />
           </p>
-
+          <p>
+            <label>Routed networks</label>
+            <input type="text" name="routed">
+          </p>
+          <div id="multisel">
+            <p>Routed networks</p>
+            <div id="selected">
+                <p>ex1</p>
+                <p>ex2</p>
+                <p>ex3</p>
+            </div>
+            <select id="multisel" multiple="multiple">
+                <option></option>
+                <option value="11">11</option>
+                <option value="22">22</option>
+                <option value="33">33</option>
+                <option value="44">44</option>
+            </select>
+          </div>
+          </br>
           <button type="submit">Submit</button>
           <button type="reset">Reset</button>
           <input type="hidden" name="action" value="save" />
@@ -199,6 +241,22 @@ $(function() {
         },
         closeOnClick: false
     });
+
+    // Remove routed networks on click
+    $("div#selected p").click(function() {
+        $(this).remove();
+    })
+
+    // Add routed network when selected from the combo box
+    $("select#multisel").change(function() {
+        $("option:selected").each(function () {
+            $("div#selected").append("<p>"+$(this).text()+"</p>")
+        });
+        $("div#selected p").click(function() {
+            $(this).remove();
+        })
+    })
+
 
 
     // Send editing_form field values on submit
