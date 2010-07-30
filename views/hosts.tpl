@@ -153,10 +153,6 @@ div#multisel div#selected p:hover {
             <label>Management interface</label>
             <input type="checkbox" name="mng" />
           </p>
-          <p>
-            <label>Routed networks</label>
-            <input type="text" name="routed">
-          </p>
           <div id="multisel">
             <p>Routed networks</p>
             <div id="selected">
@@ -164,7 +160,7 @@ div#multisel div#selected p:hover {
                 <p>ex2</p>
                 <p>ex3</p>
             </div>
-            <select id="multisel" multiple="multiple">
+            <select id="multisel">
                 <option></option>
                 <option value="11">11</option>
                 <option value="22">22</option>
@@ -249,9 +245,9 @@ $(function() {
 
     // Add routed network when selected from the combo box
     $("select#multisel").change(function() {
-        $("option:selected").each(function () {
-            $("div#selected").append("<p>"+$(this).text()+"</p>")
-        });
+        v = $("select#multisel").val();
+        $("select#multisel").val('');
+        if (v) $("div#selected").append("<p>"+v+"</p>")
         $("div#selected p").click(function() {
             $(this).remove();
         })
@@ -266,6 +262,11 @@ $(function() {
         // client-side validation OK
         if (!e.isDefaultPrevented()) {
         ff = $('form#editing_form').serializeArray();
+        // extract the text in the paragraphs in div#selected and squeeze it
+        v = $('div#selected').text().replace(/\s+/g, ' ').trim();
+        // Append to the fields list
+        ff.push({name: "routed", value: v});
+        console.log(ff);
         $.post("hosts", ff, function(json){
             if (json.ok === true) {
                 $("img[rel]").each(function() {
