@@ -257,13 +257,14 @@ def hosts():
         d = {}
         for f in ('hostname', 'iface', 'ip_addr', 'masklen', 'local_fw', 'network_fw', 'mng'):
             d[f] = pg(f)
-        d['routed'] = pg('routed').split()
+        r = pg('routed').split(',')
+        r = list(set(r)) # remove duplicate routed nets
+        d['routed'] = r
         for x in ('local_fw', 'network_fw', 'mng'):
             d[x] = flag(d[x])
         if rid == None:     # new host
             try:
                 fs.hosts.add(d)
-                log.debug(d)
                 return ack('Host %s added.' % d['hostname'])
             except Alert, e:
                 say('Unable to add %s.' % d['hostname'], level="alert")
@@ -287,6 +288,12 @@ def hosts():
     else:
         log.error('Unknown action requested: "%s"' % action)
 
+
+@bottle.route('/net_names', method='POST')
+def net_names():
+    _require()
+    nn = [n.name for n in fs.networks]
+    return dict(net_names=nn)
 
 @bottle.route('/networks')
 @view('networks')

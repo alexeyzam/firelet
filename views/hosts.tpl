@@ -156,16 +156,10 @@ div#multisel div#selected p:hover {
           <div id="multisel">
             <p>Routed networks</p>
             <div id="selected">
-                <p>ex1</p>
-                <p>ex2</p>
-                <p>ex3</p>
+                <p>au</p>
             </div>
             <select id="multisel">
                 <option></option>
-                <option value="11">11</option>
-                <option value="22">22</option>
-                <option value="33">33</option>
-                <option value="44">44</option>
             </select>
           </div>
           </br>
@@ -206,6 +200,23 @@ $(function() {
             });
     });
 
+    // Populate the routed network combo box based on the existing networks
+    function insert_net_names() {
+        $.post("net_names",{}, function(json){
+            s = $("select#multisel");
+            s.html("<option></option>");
+            for (i in json.net_names)
+                s.append("<option>"+json.net_names[i]+"</option>")
+        })
+    }
+
+    function set_form_trig() {
+        // Remove routed networks on click
+        $("div#selected p").click(function() {
+            $(this).remove();
+        })
+    }
+
     // Open the overlay form to create a new element
     $("img.new[rel]").overlay({
             mask: { loadSpeed: 200, opacity: 0.9 },
@@ -214,6 +225,7 @@ $(function() {
                     f.value = '';
                     f.checked = false;
                 });
+                insert_net_names();
             },
             closeOnClick: false
     });
@@ -233,24 +245,23 @@ $(function() {
                     f.checked = Boolean(json[f.name]);
                 });
                 $("form#editing_form input[name=token]").get(0).value = json['token'];
+                ds = $("div#selected").text('');
+                for (i in json.routed)
+                    ds.append('<p>'+json.routed[i]+'</p>');
+                set_form_trig();
             }, "json");
+            insert_net_names();
         },
         closeOnClick: false
     });
 
-    // Remove routed networks on click
-    $("div#selected p").click(function() {
-        $(this).remove();
-    })
 
-    // Add routed network when selected from the combo box
+    // Add routed network when the user select it from the combo box
     $("select#multisel").change(function() {
         v = $("select#multisel").val();
         $("select#multisel").val('');
         if (v) $("div#selected").append("<p>"+v+"</p>")
-        $("div#selected p").click(function() {
-            $(this).remove();
-        })
+        set_form_trig()
     })
 
 
@@ -263,9 +274,12 @@ $(function() {
         if (!e.isDefaultPrevented()) {
         ff = $('form#editing_form').serializeArray();
         // extract the text in the paragraphs in div#selected and squeeze it
-        v = $('div#selected').text().replace(/\s+/g, ' ').trim();
+        routed = []
+        $('div#selected p').each(function(i) {
+            routed.push($(this).text())
+        })
         // Append to the fields list
-        ff.push({name: "routed", value: v});
+        ff.push({name: "routed", value: routed});
         console.log(ff);
         $.post("hosts", ff, function(json){
             if (json.ok === true) {
