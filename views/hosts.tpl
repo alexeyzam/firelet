@@ -217,14 +217,19 @@ $(function() {
         })
     }
 
+    function reset_form() {
+        $("form#editing_form input")
+        .val('')
+        .removeAttr('checked');
+        $("form#editing_form input[name=action]").val('save');
+        $("div#selected").text('');
+    }
+
     // Open the overlay form to create a new element
     $("img.new[rel]").overlay({
             mask: { loadSpeed: 200, opacity: 0.9 },
             onBeforeLoad: function() {
-                $("form#editing_form input").each(function(n,f) {
-                    f.value = '';
-                    f.checked = false;
-                });
+                reset_form();
                 insert_net_names();
             },
             closeOnClick: false
@@ -235,6 +240,7 @@ $(function() {
     $("img.edit[rel]").overlay({
         mask: { loadSpeed: 200, opacity: 0.9 },
         onBeforeLoad: function(event, tabIndex) {
+            reset_form();
             rid = this.getTrigger()[0].id;
             $("form#editing_form input[name=rid]").get(0).value = rid;
             $.post("hosts",{'action':'fetch','rid':rid}, function(json){
