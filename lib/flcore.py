@@ -809,12 +809,12 @@ class FireSet(object):
             # "for every host"
         # "for every rule"
 
-        log.debug("Rules compiled")
-        for k, v in rd.iteritems():
-            log.debug("------------------------- %s -------------------------" % k)
-            for chain, li in v.iteritems():
-                for x in li:
-                    log.debug("%s %s" % (chain, x))
+#        log.debug("Rules compiled")
+#        for k, v in rd.iteritems():
+#            log.debug("------------------------- %s -------------------------" % k)
+#            for chain, li in v.iteritems():
+#                for x in li:
+#                    log.debug("%s %s" % (chain, x))
         return rd
 
 
