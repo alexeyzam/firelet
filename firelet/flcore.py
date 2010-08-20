@@ -29,6 +29,8 @@ import logging
 from flssh import SSHConnector
 from flutils import Alert, Bunch, flag
 
+__version__ = 0.4
+
 log = logging.getLogger()
 
 # Logging levels:

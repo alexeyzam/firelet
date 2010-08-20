@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from setuptools import setup
-from firelet import __version__
+from firelet.flcore import __version__
 
 CLASSIFIERS = map(str.strip,
 """
@@ -34,9 +34,11 @@ setup(
                                                 'static/*']},
     entry_points = {
         'console_scripts': [
-            'bpython = bpython.cli:main',
+            'firelet_c = firelet.cli:main',
+            'fireletd = firelet.daemon:main',
         ],
     },
+    scripts = ([]),
     test_suite='nose.collector',
     tests_require=['nose'],
 )

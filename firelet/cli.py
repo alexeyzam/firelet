@@ -18,8 +18,8 @@
 
 # Firelet Command Line Interface
 
-from lib.confreader import ConfReader
-from lib.flcore import *
+from confreader import ConfReader
+from flcore import *
 
 from sys import argv, exit
 

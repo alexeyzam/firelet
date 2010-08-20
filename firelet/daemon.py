@@ -27,11 +27,11 @@ from subprocess import Popen, PIPE
 from sys import argv, exit
 from time import time, sleep, localtime
 
-from lib.confreader import ConfReader
-from lib import mailer
-from lib.flcore import Alert, GitFireSet, DemoGitFireSet, Users, clean
-from lib.flmap import draw_png_map, draw_svg_map
-from lib.flutils import flag
+from confreader import ConfReader
+import mailer
+from flcore import Alert, GitFireSet, DemoGitFireSet, Users, clean
+from flmap import draw_png_map, draw_svg_map
+from flutils import flag
 
 from bottle import HTTPResponse, HTTPError
 
