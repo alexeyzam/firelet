@@ -5,3 +5,5 @@
 .eric4project/
 firelet.e4p
 firelet.log
+firelet.egg-info
+build
