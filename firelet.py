@@ -51,6 +51,9 @@ bottle.HTTPError = LoggedHTTPError
 #TODO: move fireset editing in flcore
 #TODO: setup three roles
 #TODO: display only login form to unauth users
+#TODO: store a local copy of the deployed confs
+#              - compare in with the fetched conf
+#              - show it on the webapp
 
 msg_list = []
 
