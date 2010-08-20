@@ -19,7 +19,6 @@ import csv
 from copy import deepcopy
 from hashlib import sha512
 from collections import defaultdict
-from git import InvalidGitRepositoryError, NoSuchPathError
 from netaddr import IPAddress, IPNetwork
 from os import unlink
 from socket import inet_ntoa, inet_aton
