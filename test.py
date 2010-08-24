@@ -15,13 +15,13 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from lib import mailer
+from firelet import mailer
 
-from lib.flcore import *
+from firelet.flcore import *
 import shutil
-from lib.flssh import SSHConnector
-from lib.flmap import draw_svg_map
-from lib.flutils import flag
+from firelet.flssh import SSHConnector
+from firelet.flmap import draw_svg_map
+from firelet.flutils import flag
 from nose.tools import assert_raises, with_setup
 from pprint import pformat
 
@@ -561,7 +561,7 @@ def test_product_2_5():
         ('O HI', 'd'), ('O HI', 42))
 
 def test_bunch():
-    from lib.flutils import Bunch
+    from firelet.flutils import Bunch
     b = Bunch( c=42, a=3, b='44', _a=0)
     b2 = Bunch(a='3', b='44', _a='0')
     assert repr(b) == "{'a': 3, 'c': 42, 'b': '44', '_a': 0}", "Bunch repr is incorrect: %s" % repr(b)
