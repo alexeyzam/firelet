@@ -6,5 +6,5 @@ do
     echo -e '\n\n\n\n\n\n\n\n\n\n\n\n'
     clear
     nosetests test.py
-    inotifywait -e MOVE_SELF *.py lib/*.py 2>/dev/null
+    inotifywait -e MOVE_SELF *.py firelet/*.py 2>/dev/null
 done
