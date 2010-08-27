@@ -264,7 +264,9 @@ def hosts():
         r = list(set(r)) # remove duplicate routed nets
         d['routed'] = r
         for x in ('local_fw', 'network_fw', 'mng'):
+            log.debug("%s %s" % (x, repr(d[x])))
             d[x] = flag(d[x])
+            log.debug("%s %s" % (x, repr(d[x])))
         if rid == None:     # new host
             try:
                 fs.hosts.add(d)

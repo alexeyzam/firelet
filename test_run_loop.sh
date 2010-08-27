@@ -1,7 +1,7 @@
 #!/bin/bash
 while true
 do
-    kill  $(ps ax | awk '/firelet.py/ {print $1}') 2>/dev/null
+    kill  $(ps ax | awk '/firelet\/daemon.py/ {print $1}') 2>/dev/null
     find . -name '*pyc' -delete;
     echo -e '\n\n\n\n\n\n\n\n\n\n\n\n'
     clear
