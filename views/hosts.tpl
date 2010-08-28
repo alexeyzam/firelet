@@ -143,15 +143,15 @@ div#multisel div#selected p:hover {
           </p>
           <p>
             <label>Local firewall</label>
-            <input type="checkbox" name="local_fw" />
+            <input type="checkbox" name="local_fw" value="local_fw" />
           </p>
           <p>
             <label>Network firewall</label>
-            <input type="checkbox" name="network_fw" />
+            <input type="checkbox" name="network_fw" value="network_fw" />
           </p>
           <p>
             <label>Management interface</label>
-            <input type="checkbox" name="mng" />
+            <input type="checkbox" name="mng" value="mng" />
           </p>
           <div id="multisel">
             <p>Routed networks</p>
@@ -284,7 +284,7 @@ $(function() {
         $('div#selected p').each(function(i) {
             routed.push($(this).text())
         })
-        // Append to the fields list
+        // Append routes to the fields list
         ff.push({name: "routed", value: routed});
         console.log(ff);
         $.post("hosts", ff, function(json){
