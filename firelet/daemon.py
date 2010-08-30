@@ -328,6 +328,44 @@ def networks():
             say("Unable to delete %s - %s" % (rid, e), level="alert")
             abort(500)
 
+    #TODO: finish the following part
+    elif action == 'save':
+        d = {}
+        for f in ('hostname', 'iface', 'ip_addr', 'masklen'):
+            d[f] = pg(f)
+        for f in ('local_fw', 'network_fw', 'mng'):
+            d[f] = pcheckbox(f)
+        r = pg('routed').split(',')
+        r = list(set(r)) # remove duplicate routed nets
+        d['routed'] = r
+        if rid == None:     # new host
+            try:
+                fs.hosts.add(d)
+                return ack('Host %s added.' % d['hostname'])
+            except Alert, e:
+                say('Unable to add %s.' % d['hostname'], level="alert")
+                return {'ok': False, 'hostname':'Must start with "test"'} #TODO: complete this
+        else:   # update host
+            try:
+                fs.hosts.update(d, rid=rid, token=pg('token'))
+                return ack('Host updated.')
+            except Alert, e:
+                say('Unable to edit %s.' % hostname, level="alert")
+                return {'ok': False, 'hostname':'Must start with "test"'} #TODO: complete this
+    elif action == 'fetch':
+        try:
+            h = fs.fetch('hosts', rid)
+            d = h.attr_dict()
+            for x in ('local_fw', 'network_fw', 'mng'):
+                d[x] = int(d[x])
+            return d
+        except Alert, e:
+            say('TODO')
+    else:
+        log.error('Unknown action requested: "%s"' % action)
+
+
+
 
 @bottle.route('/services')
 @view('services')

@@ -123,7 +123,7 @@ div#multisel div#selected p:hover {
     <form id="editing_form">
        <fieldset>
           <h3>Host editing</h3>
-          <p> Enter bad values and then press the submit button. </p>
+          <p> Enter values and press the submit button. </p>
 
           <p>
              <label>hostname *</label>
@@ -286,7 +286,6 @@ $(function() {
         })
         // Append routes to the fields list
         ff.push({name: "routed", value: routed});
-        console.log(ff);
         $.post("hosts", ff, function(json){
             if (json.ok === true) {
                 $("img[rel]").each(function() {

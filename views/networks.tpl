@@ -55,6 +55,38 @@ div#help_ovr {
 }
 </style>
 
+<p><img src="static/new.png" rel="#editing_form" class="new"> New network</p>
+
+<!-- Item editing or creation form -->
+<div id="editing_form">
+    <form id="editing_form">
+       <fieldset>
+          <h3>Network editing</h3>
+          <p> Enter values and press the submit button. </p>
+          <p>
+             <label>Name *</label>
+             <input type="text" name="hostname" pattern="[a-zA-Z0-9_]{2,512}" maxlength="30" />
+          </p>
+          <p>
+             <label>Address *</label>
+             <input type="text" name="iface" pattern="[a-zA-Z0-9]{2,32}" maxlength="30" />
+          </p>
+          <p>
+             <label>Netmask length *</label>
+             <input type="text" name="masklen" pattern="[0-9]{1,2}" maxlength="2" />
+          </p>
+          </br>
+          <button type="submit">Submit</button>
+          <button type="reset">Reset</button>
+          <input type="hidden" name="action" value="save" />
+          <input type="hidden" name="rid" value="" />
+          <input type="hidden" name="token" value="" />
+       </fieldset>
+    </form>
+    <p>Enter and Esc keys are supported.</p>
+</div>
+
+
 
 <script>
 $(function() {
@@ -85,6 +117,87 @@ $(function() {
                 });
         });
     });
+
+
+        function set_form_trig() {
+        // Remove routed networks on click
+        $("div#selected p").click(function() {
+            $(this).remove();
+        })
+    }
+
+    function reset_form() {
+        $("form#editing_form input")
+        .val('')
+        .removeAttr('checked');
+        $("form#editing_form input[name=action]").val('save');
+        $("div#selected").text('');
+    }
+
+    // Open the overlay form to create a new element
+    $("img.new[rel]").overlay({
+            mask: { loadSpeed: 200, opacity: 0.9 },
+            onBeforeLoad: function() {
+                reset_form();
+            },
+            closeOnClick: false
+    });
+
+    // If the form is being used to edit an existing item,
+    // load the actual values
+    $("img.edit[rel]").overlay({
+        mask: { loadSpeed: 200, opacity: 0.9 },
+        onBeforeLoad: function(event, tabIndex) {
+            reset_form();
+            rid = this.getTrigger()[0].id;
+            $("form#editing_form input[name=rid]").get(0).value = rid;
+            $.post("networks",{'action':'fetch','rid':rid}, function(json){
+                $("form#editing_form input[type=text]").each(function(n,f) {
+                    f.value = json[f.name];
+                });
+                $("form#editing_form input[type=checkbox]").each(function(n,f) {
+                    f.checked = Boolean(json[f.name]);
+                });
+                $("form#editing_form input[name=token]").get(0).value = json['token'];
+                ds = $("div#selected").text('');
+                for (i in json.routed)
+                    ds.append('<p>'+json.routed[i]+'</p>');
+                set_form_trig();
+            }, "json");
+        },
+        closeOnClick: false
+    });
+
+
+    // Send editing_form field values on submit
+
+    $("form#editing_form").validator().submit(function(e) {
+        var form = $(this);
+        // client-side validation OK
+        if (!e.isDefaultPrevented()) {
+        ff = $('form#editing_form').serializeArray();
+        // extract the text in the paragraphs in div#selected and squeeze it
+        routed = []
+        $('div#selected p').each(function(i) {
+            routed.push($(this).text())
+        })
+        // Append routes to the fields list
+        ff.push({name: "routed", value: routed});
+        $.post("networks", ff, function(json){
+            if (json.ok === true) {
+                $("img[rel]").each(function() {
+                    $(this).overlay().close();
+                });
+                $('div.tabpane div').load('/hosts');
+            } else {
+                form.data("validator").invalidate(json);
+            }
+        }, "json");
+            e.preventDefault();     // prevent default form submission logic
+        }
+    });
+
+
 
     // Help overlay
     $("img#help[rel]").overlay({ mask: {loadSpeed: 200, opacity: 0.9, }, });
