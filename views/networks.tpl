@@ -65,11 +65,11 @@ div#help_ovr {
           <p> Enter values and press the submit button. </p>
           <p>
              <label>Name *</label>
-             <input type="text" name="hostname" pattern="[a-zA-Z0-9_]{2,512}" maxlength="30" />
+             <input type="text" name="name" pattern="[a-zA-Z0-9_]{2,512}" maxlength="30" />
           </p>
           <p>
              <label>Address *</label>
-             <input type="text" name="iface" pattern="[a-zA-Z0-9]{2,32}" maxlength="30" />
+             <input type="text" name="ip_addr" pattern="[a-zA-Z0-9]{2,32}" maxlength="30" />
           </p>
           <p>
              <label>Netmask length *</label>
@@ -155,13 +155,7 @@ $(function() {
                 $("form#editing_form input[type=text]").each(function(n,f) {
                     f.value = json[f.name];
                 });
-                $("form#editing_form input[type=checkbox]").each(function(n,f) {
-                    f.checked = Boolean(json[f.name]);
-                });
                 $("form#editing_form input[name=token]").get(0).value = json['token'];
-                ds = $("div#selected").text('');
-                for (i in json.routed)
-                    ds.append('<p>'+json.routed[i]+'</p>');
                 set_form_trig();
             }, "json");
         },
@@ -172,29 +166,26 @@ $(function() {
     // Send editing_form field values on submit
 
     $("form#editing_form").validator().submit(function(e) {
+        console.log('a');
         var form = $(this);
         // client-side validation OK
         if (!e.isDefaultPrevented()) {
-        ff = $('form#editing_form').serializeArray();
-        // extract the text in the paragraphs in div#selected and squeeze it
-        routed = []
-        $('div#selected p').each(function(i) {
-            routed.push($(this).text())
-        })
-        // Append routes to the fields list
-        ff.push({name: "routed", value: routed});
-        $.post("networks", ff, function(json){
-            if (json.ok === true) {
-                $("img[rel]").each(function() {
-                    $(this).overlay().close();
-                });
-                $('div.tabpane div').load('/hosts');
-            } else {
-                form.data("validator").invalidate(json);
-            }
-        }, "json");
+            ff = $('form#editing_form').serializeArray();
+            console.log(ff);
+            $.post("networks", ff, function(json){
+                if (json.ok === true) {
+                    $("img[rel]").each(function() {
+                        $(this).overlay().close();
+                    });
+                    $('div.tabpane div').load('/hosts');
+                } else {
+                    form.data("validator").invalidate(json);
+                }
+            }, "json");
             e.preventDefault();     // prevent default form submission logic
-        }
+        } else {
+            console.log('not ok');
+        };
     });
 
 

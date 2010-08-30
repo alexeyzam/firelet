@@ -541,7 +541,7 @@ class FireSet(object):
     # editing methods
 
     def fetch(self, table, rid):
-        assert table in ('rules', 'hosts', 'hostgroups', 'services', 'network') ,  "Incorrect table name."
+        assert table in ('rules', 'hosts', 'hostgroups', 'services', 'networks') ,  "Incorrect table name."
         try:
             return self.__dict__[table][rid]
         except Exception, e:
@@ -549,7 +549,7 @@ class FireSet(object):
 
 
     def delete(self, table, rid):
-        assert table in ('rules', 'hosts', 'hostgroups', 'services', 'network') ,  "Incorrect table name."
+        assert table in ('rules', 'hosts', 'hostgroups', 'services', 'networks') ,  "Incorrect table name."
         try:
             self.__dict__[table].pop(rid)
         except Exception, e:

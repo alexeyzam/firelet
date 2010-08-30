@@ -331,36 +331,30 @@ def networks():
     #TODO: finish the following part
     elif action == 'save':
         d = {}
-        for f in ('hostname', 'iface', 'ip_addr', 'masklen'):
+        print '1'
+        for f in ('name', 'ip_addr', 'masklen'):
             d[f] = pg(f)
-        for f in ('local_fw', 'network_fw', 'mng'):
-            d[f] = pcheckbox(f)
-        r = pg('routed').split(',')
-        r = list(set(r)) # remove duplicate routed nets
-        d['routed'] = r
-        if rid == None:     # new host
+        if rid == None:     # new item
             try:
-                fs.hosts.add(d)
-                return ack('Host %s added.' % d['hostname'])
+                fs.networks.add(d)
+                return ack('Network %s added.' % d['name'])
             except Alert, e:
-                say('Unable to add %s.' % d['hostname'], level="alert")
-                return {'ok': False, 'hostname':'Must start with "test"'} #TODO: complete this
-        else:   # update host
+                say('Unable to add %s.' % d['name'], level="alert")
+                return {'ok': False, 'name':'Must start with "test"'} #TODO: complete this
+        else:   # update item
             try:
-                fs.hosts.update(d, rid=rid, token=pg('token'))
-                return ack('Host updated.')
+                print '2'
+                fs.networks.update(d, rid=rid, token=pg('token'))
+                return ack('Network updated.')
             except Alert, e:
-                say('Unable to edit %s.' % hostname, level="alert")
-                return {'ok': False, 'hostname':'Must start with "test"'} #TODO: complete this
+                say('Unable to edit %s.' % name, level="alert")
+                return {'ok': False, 'name':'Must start with "test"'} #TODO: complete this
     elif action == 'fetch':
         try:
-            h = fs.fetch('hosts', rid)
-            d = h.attr_dict()
-            for x in ('local_fw', 'network_fw', 'mng'):
-                d[x] = int(d[x])
-            return d
+            items = fs.fetch('networks', rid)
+            return items.attr_dict()
         except Alert, e:
-            say('TODO')
+            say('') #TODO: complete this
     else:
         log.error('Unknown action requested: "%s"' % action)
 
