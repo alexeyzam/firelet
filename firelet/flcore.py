@@ -145,14 +145,18 @@ class Host(NetworkObj):
 class Network(NetworkObj):
     def __init__(self, r):
         self.name = r[0]
-        self.update(r[1], r[2])
+        self.update({'ip_addr': r[1], 'masklen': r[2]})
 
     def ipt(self):
         """String representation for iptables"""
         return "%s/%s" % (self.ip_addr, self.masklen)
 
-    def update(self, addr, masklen):
+    def update(self, d):
         """Get the correct network address and update attributes"""
+        addr = d['ip_addr']
+        masklen = d['masklen']
+
+
         masklen = int(masklen)
         real_addr = net_addr(addr, masklen)
         self.ip_addr = real_addr

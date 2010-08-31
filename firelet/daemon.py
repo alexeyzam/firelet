@@ -331,7 +331,6 @@ def networks():
     #TODO: finish the following part
     elif action == 'save':
         d = {}
-        print '1'
         for f in ('name', 'ip_addr', 'masklen'):
             d[f] = pg(f)
         if rid == None:     # new item
@@ -343,7 +342,6 @@ def networks():
                 return {'ok': False, 'name':'Must start with "test"'} #TODO: complete this
         else:   # update item
             try:
-                print '2'
                 fs.networks.update(d, rid=rid, token=pg('token'))
                 return ack('Network updated.')
             except Alert, e:

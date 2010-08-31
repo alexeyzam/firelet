@@ -69,7 +69,7 @@ div#help_ovr {
           </p>
           <p>
              <label>Address *</label>
-             <input type="text" name="ip_addr" pattern="[a-zA-Z0-9]{2,32}" maxlength="30" />
+             <input type="text" name="ip_addr" pattern="[0-9.:]{7,}" maxlength="30" />
           </p>
           <p>
              <label>Netmask length *</label>
@@ -85,7 +85,6 @@ div#help_ovr {
     </form>
     <p>Enter and Esc keys are supported.</p>
 </div>
-
 
 
 <script>
@@ -165,19 +164,19 @@ $(function() {
 
     // Send editing_form field values on submit
 
-    $("form#editing_form").validator().submit(function(e) {
-        console.log('a');
+    // FIXME: validator is not showing error messages
+
+   $("form#editing_form").validator().submit(function(e) {
         var form = $(this);
         // client-side validation OK
         if (!e.isDefaultPrevented()) {
             ff = $('form#editing_form').serializeArray();
-            console.log(ff);
             $.post("networks", ff, function(json){
                 if (json.ok === true) {
                     $("img[rel]").each(function() {
                         $(this).overlay().close();
                     });
-                    $('div.tabpane div').load('/hosts');
+                    $('div.tabpane div').load('/networks');
                 } else {
                     form.data("validator").invalidate(json);
                 }
