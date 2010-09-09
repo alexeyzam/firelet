@@ -310,51 +310,41 @@ def net_names():
 @bottle.route('/networks')
 @view('networks')
 def networks():
+    """Generate the HTML networks table"""
     _require()
     return dict(networks=enumerate(fs.networks))
 
 @bottle.route('/networks', method='POST')
 def networks():
+    """Add/edit/delete a network"""
     _require('editor')
     action = pg('action', '')
     rid = int_pg('rid')
-    if action == 'delete':
-        try:
-            assert rid, "Item number not provided"
+    try:
+        if action == 'delete':
+            item = fs.fetch('networks', rid)
+            name = item.name
             fs.delete('networks', rid)
-            say("Network %s deleted." % rid, level="success")
-            return
-        except Exception, e:
-            say("Unable to delete %s - %s" % (rid, e), level="alert")
-            abort(500)
-
-    #TODO: finish the following part
-    elif action == 'save':
-        d = {}
-        for f in ('name', 'ip_addr', 'masklen'):
-            d[f] = pg(f)
-        if rid == None:     # new item
-            try:
+            say("Network %s deleted." % name, level="success")
+        elif action == 'save':
+            d = {}
+            for f in ('name', 'ip_addr', 'masklen'):
+                d[f] = pg(f)
+            if rid == None:     # new item
                 fs.networks.add(d)
                 return ack('Network %s added.' % d['name'])
-            except Alert, e:
-                say('Unable to add %s.' % d['name'], level="alert")
-                return {'ok': False, 'name':'Must start with "test"'} #TODO: complete this
-        else:   # update item
-            try:
+            else:                     # update item
                 fs.networks.update(d, rid=rid, token=pg('token'))
-                return ack('Network updated.')
-            except Alert, e:
-                say('Unable to edit %s.' % name, level="alert")
-                return {'ok': False, 'name':'Must start with "test"'} #TODO: complete this
-    elif action == 'fetch':
-        try:
-            items = fs.fetch('networks', rid)
-            return items.attr_dict()
-        except Alert, e:
-            say('') #TODO: complete this
-    else:
-        log.error('Unknown action requested: "%s"' % action)
+                return ack('Network %s updated.' % d['name'])
+        elif action == 'fetch':
+            item = fs.fetch('networks', rid)
+            return item.attr_dict()
+        else:
+            log.error('Unknown action requested: "%s"' % action)
+
+    except Exception, e:
+        say("Unable to %s network n. %s - %s" % (action, rid, e), level="alert")
+        abort(500)
 
 
 

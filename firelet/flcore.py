@@ -407,6 +407,13 @@ class Networks(SmartTable):
     def save(self):
         li = [[x.name, x.ip_addr, x.masklen] for x in self._list]
         savecsv('networks', li, self._dir)
+    def add(self, f): #TODO: unit testing
+        """Add a new item based on a dict of fields"""
+        names = [x.name for x in self._list]
+        assert f['name'] not in names, "Network '%s' already defined" % f['name']
+        li = [f[x] for x in ('name', 'ip_addr', 'masklen')]
+        self._list.append(Network(li))
+        self.save()
 
 
 class Services(SmartTable):
