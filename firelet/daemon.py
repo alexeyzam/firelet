@@ -19,7 +19,7 @@
 import logging as log
 from beaker.middleware import SessionMiddleware
 import bottle
-from bottle import route, send_file, run, view, request
+from bottle import abort, route, send_file, run, view, request
 from bottle import debug as bottle_debug
 from collections import defaultdict
 from datetime import datetime
@@ -218,27 +218,50 @@ def ruleset():
         say("Rule %d enabled." % rid)
 
 
+@bottle.route('/sib_names', method='POST')
+def sib_names():
+    _require()
+    nn = [hg.childs for hg in fs.hostgroups]
+    return dict(sib_names=nn)
+
 @bottle.route('/hostgroups')
 @view('hostgroups')
 def hostgroups():
+    """Generate the HTML hostgroups table"""
     _require()
     return dict(hostgroups=enumerate(fs.hostgroups))
 
 @bottle.route('/hostgroups', method='POST')
 def hostgroups():
+    """Add/edit/delete a hostgroup"""
     _require('editor')
     action = pg('action', '')
     rid = int_pg('rid')
-    if action == 'delete':
-        try:
-            assert rid, "Item number not provided"
-
+    try:
+        if action == 'delete':
+            item = fs.fetch('hostgroups', rid)
+            name = item.name
             fs.delete('hostgroups', rid)
-            say("Host Group %s deleted." % rid, level="success")
-            return
-        except Exception, e:
-            say("Unable to delete %s - %s" % (rid, e), level="alert")
-            abort(500)
+            return ack("Hostgroup %s deleted." % name)
+        elif action == 'save':
+            d = {'name': pg('name'),
+                    'childs': pg('siblings').split() }
+            if rid == None:     # new item
+                fs.hostgroups.add(d)
+                return ack('Hostgroup %s added.' % d['name'])
+            else:                     # update item
+                fs.hostgroups.update(d, rid=rid, token=pg('token'))
+                return ack('Hostgroup %s updated.' % d['name'])
+        elif action == 'fetch':
+            item = fs.fetch('hostgroups', rid)
+            return item.attr_dict()
+        else:
+            log.error('Unknown action requested: "%s"' % action)
+    except Exception, e:
+        say("Unable to %s hostgroup n. %s - %s" % (action, rid, e), level="alert")
+        abort(500)
+
+
 
 def ack(s=None):
     """Acknowledge successful form processing and returns ajax confirmation."""
@@ -254,52 +277,42 @@ def hosts():
 
 @bottle.route('/hosts', method='POST')
 def hosts():
+    """Add/edit/delete a host"""
     _require('editor')
     action = pg('action', '')
     rid = int_pg('rid')
-    if action == 'delete':
-        try:
+    try:
+        if action == 'delete':
+            h = fs.fetch('hosts', rid)
+            name = h.hostname
             fs.delete('hosts', rid)
-            say("Host %s deleted." % rid, level="success")
-            return
-        except Exception, e:
-            say("Unable to delete %s - %s" % (rid, e), level="alert")
-            abort(500)
-    elif action == 'save':
-        d = {}
-        for f in ('hostname', 'iface', 'ip_addr', 'masklen'):
-            d[f] = pg(f)
-        for f in ('local_fw', 'network_fw', 'mng'):
-            d[f] = pcheckbox(f)
-        r = pg('routed').split(',')
-        r = list(set(r)) # remove duplicate routed nets
-        d['routed'] = r
-        if rid == None:     # new host
-            try:
+            say("Host %s deleted." % name, level="success")
+        elif action == 'save':
+            d = {}
+            for f in ('hostname', 'iface', 'ip_addr', 'masklen'):
+                d[f] = pg(f)
+            for f in ('local_fw', 'network_fw', 'mng'):
+                d[f] = pcheckbox(f)
+            r = pg('routed').split(',')
+            r = list(set(r)) # remove duplicate routed nets
+            d['routed'] = r
+            if rid == None:     # new host
                 fs.hosts.add(d)
                 return ack('Host %s added.' % d['hostname'])
-            except Alert, e:
-                say('Unable to add %s.' % d['hostname'], level="alert")
-                return {'ok': False, 'hostname':'Must start with "test"'} #TODO: complete this
-        else:   # update host
-            try:
+            else:   # update host
                 fs.hosts.update(d, rid=rid, token=pg('token'))
-                return ack('Host updated.')
-            except Alert, e:
-                say('Unable to edit %s.' % hostname, level="alert")
-                return {'ok': False, 'hostname':'Must start with "test"'} #TODO: complete this
-    elif action == 'fetch':
-        try:
+                return ack('Host %s updated.' % d['hostname'])
+        elif action == 'fetch':
             h = fs.fetch('hosts', rid)
             d = h.attr_dict()
             for x in ('local_fw', 'network_fw', 'mng'):
                 d[x] = int(d[x])
             return d
-        except Alert, e:
-            say('TODO')
-    else:
-        log.error('Unknown action requested: "%s"' % action)
-
+        else:
+            raise Exception, 'Unknown action requested: "%s"' % action
+    except Exception, e:
+        say("Unable to %s host n. %s - %s" % (action, rid, e), level="alert")
+        abort(500)
 
 @bottle.route('/net_names', method='POST')
 def net_names():
@@ -341,13 +354,9 @@ def networks():
             return item.attr_dict()
         else:
             log.error('Unknown action requested: "%s"' % action)
-
     except Exception, e:
         say("Unable to %s network n. %s - %s" % (action, rid, e), level="alert")
         abort(500)
-
-
-
 
 @bottle.route('/services')
 @view('services')

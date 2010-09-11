@@ -396,7 +396,15 @@ class HostGroups(SmartTable):
     def save(self):
         li = [[x.name] + x.childs for x in self._list]
         savecsv('hostgroups', li, self._dir)
-
+    def add(self, f): #TODO: unit testing
+        """Add a new item based on a dict of fields"""
+        assert 'name' in f, '"name" field missing'
+        assert 'childs' in f,  '"childs" field missing'
+        names = [x.name for x in self._list]
+        assert f['name'] not in names, "Hostgroup '%s' already defined" % f['name']
+        li = [f['name']] + f['childs']
+        self._list.append(HostGroup(li))
+        self.save()
 
 class Networks(SmartTable):
     """A list of Bunch instances"""
