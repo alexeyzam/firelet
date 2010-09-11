@@ -396,8 +396,13 @@ class HostGroups(SmartTable):
     def save(self):
         li = [[x.name] + x.childs for x in self._list]
         savecsv('hostgroups', li, self._dir)
+    def _prevent_loop(self):
+        """Detect if a hostgroup generates a loop."""
+        pass
+
     def add(self, f): #TODO: unit testing
-        """Add a new item based on a dict of fields"""
+        """Add a new item based on a dict of fields.
+        (No loop risk here)"""
         assert 'name' in f, '"name" field missing'
         assert 'childs' in f,  '"childs" field missing'
         names = [x.name for x in self._list]
@@ -405,6 +410,38 @@ class HostGroups(SmartTable):
         li = [f['name']] + f['childs']
         self._list.append(HostGroup(li))
         self.save()
+
+
+    def _simpleflatten(self, node):
+        for root_hg in self._list:
+            if node == root_hg.name:
+                m = map(self._simpleflatten, root_hg.childs)
+                return sum(m, [])
+        return [node]
+
+
+    def update(self, d, rid=None, token=None):
+        """Perform loop checking before running the original "update" method.
+        A loop happens when a HostGroup contains itself in one of its siblings (once flattened)"""
+        assert rid != None, "Malformed input row ID is missing."
+        try:
+            item = self.__getitem__(int(rid))
+        except IndexError:
+            raise Alert, "Item to be updated not found: one or more items has been modified in the meantime."
+        if token:
+            assert token == item._token(), "Unable to update: one or more items has been modified in the meantime."
+        print
+        for child in d['childs']:
+            flat = self._simpleflatten(child)
+            assert item.name not in flat, "Loop "
+            print "flattened child %s -> %s" % (child,  repr(self._simpleflatten(child)))
+
+        print
+        item.update(d)
+        self.save()
+
+#        super(HostGroups, self).update(d, rid, token)
+
 
 class Networks(SmartTable):
     """A list of Bunch instances"""

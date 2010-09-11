@@ -73,6 +73,14 @@ def pg(name, default=''):
     s = request.POST.get(name, default)[:64]
     return clean(s).strip()
 
+def pg_list(name, default=''):
+    """Retrieve a serialized (comma-separated) list from a POST request.
+    Duplicated elements are removed"""
+    # FIXME: a hostgroup containing hundreds of hosts may exceed POST size
+    s = request.POST.get(name, default)
+    li = clean(s).strip().split(',')
+    return list(set(li))
+
 def int_pg(name, default=None):
     """Retrieve an element from a POST request and returns it as an integer"""
     v = request.POST.get(name, default)
@@ -219,10 +227,18 @@ def ruleset():
 
 
 @bottle.route('/sib_names', method='POST')
-def sib_names():
+def sib_names():        #TODO: unit testing
+    """Return a list of all the available siblings for a hostgroup being created or edited.
+    Used in the ajax form."""
     _require()
-    nn = [hg.childs for hg in fs.hostgroups]
-    return dict(sib_names=nn)
+    items = set()
+    for hg in fs.hostgroups:
+        items.add(hg.name)
+        for c in hg.childs:
+            items.add(c)
+    for h in fs.hosts:
+        items.add("%s:%s" % (h.hostname, h.iface))
+    return dict(sib_names=sorted(items))
 
 @bottle.route('/hostgroups')
 @view('hostgroups')
@@ -244,8 +260,9 @@ def hostgroups():
             fs.delete('hostgroups', rid)
             return ack("Hostgroup %s deleted." % name)
         elif action == 'save':
+            childs = pg_list('siblings')
             d = {'name': pg('name'),
-                    'childs': pg('siblings').split() }
+                    'childs': childs}
             if rid == None:     # new item
                 fs.hostgroups.add(d)
                 return ack('Hostgroup %s added.' % d['name'])
@@ -293,9 +310,7 @@ def hosts():
                 d[f] = pg(f)
             for f in ('local_fw', 'network_fw', 'mng'):
                 d[f] = pcheckbox(f)
-            r = pg('routed').split(',')
-            r = list(set(r)) # remove duplicate routed nets
-            d['routed'] = r
+            d['routed'] = pg_list('routed')
             if rid == None:     # new host
                 fs.hosts.add(d)
                 return ack('Host %s added.' % d['hostname'])
