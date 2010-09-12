@@ -26,7 +26,7 @@ from struct import pack, unpack
 import logging
 
 from flssh import SSHConnector
-from flutils import Alert, Bunch, flag
+from flutils import Alert, Bunch, flag, extract_all
 
 __version__ = 0.4
 
@@ -58,8 +58,25 @@ except ImportError:
         for prod in result:
             yield tuple(prod)
 
+protocols = ['AH', 'ESP', 'ICMP', 'IP', 'TCP', 'UDP']
+# unsupported by iptables: 'IGMP','','OSPF', 'EIGRP','IPIP','VRRP','IS-IS', 'SCTP', 'AH', 'ESP'
 
-protocols = ['IP','TCP', 'UDP', 'OSPF', 'IS-IS', 'SCTP', 'AH', 'ESP']
+icmp_types = {
+    '': 'all',
+    0: 'echo-reply',
+    3: 'destination-unreachable',
+    4: 'source-quench',
+    5: 'redirect',
+    8: 'echo-request',
+    9: 'router-advertisement',
+    10: 'router-solicitation',
+    11: 'ttl-exceeded',
+    12: 'parameter-problem',
+    13: 'timestamp-request',
+    14: 'timestamp-reply',
+    17: 'address-mask-request',
+    18: 'address-mask-reply'
+}
 
 
 #input validation
@@ -84,35 +101,12 @@ def clean(s):
 
 # Network objects
 
-class NetworkObj(object):
-    """Can be a host, a network or a hostgroup.
-    It is a dictionary that exposes its keys as instance attributes.
-    """
-    def __repr__(self):
-        return repr(self.__dict__)
-
-    def __len__(self):
-        return len(self.__dict__)
-
-    def _token(self):
-        return hex(abs(hash(str(self.__dict__))))[2:]
-
-    def attr_dict(self):
-        d = deepcopy(self.__dict__)
-        d['token'] = self._token()
-        return d
-
-    def update(self, d):
-        for k in self.__dict__:
-            self.__dict__[k] = d[k]
-
-
-class Sys(NetworkObj):
+class Sys(Bunch):
     def __init__(self, name, ifaces={}):
         self.ifaces = ifaces
 
 
-class Host(NetworkObj):
+class Host(Bunch):
     def __init__(self, r):
         self.hostname=r[0]
         self.iface=r[1]
@@ -142,7 +136,7 @@ class Host(NetworkObj):
         return Network(['', self.ip_addr, self.masklen])
 
 
-class Network(NetworkObj):
+class Network(Bunch):
     def __init__(self, r):
         self.name = r[0]
         self.update({'ip_addr': r[1], 'masklen': r[2]})
@@ -174,7 +168,7 @@ class Network(NetworkObj):
             return addr_ok and net_ok
 
 
-class HostGroup(NetworkObj):
+class HostGroup(Bunch):
     """A Host Group contains hosts, networks, and other host groups"""
 
     def __init__(self, li):
@@ -227,6 +221,31 @@ class HostGroup(NetworkObj):
 ##        return filter(lambda i: type(i) == Host, self._flatten(self)) # better?
 ##        return [n for n in self._flatten(self) if isinstance(n, Host)]
 
+class Service(Bunch):
+    def update(self, d):
+        """Validate, then set/update the internal dictionary""" #TODO: unit testing
+        ports = d['ports']
+        if d['protocol'] in ('TCP', 'UDP') and ports:
+            for block in ports.split(','):
+                try:
+                    int_li = [int(i) for i in block.split(':')]
+                except ValueError:
+                    raise Alert, "Incorrect syntax in port definition '%s'" % block
+                assert len(int_li) < 3, "Too many items in port range '%s'" % block
+                for i in int_li:
+                    assert i >= 0, "Negative port number '%s'" % i
+                    assert i < 65536, "Port number too high '%s'" % i
+                if len(int_li) == 2:
+                    assert int_li[0] <= int_li[1], "Reversed port range '%s'" % block
+        elif d['protocol'] == 'ICMP' and ports:
+            try:
+                icmp_type = int(ports)
+            except ValueError:
+                raise Alert,  "Invalid ICMP Type '%s'" % ports
+            assert icmp_type in icmp_types, "Invalid ICMP Type '%s'" % icmp_type
+        else: # protocols without ports
+            d['ports'] = ''
+        super(Service, self).update(d)
 
 class NetworkObjTable(object):
     """Contains a set of hosts or networks or hostgroups.
@@ -449,9 +468,11 @@ class Networks(SmartTable):
         self._dir = d
         li = readcsv('networks', d)
         self._list = [ Network(r) for r in li ]
+
     def save(self):
         li = [[x.name, x.ip_addr, x.masklen] for x in self._list]
         savecsv('networks', li, self._dir)
+
     def add(self, f): #TODO: unit testing
         """Add a new item based on a dict of fields"""
         names = [x.name for x in self._list]
@@ -466,11 +487,19 @@ class Services(SmartTable):
     def __init__(self, d):
         self._dir = d
         li = readcsv('services', d)
-        self._list = [ Bunch(name=r[0], proto=r[1], ports=r[2]) for r in li ]
+        self._list = [ Service(name=r[0], protocol=r[1], ports=r[2]) for r in li ]
+
     def save(self):
-        li = [[x.name, x.proto, x.ports] for x in self._list]
+        li = [[x.name, x.protocol, x.ports] for x in self._list]
         savecsv('services', li, self._dir)
 
+    def add(self, f): #TODO: unit testing
+        """Add a new item based on a dict of fields"""
+        d = extract_all(f, ('name', 'protocol', 'ports'))
+        names = [x.name for x in self._list]
+        assert d['name'] not in names, "Service '%s' already defined" % d['name']
+        self._list.append(Service(**d))
+        self.save()
 
 # CSV files
 
@@ -738,7 +767,7 @@ class FireSet(object):
 #        hgs = dict((entry[0], (entry[1:])) for entry in self.hostgroups) # host groups
 #        hg_flat = dict((hg, self._flattenhg(hgs[hg], addr, net, hgs)) for hg in hgs) # flattened to {hg: hosts and networks}
 
-        proto_port = dict((sr.name, (sr.proto, sr.ports)) for sr in self.services) # protocol
+        proto_port = dict((sr.name, (sr.protocol, sr.ports)) for sr in self.services) # protocol
         proto_port['*'] = (None, '') # special case for "any"      # port format: "2:4,5:10,10:33,40,50"
 
         host_by_name_col_iface = dict((h.hostname + ":" + h.iface, h) for h in self.hosts)
@@ -765,7 +794,7 @@ class FireSet(object):
                 raise Alert, "Item %s is not defined." % n + repr(host_by_name_col_iface)
 
         log.debug('Compiling ruleset...')
-        # for each rule, for each (src,dst) tuple, compiles a list  [ (proto, src, sports, dst, dports, log_val, rule_name, action), ... ]
+        # for each rule, for each (src,dst) tuple, compiles a list  [ (protocol, src, sports, dst, dports, log_val, rule_name, action), ... ]
         compiled = []
 #        for ena, name, src, src_serv, dst, dst_serv, action, log_val, desc in self.rules:  # for each rule
         for rule in self.rules:  # for each rule

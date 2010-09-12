@@ -166,14 +166,6 @@ $(function() {
         });
     });
 
-
-        function set_form_trig() {
-        // Remove routed networks on click
-        $("div#selected p").click(function() {
-            $(this).remove();
-        })
-    }
-
     function reset_form() {
         $("form#editing_form input")
         .val('')

@@ -156,7 +156,7 @@ div#multisel div#selected p:hover {
           <div id="multisel">
             <p>Routed networks</p>
             <div id="selected">
-                <p>au</p>
+                <p></p>
             </div>
             <select id="multisel">
                 <option></option>

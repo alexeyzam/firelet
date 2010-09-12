@@ -31,7 +31,7 @@ from confreader import ConfReader
 import mailer
 from flcore import Alert, GitFireSet, DemoGitFireSet, Users, clean
 from flmap import draw_png_map, draw_svg_map
-from flutils import flag
+from flutils import flag, extract_all
 
 from bottle import HTTPResponse, HTTPError
 
@@ -376,23 +376,46 @@ def networks():
 @bottle.route('/services')
 @view('services')
 def services():
+    """Generate the HTML services table"""
     _require()
     return dict(services=enumerate(fs.services))
 
 @bottle.route('/services', method='POST')
 def services():
+    """Add/edit/delete a service"""
     _require('editor')
     action = pg('action', '')
     rid = int_pg('rid')
-    if action == 'delete':
-        try:
+    try:
+        if action == 'delete':
+            item = fs.fetch('services', rid)
+            name = item.name
             fs.delete('services', rid)
-            say("Service %s deleted." % rid, level="success")
-            return
-        except Exception, e:
-            say("Unable to delete %s - %s" % (rid, e), level="alert")
-            abort(500)
-
+            say("service %s deleted." % name, level="success")
+        elif action == 'save':
+            d = {'name': pg('name'),
+                    'protocol': pg('protocol')}
+            print '123123123',  d['protocol']
+            if d['protocol'] in ('TCP', 'UDP'):
+                d['ports'] = pg('ports')
+            elif d['protocol'] == 'ICMP':
+                d['ports'] = pg('icmp_type')
+            else:
+                d['ports'] = ''
+            if rid == None:     # new item
+                fs.services.add(d)
+                return ack('Service %s added.' % d['name'])
+            else:                     # update item
+                fs.services.update(d, rid=rid, token=pg('token'))
+                return ack('Service %s updated.' % d['name'])
+        elif action == 'fetch':
+            item = fs.fetch('services', rid)
+            return item.attr_dict()
+        else:
+            log.error('Unknown action requested: "%s"' % action)
+    except Exception, e:
+        say("Unable to %s service n. %s - %s" % (action, rid, e), level="alert")
+        abort(500)
 
 # management commands
 
