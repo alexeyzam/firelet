@@ -527,7 +527,7 @@ def static_file(filename):
     elif filename == 'jquery-ui.custom.css': #TODO: support version change
         send_file('/usr/share/javascript/jquery-ui/css/smoothness/jquery-ui-1.7.2.custom.css')
     else:
-        send_file(filename, root='static')
+        send_file(filename, root='static')  #TODO: investigate using static_file
 
 @bottle.route('/favicon.ico')
 def favicon():
