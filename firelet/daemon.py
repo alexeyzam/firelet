@@ -224,6 +224,12 @@ def ruleset():
     elif action == 'enable':
         fs.rule_enable(rid)
         say("Rule %d enabled." % rid)
+    elif action == "save":
+        fields = ('enabled','name', 'src', 'src_serv', 'dst', 'dst_serv', 'desc')
+        d = dict((f, pg(f)) for f in fields)
+        d['action'] = pg('rule_action')
+        d['log_level'] = pg('log')
+        fs.rules.update(d, rid=pg('rid'), token=pg('token'))
 
 @bottle.route('/ruleset_form', method='POST')
 @view('ruleset_form')

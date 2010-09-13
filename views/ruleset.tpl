@@ -68,6 +68,12 @@ div#multisel div#selected p {
 div#multisel div#selected p:hover {
     text-decoration: line-through;
 }
+
+table#items tr td.hea { width: 15em; }
+
+table#items { width: 100%;}
+
+
 </style>
 
 <img id="help" src="static/help.png" rel="div#help_ovr" title="Help">
@@ -100,7 +106,7 @@ div#multisel div#selected p:hover {
             <img class="action" src="/static/enable.png" title="Enable rule" action="enable">
             %end
             <img class="action" src="/static/delete.png" title="Delete rule" action="delete">
-            <img src="/static/edit.png" title="Edit rule" id="{{rid}}" rel="#editing_form" class="edit">
+            <!--<img src="/static/edit.png" title="Edit rule" id="{{rid}}" rel="#editing_form" class="edit">-->
         </td>
         <td>
                 % if rule.enabled =='1':
@@ -197,18 +203,17 @@ $(function() {
       $(this).fadeTo("fast", 0.6);
     });
 
-    $(function() {
-        $('img.action').click(function() {
-            td = this.parentElement.parentElement;
-            name = td.children[1].innerText;
-            action = $(this).attr('action');
-            $('.tooltip').hide();
-            $.post("ruleset", { action: action, name: name, rid: td.id},
-                function(data){
-                    $('div.tabpane div').load('/ruleset');
-                });
-        });
+    $('img.action').click(function() {
+        td = this.parentElement.parentElement;
+        name = td.children[1].innerText;
+        action = $(this).attr('action');
+        $('.tooltip').hide();
+        $.post("ruleset", { action: action, name: name, rid: td.id},
+            function(data){
+                $('div.tabpane div').load('/ruleset');
+            });
     });
+
     // Help overlay
     $("img#help[rel]").overlay({ mask: {loadSpeed: 200, opacity: 0.9, }, });
 

@@ -372,6 +372,18 @@ class Rules(SmartTable):
         self._list[rid][0] = 'y'
         self.save()
 
+    def update(self, d, rid=None, token=None):
+        """Update internal dictionary based on d"""
+        assert rid != None, "Malformed input row ID is missing."
+        try:
+            item = self.__getitem__(int(rid))
+        except IndexError:
+            raise Alert, "Item to be updated not found: one or more items has been modified in the meantime."
+        if token:
+            assert token == item._token(), "Unable to update: one or more items has been modified in the meantime."
+        item.update(d)
+        self.save()
+
 
 class Hosts(SmartTable):
     """A list of Bunch instances"""

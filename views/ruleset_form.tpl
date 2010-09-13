@@ -1,11 +1,11 @@
 
 <td class="hea">
-    <img class="action" src="/static/save.png" title="Save" action="save">
+    <img id="save" src="/static/save.png" title="Save" action="save">
     <img class="action" src="/static/back.png" title="Cancel" action="cancel">
     <img class="action" src="/static/delete.png" title="Delete rule" action="delete">
 </td>
 <td>
-    <input type="checkbox" name="'+i+'"
+    <input type="checkbox" name="enabled"
         % if rule.enabled =='1':
         checked=""
         % end
@@ -45,7 +45,7 @@
     </select>
 </td>
 <td>
-    <select name="action">
+    <select name="rule_action">
         % for i in ('ACCEPT', 'DROP'):
         %   s = ' selected="" ' if rule.action == i else ''
         <option {{s}}>{{i}}</option>
@@ -54,13 +54,31 @@
 </td>
 <td>
     <select name="log">
-        % for i in (0,1,2):
+        % for i in (0,1,2,3):
         %   s = ' selected="" ' if rule.log_level == str(i) else ''
         <option{{s}}>{{i}}</option>
         % end
     </select>
 </td>
 <td><input type="text" name="desc" value="{{rule.desc}}" /></td>
-<td><input type="hidden" token="'+i+'" value="{{rule._token()}}" /></td>
+<input type="hidden" value="{{rule._token()}}" />
+<input type="hidden" name="action" value="save" />
+<input type="hidden" name="rid" value="{{rid}}" />
 
 
+
+<script>
+// Perform cancel or deleto or send the form contents upon save
+
+
+$('img.#save').click(function() {
+    ff = $(this).parents('tr').find('input,select').serializeArray();
+    rid = $(this).parent().attr('id');
+    ff.rid = rid;
+    $('.tooltip').hide();
+    $.post("ruleset", ff,
+        function(data){
+            $('div.tabpane div').load('/ruleset');
+        });
+});
+</script>
