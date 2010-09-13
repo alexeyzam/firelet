@@ -115,6 +115,8 @@ div#multisel div#selected p:hover {
         <td>{{rule.action}}</td>
         <td>{{rule.log_level}}</td>
         <td>{{rule.desc}}</td>
+        <td>{{rule._token()}}</td>
+
     </tr>
     % end
 </table>
@@ -123,7 +125,7 @@ div#multisel div#selected p:hover {
 <div id="editing_form">
     <form id="editing_form">
        <fieldset>
-          <h3>Host editing</h3>
+          <h3>Rule editing</h3>
           <p> Enter values and press the submit button. </p>
 
           <p>
@@ -212,17 +214,45 @@ $(function() {
 
 
     /// Editing form ///
+    /*
+    $("table#items tr td").dblclick(function() {
 
+        $(this).parent().children().each(function(i) {
+            content = $(this).html()
+            switch (i) {
+                case 1:
+                $(this).html('<input type="checkbox" name="'+i+'" checked="" />');
+                break;
+                case 2:
+                $(this).html('<input type="text" name="'+i+'" value="'+content+'" />');
+                break;
+                case  7:
+                $(this).html('<select name="action"><option>Accept</option><option>Drop</option></select>');
+                $(this).value = content
+                break;
+                case  8:
+                $(this).html('<select name="log"><option>0</option><option>1</option><option>2</option></select>');
+                $(this).value = content
+                break;
+                case  9:
+                $(this).html('<input type="text" name="'+i+'" value="'+content+'" />');
+                break;
+                case  10:
+                $(this).html('<input type="hidden" token="'+i+'" value="'+content+'" /><img src="">');
+                break;
 
-    // Populate the routed network combo box based on the existing networks
-    function insert_net_names() {
-        $.post("net_names",{}, function(json){
-            s = $("select#multisel");
-            s.html("<option></option>");
-            for (i in json.net_names)
-                s.append("<option>"+json.net_names[i]+"</option>")
-        })
-    }
+            }
+        });
+    })
+    */
+
+    $("table#items tr td").dblclick(function() {
+        rid = $(this).parent().attr('id');
+        $(this).parent().load('ruleset_form', {rid: rid}, function() {
+            console.log();
+        });
+
+    })
 
     function set_form_trig() {
         // Remove routed networks on click

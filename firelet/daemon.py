@@ -225,6 +225,51 @@ def ruleset():
         fs.rule_enable(rid)
         say("Rule %d enabled." % rid)
 
+@bottle.route('/ruleset_form', method='POST')
+@view('ruleset_form')
+def ruleset_form():
+    """Generate an inline editing form for a rule"""
+    _require()
+    rid = int_pg('rid')
+    rule = fs.rules[rid]
+    services =  ['*'] + [s.name for s in fs.services]
+    objs = ["%s:%s" % (h.hostname, h.iface) for h in fs.hosts] + \
+        [hg.name for hg in fs.hostgroups] + \
+        [n.name for n in fs.networks]
+    return dict(rule=rule, rid=rid, services=services, objs=objs)
+
+#
+#    try:
+#        if action == 'delete':
+#            h = fs.fetch('hosts', rid)
+#            name = h.hostname
+#            fs.delete('hosts', rid)
+#            say("Host %s deleted." % name, level="success")
+#        elif action == 'save':
+#            d = {}
+#            for f in ('hostname', 'iface', 'ip_addr', 'masklen'):
+#                d[f] = pg(f)
+#            for f in ('local_fw', 'network_fw', 'mng'):
+#                d[f] = pcheckbox(f)
+#            d['routed'] = pg_list('routed')
+#            if rid == None:     # new host
+#                fs.hosts.add(d)
+#                return ack('Host %s added.' % d['hostname'])
+#            else:   # update host
+#                fs.hosts.update(d, rid=rid, token=pg('token'))
+#                return ack('Host %s updated.' % d['hostname'])
+#        elif action == 'fetch':
+#            h = fs.fetch('hosts', rid)
+#            d = h.attr_dict()
+#            for x in ('local_fw', 'network_fw', 'mng'):
+#                d[x] = int(d[x])
+#            return d
+#        else:
+#            raise Exception, 'Unknown action requested: "%s"' % action
+#    except Exception, e:
+#        say("Unable to %s host n. %s - %s" % (action, rid, e), level="alert")
+#        abort(500)
+
 
 @bottle.route('/sib_names', method='POST')
 def sib_names():        #TODO: unit testing
