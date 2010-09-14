@@ -225,8 +225,9 @@ def ruleset():
         fs.rule_enable(rid)
         say("Rule %d enabled." % rid)
     elif action == "save":
-        fields = ('enabled','name', 'src', 'src_serv', 'dst', 'dst_serv', 'desc')
+        fields = ('name', 'src', 'src_serv', 'dst', 'dst_serv', 'desc')
         d = dict((f, pg(f)) for f in fields)
+        d['enabled'] = flag(pg('enabled'))
         d['action'] = pg('rule_action')
         d['log_level'] = pg('log')
         fs.rules.update(d, rid=pg('rid'), token=pg('token'))
@@ -243,38 +244,6 @@ def ruleset_form():
         [hg.name for hg in fs.hostgroups] + \
         [n.name for n in fs.networks]
     return dict(rule=rule, rid=rid, services=services, objs=objs)
-
-#
-#    try:
-#        if action == 'delete':
-#            h = fs.fetch('hosts', rid)
-#            name = h.hostname
-#            fs.delete('hosts', rid)
-#            say("Host %s deleted." % name, level="success")
-#        elif action == 'save':
-#            d = {}
-#            for f in ('hostname', 'iface', 'ip_addr', 'masklen'):
-#                d[f] = pg(f)
-#            for f in ('local_fw', 'network_fw', 'mng'):
-#                d[f] = pcheckbox(f)
-#            d['routed'] = pg_list('routed')
-#            if rid == None:     # new host
-#                fs.hosts.add(d)
-#                return ack('Host %s added.' % d['hostname'])
-#            else:   # update host
-#                fs.hosts.update(d, rid=rid, token=pg('token'))
-#                return ack('Host %s updated.' % d['hostname'])
-#        elif action == 'fetch':
-#            h = fs.fetch('hosts', rid)
-#            d = h.attr_dict()
-#            for x in ('local_fw', 'network_fw', 'mng'):
-#                d[x] = int(d[x])
-#            return d
-#        else:
-#            raise Exception, 'Unknown action requested: "%s"' % action
-#    except Exception, e:
-#        say("Unable to %s host n. %s - %s" % (action, rid, e), level="alert")
-#        abort(500)
 
 
 @bottle.route('/sib_names', method='POST')
