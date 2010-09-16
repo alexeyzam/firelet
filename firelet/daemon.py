@@ -194,43 +194,43 @@ def ruleset():
 
 @bottle.route('/ruleset', method='POST')
 def ruleset():
+    """Make changes on a rule."""
     _require('editor')
     action = pg('action', '')
-    name = pg('name', '')
     rid = int_pg('rid')
-
-    if action == 'delete':
-        try:
-            assert rid, "Item number not provided"
+    assert rid, "Item number not provided"
+    try:
+        if action == 'delete':
+            item = fs.fetch('rules', rid)
+            name = item.name
             fs.delete('rules', rid)
-            say("Rule %d deleted." % rid, level="success")
-            return
-        except Exception, e:
-            say("Unable to delete rule %s - %s" % (name, e), level="alert")
-            abort(500)
-    elif action == 'moveup':
-        try:
-            fs.rule_moveup(rid)
-        except Exception, e:
-            say("Cannot move rule %d up." % rid)
-    elif action == 'movedown':
-        try:
-            fs.rule_movedown(rid)
-        except Exception, e:
-            say("Cannot move rule %d down." % rid)
-    elif action == 'disable':
-        fs.rule_disable(rid)
-        say("Rule %d disabled." % rid)
-    elif action == 'enable':
-        fs.rule_enable(rid)
-        say("Rule %d enabled." % rid)
-    elif action == "save":
-        fields = ('name', 'src', 'src_serv', 'dst', 'dst_serv', 'desc')
-        d = dict((f, pg(f)) for f in fields)
-        d['enabled'] = flag(pg('enabled'))
-        d['action'] = pg('rule_action')
-        d['log_level'] = pg('log')
-        fs.rules.update(d, rid=pg('rid'), token=pg('token'))
+            return ack("Rule %s deleted." % name)
+        elif action == 'moveup':
+            fs.rules.moveup(rid)
+            return ack("Rule moved up.")
+        elif action == 'movedown':
+            fs.rules.movedown(rid)
+            return ack("Rule moved down.")
+        elif action == 'enable':
+            fs.rules.enable(rid)
+            return ack("Rule %d enabled." % rid)
+        elif action == 'disable':
+            fs.rules.disable(rid)
+            return ack("Rule %d disabled." % rid)
+        elif action == "save":
+            fields = ('name', 'src', 'src_serv', 'dst', 'dst_serv', 'desc')
+            d = dict((f, pg(f)) for f in fields)
+            d['enabled'] = flag(pg('enabled'))
+            d['action'] = pg('rule_action')
+            d['log_level'] = pg('log')
+            fs.rules.update(d, rid=pg('rid'), token=pg('token'))
+        else:
+            log.error('Unknown action requested: "%s"' % action)
+    except Exception, e:
+        say("Unable to %s rule n. %s - %s" % (action, rid, e), level="alert")
+        abort(500)
+
+
 
 @bottle.route('/ruleset_form', method='POST')
 @view('ruleset_form')

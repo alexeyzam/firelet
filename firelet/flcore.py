@@ -247,6 +247,7 @@ class Service(Bunch):
             d['ports'] = ''
         super(Service, self).update(d)
 
+
 class NetworkObjTable(object):
     """Contains a set of hosts or networks or hostgroups.
     They are stored as self._objdict where the key is the object name
@@ -332,7 +333,7 @@ class SmartTable(object):
 
 
 class Rules(SmartTable):
-    """A list of Bunch instances"""
+    """A list of Bunch instances""" #TODO: unit testing across all the methods
     def __init__(self, d):
         self._dir = d
         li = readcsv('rules', d)
@@ -352,6 +353,7 @@ class Rules(SmartTable):
             self.save()
         except Exception, e:
             log.debug("Error in rules.moveup: %s" % e)
+            raise Alert
             #            say("Cannot move rule %d up." % rid)
 
     def movedown(self, rid):
@@ -362,14 +364,14 @@ class Rules(SmartTable):
             self.save()
         except Exception, e:
             #            say("Cannot move rule %d down." % rid)
-            pass
+            raise Alert
 
-    def rule_disable(self, rid):
-        self._list[rid][0] = 'n'
+    def disable(self, rid):
+        self._list[rid].enabled = '0'
         self.save()
 
-    def rule_enable(self, rid):
-        self._list[rid][0] = 'y'
+    def enable(self, rid):
+        self._list[rid].enabled = '1'
         self.save()
 
     def update(self, d, rid=None, token=None):
@@ -380,7 +382,7 @@ class Rules(SmartTable):
         except IndexError:
             raise Alert, "Item to be updated not found: one or more items has been modified in the meantime."
         if token:
-            assert token == item._token(), "Unable to update: one or more items has been modified in the meantime."
+            self.validate_token(token)
         item.update(d)
         self.save()
 

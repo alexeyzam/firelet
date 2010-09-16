@@ -204,11 +204,12 @@ $(function() {
     });
 
     $('img.action').click(function() {
-        td = this.parentElement.parentElement;
-        name = td.children[1].innerText;
+        tr = $(this).parents('tr');
+        rid = tr.attr('id');
+        token = tr.children().eq(10).innerText;
         action = $(this).attr('action');
         $('.tooltip').hide();
-        $.post("ruleset", { action: action, name: name, rid: td.id},
+        $.post("ruleset", { action: action, token: token, rid: rid},
             function(data){
                 $('div.tabpane div').load('/ruleset');
             });

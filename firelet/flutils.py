@@ -19,6 +19,10 @@ class Bunch(object):
         """Generate a simple hash"""
         return hex(abs(hash(str(self.__dict__))))[2:]
 
+    def validate_token(self, t): #TODO: unit testing
+        assert token == self._token(), \
+        "Unable to update: one or more items has been modified in the meantime."
+
     def attr_dict(self):
         """Provide a copy of the internal dict, with a token"""
         d = deepcopy(self.__dict__)
