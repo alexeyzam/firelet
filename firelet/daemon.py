@@ -55,6 +55,8 @@ bottle.HTTPError = LoggedHTTPError
 #              - compare in with the fetched conf
 #              - show it on the webapp
 
+#TODO: new rule creation
+
 msg_list = []
 
 def say(s, level='info'):
@@ -67,6 +69,11 @@ def say(s, level='info'):
     if len(msg_list) > 10:
         msg_list.pop(0)
 
+def ack(s=None):
+    """Acknowledge successful form processing and returns ajax confirmation."""
+    if s:
+        say(s, level="success")
+    return {'ok': True}
 
 def pg(name, default=''):
     """Retrieve an element from a POST request"""
@@ -104,7 +111,7 @@ def pcheckbox(name):
 
 def _require(role='readonly'):
     """Ensure the user has the required role (or higher).
-    Order: admin > editor > readonly
+    Order is: admin > editor > readonly
     """
     m = {'admin': 15, 'editor': 10, 'readonly': 5}
     s = bottle.request.environ.get('beaker.session')
@@ -230,8 +237,6 @@ def ruleset():
         say("Unable to %s rule n. %s - %s" % (action, rid, e), level="alert")
         abort(500)
 
-
-
 @bottle.route('/ruleset_form', method='POST')
 @view('ruleset_form')
 def ruleset_form():
@@ -244,6 +249,7 @@ def ruleset_form():
         [hg.name for hg in fs.hostgroups] + \
         [n.name for n in fs.networks]
     return dict(rule=rule, rid=rid, services=services, objs=objs)
+
 
 
 @bottle.route('/sib_names', method='POST')
@@ -300,12 +306,6 @@ def hostgroups():
 
 
 
-def ack(s=None):
-    """Acknowledge successful form processing and returns ajax confirmation."""
-    if s:
-        say(s, level="success")
-    return {'ok': True}
-
 @bottle.route('/hosts')
 @view('hosts')
 def hosts():
@@ -348,6 +348,8 @@ def hosts():
     except Exception, e:
         say("Unable to %s host n. %s - %s" % (action, rid, e), level="alert")
         abort(500)
+
+
 
 @bottle.route('/net_names', method='POST')
 def net_names():
@@ -393,6 +395,8 @@ def networks():
         say("Unable to %s network n. %s - %s" % (action, rid, e), level="alert")
         abort(500)
 
+
+
 @bottle.route('/services')
 @view('services')
 def services():
@@ -436,6 +440,8 @@ def services():
     except Exception, e:
         say("Unable to %s service n. %s - %s" % (action, rid, e), level="alert")
         abort(500)
+
+
 
 # management commands
 
@@ -616,7 +622,7 @@ def main():
         globals()['fs'] = DemoGitFireSet()
         say("Demo mode.")
         say("%d hosts, %d rules, %d networks loaded." % (len(fs.hosts), len(fs.rules), len(fs.networks)))
-        globals()['users'] = Users()
+        globals()['users'] = Users(d='firewall')
 #        reload = True
 
 

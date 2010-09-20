@@ -73,7 +73,7 @@ class SSHConnector(object):
 
     def get_confs(self, keep_sessions=False):
         """Connects to the firewalls, get the configuration and return:
-            { host: [session, ip_addr, iptables-save, interfaces], ... }
+            { hostname: [session, ip_addr, iptables-save, interfaces], ... }
         """
         bad = self._connect()
         assert len(bad) < 1, "Oops" + repr(bad)

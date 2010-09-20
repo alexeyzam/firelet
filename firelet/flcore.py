@@ -672,19 +672,20 @@ class FireSet(object):
         """Flatten host groups tree, used in compile()"""
         def flatten1(item):
             li = addr.get(item), net.get(item), self._flattenhg(hgs.get(item), addr, net, hgs)
-#            log.debug("Flattening... %s" % repr(item))
             return filter(None, li)[0]
         if not items: return None
         return map(flatten1, items)
 
     def _get_confs(self, keep_sessions=False):
+        """Connect to the firewalls and get the existing configuration"""
         self._remote_confs = None
-        d = {}      # {hostname: [management ip address list ], ... }    If the list is empty we cannot reach that host.
+        d = {}      # {hostname: [management ip address list ], ... }    If the IP addr list is empty firelet cannot reach that host.
         for h in self.hosts:
-            if h.hostname not in d: d[n] = []
+            if h.hostname not in d:
+                d[h.hostname] = []
             if flag(h.mng):                            # IP address flagged for management
-                d[n].append(addr)
-        for n, x in d.iteritems():
+                d[h.hostname].append(h.ip_addr)
+        for h, x in d.iteritems():
             assert len(x), "No management IP address for %s " % n
         sx = SSHConnector(d, username='root')
         self._remote_confs = sx.get_confs()
@@ -1158,6 +1159,27 @@ class DemoGitFireSet(GitFireSet):
         for n, iface, addr, masklen, locfw, netfw, mng, routed in self.hosts:
             d[n] = Bunch(filter=self._demo_rulelist[n], ip_a_s=ip_a_s(n))
         self._remote_confs = d
+
+    def _get_confs(self, keep_sessions=False):
+        """Override the default _get_confs in order to create mock data instead of connecting to the firewalls."""
+        self._remote_confs = None
+        d = {}      # {hostname: [management ip address list ], ... }    If the IP addr list is empty firelet cannot reach that host.
+        for h in self.hosts:
+            if h.hostname not in d:
+                d[h.hostname] = []
+            if flag(h.mng):                            # IP address flagged for management
+                d[h.hostname].append(h.ip_addr)
+        for h, x in d.iteritems():
+            assert len(x), "No management IP address for %s " % n
+        mock = {}
+        for h in self.hosts:
+            mock[h.hostname] = '' #FIXME
+        self._remote_confs = '' #FIXME
+        assert isinstance(self._remote_confs[0],  Bunch)
+        if keep_sessions:
+            return sx
+        sx._disconnect()
+        del(sx)
 
     def deploy(self, ignore_unreachables=False, replace_ruleset=False):
         """Check and then deploy the configuration to the simulated firewalls."""

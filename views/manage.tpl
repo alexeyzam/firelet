@@ -11,9 +11,7 @@
 
 <button id="save" rel="#prompt"><img src="static/save.png"  title="Save"> Save</button>
 <br/>
-<img id="check" src="static/check.png" rel="#check_ovr" title="Check">
-
-<button id="check" rel="#prompt"><img src="static/check.png" rel="#check" title="Check"> Check</button>
+<button id="check" rel="#prompt" rel="#check_ovr"><img id="check" src="static/check.png" rel="#check_ovr" title="Check"> Check</button>
 <br/>
 % if can_deploy:
 <button id="deploy" rel="#prompt"><img src="static/deploy.png"  title="Deploy"> Deploy</button>
