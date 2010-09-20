@@ -76,7 +76,7 @@ class SSHConnector(object):
             { hostname: [session, ip_addr, iptables-save, interfaces], ... }
         """
         bad = self._connect()
-        assert len(bad) < 1, "Oops" + repr(bad)
+        assert len(bad) < 1, "Cannot connect to a host:" + repr(bad)
         confs = {} # {hostname:  Bunch(), ... }
 
         for hostname, p in self._pool.iteritems():

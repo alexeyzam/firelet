@@ -19,10 +19,15 @@ import shutil
 
 from nose.tools import assert_raises, with_setup
 
+try:
+    import json
+except ImportError:
+    import simplejson as json
+
+
 def dd(d):
     """Debug dict"""
-    from simplejson import dumps
-    print dumps(d, indent=' ')
+    print json.dumps(d, indent=' ')
 
 # #  Testing flssh module locally # #
 
@@ -31,7 +36,7 @@ def test_sshconnector_getconf():
     t = {'localhost':['127.0.0.1', ]}
     sx = flssh.SSHConnector(targets=t, username='root')
     confs = sx.get_confs()
-    dd(confs)
+    print repr(confs)
 
     assert 'localhost' in confs
 

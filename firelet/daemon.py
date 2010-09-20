@@ -503,7 +503,7 @@ def deploybtn():
     say('Compiling firewall rules...')
     try:
         fs.deploy()
-    except Exception, e:
+    except Alert, e:
         say("Compilation failed: %s" % e,  level="alert")
         return
     say('Configuration deployed.', level="success")

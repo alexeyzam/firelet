@@ -552,32 +552,6 @@ def load_hosts_csv(n, d):
             assert isinstance(x[7][0], str), 'Wrong %s'% repr(x)
     return mu
 
-#def save_hosts_csv(n, mu, d):
-#    """Save hosts on a csv file, flattening the input list."""
-#    li = []
-#    for x in mu:
-#        if len(x) == 7:
-#            o = x[0:6]
-#        elif len(x) == 8 and len(x[7]) == 0:
-#            o = x[0:7]
-#        elif len(x) == 8 and isinstance(x[7], str):
-#            o = x[0:7]
-#            raise Exception, "Got str not list"
-#        elif len(x) == 8 and isinstance(x[7][0], list):
-#            o = x[0:7]
-#            raise Exception, "Got list in list"
-#        elif len(x) == 8:
-#
-#            log.debug(repr(x[7][0]))
-#            o = x[0:7]+x[7]
-#        else:
-#            raise Exception, "Wrong list format"
-#        li.append(o)
-#        assert '[' not in repr(o)[1:-1], "Wrong csv conversion: %s" % repr(o)[1:-1]
-#    savecsv(n, li, d)
-
-# JSON files
-
 def loadjson(n, d):
     f = open("%s/%s.json" % (d, n))
     s = f.read()
@@ -603,14 +577,6 @@ def net_addr(a, n):
     return inet_ntoa(pack('L',x))
 
 
-
-
-#class Hosts(NetworkObjTable):
-#    def __init__(self, li):
-#        self._li = li
-#        pass
-#    def aslist(self):
-#        return self._li
 
 class FireSet(object):
     """A container for the network objects.
@@ -669,14 +635,14 @@ class FireSet(object):
 
 
 
-    # deployment-related methods
+    # deployment-related methods #
 
-    #
     # 1) The hostgroups are flattened, then the firewall rules are compiled into a big list of iptables commands.
     # 2) Firelet connects to the firewalls and fetch the iptables status and the existing interfaces (name, ip_addr, netmask)
     # 3) Based on this, the list is split in many sets - one for each firewall.
 
     #TODO: save the new configuration for each host and provide versioning.
+
     # Before deployment, compare the old (versioned), current (on the host) and new configuration for each firewall.
     # If current != versioned warn the user: someone made local changes.
     # Provide a diff of current VS new to the user before deploying.
@@ -768,8 +734,6 @@ class FireSet(object):
         if not rset: rset = self.compile()
         # r[hostname][interface] = [rule, rule, ... ]
         rd = defaultdict(dict)
-
-#        for hostname,iface, ipa, masklen, locfw, netfw, mng, routed in hosts:  #FIXME: using SmartTable now
         for h in hosts:
             myrules = [ r for r in rset if h.ip_addr in r ]   #TODO: match subnets as well
             if not h.iface in rd[h.hostname]: rd[h.hostname][h.iface] = []
@@ -783,7 +747,6 @@ class FireSet(object):
         { 'firewall_name': [rules...], ... }
 
         During the compilation many checks are performed."""
-
         assert not self.save_needed(), "Configuration must be saved before deployment."
 
         for rule in self.rules:
