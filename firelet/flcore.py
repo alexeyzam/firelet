@@ -655,6 +655,19 @@ class FireSet(object):
             Alert,  "Unable to delete item %d in table %s: %s" % (rid, table, e)
 
 
+    def list_sibling_names(self):
+        """Return a list of all the possible siblings for a hostgroup being created or edited."""
+        items = set()
+        for hg in self.hostgroups:
+            items.add(hg.name)
+            for c in hg.childs:
+                items.add(c)
+        for h in self.hosts:
+            items.add("%s:%s" % (h.hostname, h.iface))
+        print repr(sorted(items))
+        return sorted(items)
+
+
 
     # deployment-related methods
 

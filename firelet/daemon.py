@@ -253,18 +253,12 @@ def ruleset_form():
 
 
 @bottle.route('/sib_names', method='POST')
-def sib_names():        #TODO: unit testing
+def sib_names():
     """Return a list of all the available siblings for a hostgroup being created or edited.
     Used in the ajax form."""
     _require()
-    items = set()
-    for hg in fs.hostgroups:
-        items.add(hg.name)
-        for c in hg.childs:
-            items.add(c)
-    for h in fs.hosts:
-        items.add("%s:%s" % (h.hostname, h.iface))
-    return dict(sib_names=sorted(items))
+    sib_names = fs.list_sibling_names()
+    return dict(sib_names=sib_names)
 
 @bottle.route('/hostgroups')
 @view('hostgroups')

@@ -189,6 +189,12 @@ def test_gitfireset_check_ifaces():
     fs._check_ifaces()
 
 
+@with_setup(setup_dir, teardown_flssh)
+def test_gitfireset_sibling_names():
+    fs = GitFireSet(repodir='/tmp/firelet')
+    names = ['AllSystems', 'Bilbo:eth0', 'Bilbo:eth1', 'Clients', 'Fangorn:eth0', 'Gandalf:eth0', \
+    'Gandalf:eth1', 'SSHnodes', 'Servers', 'Smeagol:eth0', 'WebServers']
+    assert fs.list_sibling_names() == names, "list_sibling_names generating incorrect output"
 
 
 #@with_setup(setup_dir, teardown_flssh)
