@@ -10,9 +10,3 @@
     inet 192.168.1.1/24 brd 192.168.1.255 scope global wlan0
     inet6 fe80::219:d2ff:fe26:fb8e/64 scope link 
        valid_lft forever preferred_lft forever
-5: teredo: <POINTOPOINT,MULTICAST,NOARP,UP,LOWER_UP> mtu 1280 qdisc pfifo_fast state UNKNOWN qlen 500
-    link/none 
-    inet6 2001:0:53aa:64c:24c8:d4bb:a9d3:391c/32 scope global 
-       valid_lft forever preferred_lft forever
-    inet6 fe80::ffff:ffff:ffff/64 scope link 
-       valid_lft forever preferred_lft forever

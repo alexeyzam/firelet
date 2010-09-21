@@ -19,9 +19,9 @@ from firelet import mailer
 
 from firelet.flcore import *
 import shutil
-from firelet.flssh import SSHConnector
+from firelet.flssh import MockSSHConnector
 from firelet.flmap import draw_svg_map
-from firelet.flutils import flag
+from firelet.flutils import flag, Bunch
 from nose.tools import assert_raises, with_setup
 from pprint import pformat
 
@@ -43,29 +43,37 @@ def teardown_dir():
 
 # #  Testing flssh module without network interaction # #
 
-def setup_dummy_flssh():
-    import pxssh
-    setup_dir()
-    def dummy_sl(self, a):
-        n = self.my_hostname
-        log.debug( "Sending '%s' to bogus '%s'" % (a, n))
-        if 'save' in a:
-            self.before = open('test/iptables-save-%s' % n).read()
-        else:
-            self.before = open('test/ip-addr-show-%s' % n).read()
-
-    pxssh.login = pxssh.isalive = pxssh.prompt = pxssh.logout = lambda *x: True
-    pxssh.sendline = dummy_sl
-    globals()['pxssh'] = pxssh
-
-def teardown_flssh():
-    teardown_dir()
-
-
+#def setup_dummy_flssh():
+#    """Patch the pxssh module to use files instead of performing network interaction"""
+#    import pxssh
+#    setup_dir()
+#    def dummy_sl(self, a):
+#        n = self.my_hostname
+#        log.debug( "Sending '%s' to bogus '%s'" % (a, n))
+#        if 'save' in a:
+#            self.before = open('test/iptables-save-%s' % n).read()
+#        else:
+#            self.before = open('test/ip-addr-show-%s' % n).read()
+#
+#    pxssh.login = pxssh.isalive = pxssh.prompt = pxssh.logout = lambda *x: True
+#    pxssh.sendline = dummy_sl
+#    globals()['pxssh'] = pxssh
+#
+#def teardown_flssh():
+#    teardown_dir()
+#
+#
 #@with_setup(setup_dummy_flssh)
 #def test_get_confs_local_dummy():
-#    d  = flssh.get_confs( {'localhost':['127.0.0.1']} )
+#    from firelet.flssh import SSHConnector, MockSSHConnector
+#
+#    sshconn = SSHConnector(targets={'localhost':['127.0.0.1']} )
+#    d  = sshconn.get_confs( )
+#    assert 'localhost' in d
+#    assert d['localhost']
 #    assert d == {'localhost': [None, '127.0.0.1', {'filter': '-A INPUT -s 10.0.0.0/8 -p tcp -m tcp --dport 80 -j ACCEPT\n-A FORWARD -s 1.2.3.4/32 -d 5.6.7.8/32 -p tcp -m multiport --dports 22,80,443 -j ACCEPT\n-A OUTPUT -d 10.10.10.10/32 -p udp -m udp --dport 123 -j ACCEPT', 'nat': '-A POSTROUTING -o eth3 -j MASQUERADE'}, {'lo': ('127.0.0.1/8', '::1/128'), 'teredo': (None, 'fe80::ffff:ffff:ffff/64'), 'wlan0': ('192.168.1.1/24', 'fe80::219:d2ff:fe26:fb8e/64'), 'eth0': (None, None)}]}
+
+
 
 
 #@with_setup(setup_dummy_flssh, teardown_dir)
@@ -95,7 +103,7 @@ def test_clean():
 
 # #  User management testing  # #
 
-@with_setup(setup_dir, teardown_flssh)
+@with_setup(setup_dir, teardown_dir)
 def test_user_management():
     u = Users(d='/tmp/firelet')
     u.create('Totoro', 'admin', 'rawr', 'totoro@nowhere.forest')
@@ -114,7 +122,7 @@ def test_user_management():
 
 # # File save/load # #
 
-@with_setup(setup_dir, teardown_flssh)
+@with_setup(setup_dir, teardown_dir)
 def test_load_save_hosts():
     lines = open('/tmp/firelet/hosts.csv', 'r').readlines()
     content = [x.strip() for x in lines]
@@ -129,7 +137,7 @@ def test_load_save_hosts():
         % (repr(content), repr(content2))
     assert repr(h) == repr(h2), "load/save hosts loop failed"
 
-@with_setup(setup_dir, teardown_flssh)
+@with_setup(setup_dir, teardown_dir)
 def test_load_save_csv():
     h = loadcsv('rules', d='/tmp/firelet')
     savecsv('rules', h, d='/tmp/firelet')
@@ -139,7 +147,7 @@ def test_load_save_csv():
 
 # #  FireSet testing # #
 
-@with_setup(setup_dir, teardown_flssh)
+@with_setup(setup_dir, teardown_dir)
 def test_gitfireset_simple():
     fs = GitFireSet(repodir='/tmp/firelet')
     assert fs.save_needed() == False
@@ -149,7 +157,7 @@ def test_gitfireset_simple():
     assert fs.save_needed() == False
 
 
-@with_setup(setup_dir, teardown_flssh)
+@with_setup(setup_dir, teardown_dir)
 def test_gitfireset_long():
     fs = GitFireSet(repodir='/tmp/firelet')
     for t in ('rules', 'hosts', 'hostgroups', 'services', 'networks'):
@@ -176,7 +184,7 @@ def test_gitfireset_long():
     assert zip(*vl)[2] == (['networks: n.1 deleted'], ['services: n.1 deleted'], ['hostgroups: n.1 deleted'],
                             ['hosts: n.1 deleted'], ['rules: n.1 deleted'])
 
-@with_setup(setup_dir, teardown_flssh)
+@with_setup(setup_dir, teardown_dir)
 def test_gitfireset_check_ifaces():
     fs = GitFireSet(repodir='/tmp/firelet')
     d = {'Bilbo': {'filter': [], 'ip_a_s': {'eth1': ('10.66.2.1', None), 'eth0': ('10.66.1.2', None)}},
@@ -189,7 +197,7 @@ def test_gitfireset_check_ifaces():
     fs._check_ifaces()
 
 
-@with_setup(setup_dir, teardown_flssh)
+@with_setup(setup_dir, teardown_dir)
 def test_gitfireset_sibling_names():
     fs = GitFireSet(repodir='/tmp/firelet')
     names = ['AllSystems', 'Bilbo:eth0', 'Bilbo:eth1', 'Clients', 'Fangorn:eth0', 'Gandalf:eth0', \
@@ -197,7 +205,7 @@ def test_gitfireset_sibling_names():
     assert fs.list_sibling_names() == names, "list_sibling_names generating incorrect output"
 
 
-#@with_setup(setup_dir, teardown_flssh)
+#@with_setup(setup_dir, teardown_dir)
 #def test_dumbfireset():
 #    fs = DumbFireSet(repodir='/tmp/firelet')
 #    assert fs.save_needed() == False
@@ -229,6 +237,48 @@ def test_gitfireset_sibling_names():
 #    fs.reset()
 #    assert fs.save_needed() == False
 #    assert orig_rules == fs.rules
+
+
+
+@with_setup(setup_dir, teardown_dir)
+def test_MockSSHConnector_get_confs():
+    sshconn = MockSSHConnector(targets={'localhost':['127.0.0.1']})
+    d  = sshconn.get_confs( )
+    assert 'iptables' in d['localhost'] and 'ip_a_s' in d['localhost']
+    assert d['localhost'].iptables != None
+    assert d['localhost'].ip_a_s != None
+    ok = {'localhost': {'iptables': ['# Generated by iptables-save v1.4.8 on Sun Jul  4 09:28:19 2010', '*nat', ':PREROUTING ACCEPT [8:3712]', ':POSTROUTING ACCEPT [32:3081]', ':OUTPUT ACCEPT [32:3081]', '-A POSTROUTING -o eth3 -j MASQUERADE', 'COMMIT', '# Completed on Sun Jul  4 09:28:19 2010', '# Generated by iptables-save v1.4.8 on Sun Jul  4 09:28:19 2010', '*filter', ':INPUT ACCEPT [4304:2534591]', ':FORWARD ACCEPT [0:0]', ':OUTPUT ACCEPT [4589:2195434]', '-A INPUT -s 10.0.0.0/8 -p tcp -m tcp --dport 80 -j ACCEPT', '-A FORWARD -s 1.2.3.4/32 -d 5.6.7.8/32 -p tcp -m multiport --dports 22,80,443 -j ACCEPT', '-A OUTPUT -d 10.10.10.10/32 -p udp -m udp --dport 123 -j ACCEPT', 'COMMIT', '# Completed on Sun Jul  4 09:28:19 2010'], 'ip_a_s': {'wlan0': ('192.168.1.1/24', 'fe80::219:d2ff:fe26:fb8e/64'), 'eth0': (None, None)}}}
+    for x in d:
+        for y in d[x]:
+            assert d[x][y] == ok[x][y], "%s incorrect" % d[x][y]
+
+
+@with_setup(setup_dir, teardown_dir)
+def test_MockSSHConnector_deliver_confs():
+    sshconn = MockSSHConnector(targets={'localhost':['127.0.0.1']})
+    newconfs_d = {'localhost': {'eth0': ['-A INPUT -p tcp -m tcp --dport 80 -j ACCEPT',  \
+        '-A FORWARD -p icmp -j ACCEPT', '-A OUTPUT -p udp -m udp --dport 53 -j ACCEPT'], 'eth1': []}}
+    sshconn.deliver_confs( newconfs_d)
+    d  = sshconn.get_confs( )
+    ok = {'localhost': {'iptables': ['# Created by Firelet for host localhost','*filter','-A INPUT -p tcp -m tcp --dport 80 -j ACCEPT','-A FORWARD -p icmp -j ACCEPT','-A OUTPUT -p udp -m udp --dport 53 -j ACCEPT','COMMIT'], 'ip_a_s': {'wlan0': ('192.168.1.1/24', 'fe80::219:d2ff:fe26:fb8e/64'), 'eth0': (None, None)}}}
+    for x in d:
+        for y in d[x]:
+            assert d[x][y] == ok[x][y], "%s incorrect" % d[x][y]
+    sshconn.apply_remote_confs()
+
+
+
+
+#@with_setup(setup_dummy_flssh)
+#def test_get_confs_local_dummy():
+#    from firelet.flssh import SSHConnector, MockSSHConnector
+#
+#    sshconn = SSHConnector(targets={'localhost':['127.0.0.1']} )
+#    d  = sshconn.get_confs( )
+#    assert 'localhost' in d
+#    assert d['localhost']
+#    assert d == {'localhost': [None, '127.0.0.1', {'filter': '-A INPUT -s 10.0.0.0/8 -p tcp -m tcp --dport 80 -j ACCEPT\n-A FORWARD -s 1.2.3.4/32 -d 5.6.7.8/32 -p tcp -m multiport --dports 22,80,443 -j ACCEPT\n-A OUTPUT -d 10.10.10.10/32 -p udp -m udp --dport 123 -j ACCEPT', 'nat': '-A POSTROUTING -o eth3 -j MASQUERADE'}, {'lo': ('127.0.0.1/8', '::1/128'), 'teredo': (None, 'fe80::ffff:ffff:ffff/64'), 'wlan0': ('192.168.1.1/24', 'fe80::219:d2ff:fe26:fb8e/64'), 'eth0': (None, None)}]}
+
 
 
 
@@ -286,7 +336,7 @@ def test_compare():
 
 # # Rule compliation and deployment testing # #
 
-@with_setup(setup_dir, teardown_flssh)
+@with_setup(setup_dir, teardown_dir)
 def test_compilation():
     fs = GitFireSet(repodir='/tmp/firelet')
     rd = fs.compile()
@@ -381,7 +431,7 @@ def test_compilation():
             assert rd[hostname][chain] == r[hostname][chain], "Incorrect rules in %s %s:\n%s" % (hostname, chain, pformat(rd[hostname][chain]))
 
 
-@with_setup(setup_dir, teardown_flssh)
+@with_setup(setup_dir, teardown_dir)
 def test_select_rules():
     fs = GitFireSet(repodir='/tmp/firelet')
     rd = fs.compile_dict()
@@ -389,7 +439,7 @@ def test_select_rules():
 #    assert rd == r,  "select_rules generates:\n%s" % repr(rd)
 #TODO: remove this?
 
-@with_setup(setup_dir, teardown_flssh)
+@with_setup(setup_dir, teardown_dir)
 def test_compile_rules():
     fs = GitFireSet(repodir='/tmp/firelet')
     rd = fs.compile_rules()
@@ -488,13 +538,16 @@ def test_compile_rules():
     assert isinstance(rd, dict)    #FIXME: enable testing
 
 
-#@with_setup(setup_dir, teardown_flssh)
+#@with_setup(setup_dir, teardown_dir)
 #def test_deployment():
 #    """Test host connectivity is required"""
 #    fs = GitFireSet(repodir='/tmp/firelet')
 #    fs.deploy()
 
-@with_setup(setup_dir, teardown_flssh)
+
+
+
+@with_setup(setup_dir, teardown_dir)
 def test_svg_map():
     fs = GitFireSet(repodir='/tmp/firelet')
     svg = draw_svg_map(fs)
@@ -566,13 +619,31 @@ def test_product_2_5():
         (5, 'a'), (5, 'b'), (5, 'c'), (5, 'd'), (5, 42), ('O HI', 'a'), ('O HI', 'b'), ('O HI', 'c'),
         ('O HI', 'd'), ('O HI', 42))
 
-def test_bunch():
-    from firelet.flutils import Bunch
+def test_bunch_repr():
     b = Bunch( c=42, a=3, b='44', _a=0)
-    b2 = Bunch(a='3', b='44', _a='0')
     assert repr(b) == "{'a': 3, 'c': 42, 'b': '44', '_a': 0}", "Bunch repr is incorrect: %s" % repr(b)
-    assert b.c == 42
 
+def test_bunch_set_get():
+    b = Bunch( c=42, a=3, b='44', _a=0)
+    assert b.c == 42
+    assert b['c'] == 42
+    b.c = 17
+    assert b.c == 17
+    b['c'] = 18
+    assert b.c == 18
+    assert 'c' in b
+
+def test_bunch_token():
+    b = Bunch( c=42, a=3, b='44', _a=0)
+    tok = b._token()
+    b.validate_token(tok)
+    assert_raises(Exception,  b.validate_token, '123456')
+
+def test_bunch_update():
+    b = Bunch( c=42, a=3, b='44', _a=0)
+    d = dict(_a=1, a=2, b=3, c=4, extra=5)
+    b.update(d)
+    assert b.a == 2 and b.c == 4
 
 def test_flag_true():
     for x in (1, True, '1', 'True', 'y', 'on' ):

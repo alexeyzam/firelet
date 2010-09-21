@@ -15,12 +15,21 @@ class Bunch(object):
     def __len__(self):
         return len(self.__dict__)
 
+    def __getitem__(self, name):
+        return self.__dict__.__getitem__(name)
+
+    def __setitem__(self, name, value):
+        return self.__dict__.__setitem__(name, value)
+
+    def __iter__(self):
+        return self.__dict__.__iter__()
+
     def _token(self):
         """Generate a simple hash"""
         return hex(abs(hash(str(self.__dict__))))[2:]
 
     def validate_token(self, t): #TODO: unit testing
-        assert token == self._token(), \
+        assert t == self._token(), \
         "Unable to update: one or more items has been modified in the meantime."
 
     def attr_dict(self):

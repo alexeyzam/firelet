@@ -25,7 +25,7 @@ from socket import inet_ntoa, inet_aton
 from struct import pack, unpack
 import logging
 
-from flssh import SSHConnector
+from flssh import SSHConnector, MockSSHConnector
 from flutils import Alert, Bunch, flag, extract_all
 
 __version__ = 0.4
@@ -584,6 +584,7 @@ class FireSet(object):
     """
     def __init__(self, repodir):
         raise NotImplementedError
+        # self.SSHConnector needs to be created in the __init__ method
 
     # FireSet management methods
     # They are redefined in each FireSet subclass
@@ -666,7 +667,7 @@ class FireSet(object):
                 d[h.hostname].append(h.ip_addr)
         for h, x in d.iteritems():
             assert len(x), "No management IP address for %s " % n
-        sx = SSHConnector(d, username='root')
+        sx = self.SSHConnector(d, username='root')
         self._remote_confs = sx.get_confs()
         assert isinstance(self._remote_confs[0],  Bunch)
         if keep_sessions:
@@ -995,6 +996,7 @@ class FireSet(object):
 class GitFireSet(FireSet):
     """FireSet implementing Git to manage the configuration repository"""
     def __init__(self, repodir='/var/lib/firelet'):
+        self.SSHConnector = SSHConnector
         self.rules = Rules(repodir)
         self.hosts = Hosts(repodir)
         self.hostgroups = HostGroups(repodir)
@@ -1124,6 +1126,7 @@ class DemoGitFireSet(GitFireSet):
     """
     def __init__(self):
         GitFireSet.__init__(self)
+        self.SSHConnector = MockSSHConnector
         self._demo_rulelist = defaultdict(list)
 
     def _get_confs(self, keep_sessions=False):
