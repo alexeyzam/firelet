@@ -252,20 +252,74 @@ def test_MockSSHConnector_get_confs():
         for y in d[x]:
             assert d[x][y] == ok[x][y], "%s incorrect" % d[x][y]
 
+    assert_raises(NotImplementedError,  sshconn._interact, '', 'echo hi')
+
+
 
 @with_setup(setup_dir, teardown_dir)
-def test_MockSSHConnector_deliver_confs():
-    sshconn = MockSSHConnector(targets={'localhost':['127.0.0.1']})
-    newconfs_d = {'localhost': {'eth0': ['-A INPUT -p tcp -m tcp --dport 80 -j ACCEPT',  \
-        '-A FORWARD -p icmp -j ACCEPT', '-A OUTPUT -p udp -m udp --dport 53 -j ACCEPT'], 'eth1': []}}
-    sshconn.deliver_confs( newconfs_d)
-    d  = sshconn.get_confs( )
-    ok = {'localhost': {'iptables': ['# Created by Firelet for host localhost','*filter','-A INPUT -p tcp -m tcp --dport 80 -j ACCEPT','-A FORWARD -p icmp -j ACCEPT','-A OUTPUT -p udp -m udp --dport 53 -j ACCEPT','COMMIT'], 'ip_a_s': {'wlan0': ('192.168.1.1/24', 'fe80::219:d2ff:fe26:fb8e/64'), 'eth0': (None, None)}}}
-    for x in d:
-        for y in d[x]:
-            assert d[x][y] == ok[x][y], "%s incorrect" % d[x][y]
-    sshconn.apply_remote_confs()
+def test_DemoGitFireset_get_confs():
+    fs = DemoGitFireSet()
+    fs._get_confs(keep_sessions=False)
+    for hostname, v in fs._remote_confs.iteritems():
+        assert isinstance(v, Bunch)
+    for h in fs.hosts:
+        assert h.hostname in fs._remote_confs, "Missing host %s" % h.hostname
 
+@with_setup(setup_dir, teardown_dir)
+def test_DemoGitFireset_compile_rules():
+    """Run diff between compiled rules and empty remote confs"""
+    fs = DemoGitFireSet()
+    rset = fs.compile_rules()
+    for hn, d in rset.iteritems():
+        for chain,  rules in d.iteritems():
+            assert ' -j DROP' in rules or '-j DROP' in rules,  rules
+
+@with_setup(setup_dir, teardown_dir)
+def test_DemoGitFireset_build_ipt_restore():
+    """Run diff between compiled rules and empty remote confs"""
+    fs = DemoGitFireSet()
+    rset = fs.compile_rules()
+    m = map(fs._build_ipt_restore, rset.iteritems())
+    m = dict(m)
+    # TODO
+
+@with_setup(setup_dir, teardown_dir)
+def test_DemoGitFireset_diff_table_simple():
+    """Run diff between compiled rules and empty remote confs"""
+    fs = DemoGitFireSet()
+    fs.rd = fs.compile_rules()
+    fs._remote_confs = {}
+    dt = fs._diff_table()
+    assert dt == '<p>The firewalls are up to date. No deployment needed.</p>'
+    #FIXME: maybe deployment IS needed
+
+@with_setup(setup_dir, teardown_dir)
+def test_DemoGitFireset_diff_table():
+    """Run diff between complied rules and remote confs"""
+    fs = DemoGitFireSet()
+    fs.rd = fs.compile_rules()
+    return
+    fs._get_confs(keep_sessions=False)
+    dt = fs._diff_table()
+    ok = """<h4 class='dtt'>Bilbo</h4><table class='phdiff_table'><tr class="add"><td>-m state --state RELATED,ESTABLISHED -j ACCEPT</td></tr><tr class="add"><td> -p tcp -s 10.66.2.1 -d 10.66.2.2 --dport 80 -j ACCEPT</td></tr><tr class="add"><td> -p udp -s 10.66.2.2 -d 172.16.2.223 --dport 123 -j LOG --log-level 0 --log-prefix ntp</td></tr><tr class="add"><td> -p tcp -s 10.66.1.1 -d 10.66.2.0/24 --dport 22 -j ACCEPT</td></tr><tr class="add"><td>-i eth1  -p tcp -s 10.66.1.1 -d 10.66.2.0/24 --dport 22 -j LOG --log-level 2 --log-prefix ssh_mgmt</td></tr><tr class="add"><td>-i eth0  -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 -j LOG --log-level 2 --log-prefix imap</td></tr><tr class="add"><td> -p udp -s 10.66.2.2 -d 10.66.1.3 --dport 123 -j LOG --log-level 0 --log-prefix ntp</td></tr><tr class="add"><td> -p udp -s 10.66.2.2 -d 10.66.1.3 --dport 123 -j ACCEPT</td></tr><tr class="add"><td> -p tcp -s 10.66.1.1 -d 10.66.2.0/24 --dport 22 -j LOG --log-level 2 --log-prefix ssh_mgmt</td></tr><tr class="add"><td> -p tcp -s 10.66.1.2 -d 10.66.1.1 --dport 443 -j ACCEPT</td></tr><tr class="add"><td> -p tcp -s 10.66.2.2 -d 10.66.1.3 --dport 6660:6669 -j LOG --log-level 0 --log-prefix irc</td></tr><tr class="add"><td> -j LOG --log-level 1 --log-prefix default</td></tr><tr class="add"><td>-i eth0  -j LOG --log-level 1 --log-prefix default</td></tr><tr class="add"><td> -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 -j ACCEPT</td></tr><tr class="add"><td> -p udp -s 10.66.1.3 -d 172.16.2.223 --dport 123 -j ACCEPT</td></tr><tr class="add"><td> -p udp -s 10.66.1.3 -d 172.16.2.223 --dport 123 -j LOG --log-level 0 --log-prefix ntp</td></tr><tr class="add"><td>-i eth1  -j LOG --log-level 1 --log-prefix default</td></tr><tr class="add"><td> -j DROP</td></tr><tr class="add"><td> -p udp -s 10.66.2.2 -d 172.16.2.223 --dport 123 -j ACCEPT</td></tr><tr class="add"><td> -p tcp -s 10.66.2.2 -d 10.66.1.3 --dport 6660:6669 -j ACCEPT</td></tr><tr class="del"><td># Completed on Sun Jul  4 09:28:19 2010</td></tr><tr class="del"><td>*nat</td></tr><tr class="del"><td>:PREROUTING ACCEPT [8:3712]</td></tr><tr class="del"><td>:INPUT ACCEPT [4304:2534591]</td></tr><tr class="del"><td>:POSTROUTING ACCEPT [32:3081]</td></tr><tr class="del"><td>:OUTPUT ACCEPT [4589:2195434]</td></tr><tr class="del"><td>-A OUTPUT -d 10.10.10.10/32 -p udp -m udp --dport 123 -j ACCEPT</td></tr><tr class="del"><td>-A FORWARD -s 1.2.3.4/32 -d 5.6.7.8/32 -p tcp -m multiport --dports 22,80,443 -j ACCEPT</td></tr><tr class="del"><td># Generated by iptables-save v1.4.8 on Sun Jul  4 09:28:19 2010</td></tr><tr class="del"><td>:OUTPUT ACCEPT [32:3081]</td></tr><tr class="del"><td>COMMIT</td></tr><tr class="del"><td>-A INPUT -s 10.0.0.0/8 -p tcp -m tcp --dport 80 -j ACCEPT</td></tr><tr class="del"><td>-A POSTROUTING -o eth3 -j MASQUERADE</td></tr><tr class="del"><td>:FORWARD ACCEPT [0:0]</td></tr><tr class="del"><td>*filter</td></tr></table><h4 class='dtt'>Fangorn</h4><table class='phdiff_table'><tr class="add"><td>-i eth0  -p tcp -s 10.66.1.1 -d 10.66.2.0/24 --dport 22 -j LOG --log-level 2 --log-prefix ssh_mgmt</td></tr><tr class="add"><td>-m state --state RELATED,ESTABLISHED -j ACCEPT</td></tr><tr class="add"><td> -p tcp -s 10.66.1.1 -d 10.66.2.0/24 --dport 22 -j ACCEPT</td></tr><tr class="add"><td> -p tcp -s 10.66.2.1 -d 10.66.2.2 --dport 80 -j ACCEPT</td></tr><tr class="add"><td> -p udp -s 10.66.2.2 -d 10.66.1.3 --dport 123 -j ACCEPT</td></tr><tr class="add"><td> -j LOG --log-level 1 --log-prefix default</td></tr><tr class="add"><td>-i eth0  -j LOG --log-level 1 --log-prefix default</td></tr><tr class="add"><td>-j DROP</td></tr><tr class="add"><td> -p udp -s 10.66.2.2 -d 172.16.2.223 --dport 123 -j ACCEPT</td></tr><tr class="add"><td> -j DROP</td></tr><tr class="add"><td> -p tcp -s 10.66.2.2 -d 10.66.1.3 --dport 6660:6669 -j ACCEPT</td></tr><tr class="del"><td># Completed on Sun Jul  4 09:28:19 2010</td></tr><tr class="del"><td>*nat</td></tr><tr class="del"><td>:PREROUTING ACCEPT [8:3712]</td></tr><tr class="del"><td>:INPUT ACCEPT [4304:2534591]</td></tr><tr class="del"><td>:POSTROUTING ACCEPT [32:3081]</td></tr><tr class="del"><td>:OUTPUT ACCEPT [4589:2195434]</td></tr><tr class="del"><td>-A OUTPUT -d 10.10.10.10/32 -p udp -m udp --dport 123 -j ACCEPT</td></tr><tr class="del"><td>-A FORWARD -s 1.2.3.4/32 -d 5.6.7.8/32 -p tcp -m multiport --dports 22,80,443 -j ACCEPT</td></tr><tr class="del"><td># Generated by iptables-save v1.4.8 on Sun Jul  4 09:28:19 2010</td></tr><tr class="del"><td>:OUTPUT ACCEPT [32:3081]</td></tr><tr class="del"><td>COMMIT</td></tr><tr class="del"><td>-A INPUT -s 10.0.0.0/8 -p tcp -m tcp --dport 80 -j ACCEPT</td></tr><tr class="del"><td>-A POSTROUTING -o eth3 -j MASQUERADE</td></tr><tr class="del"><td>:FORWARD ACCEPT [0:0]</td></tr><tr class="del"><td>*filter</td></tr></table><h4 class='dtt'>Gandalf</h4><table class='phdiff_table'><tr class="add"><td> -s 10.66.1.3 -d 10.66.1.1 -j DROP</td></tr><tr class="add"><td>-m state --state RELATED,ESTABLISHED -j ACCEPT</td></tr><tr class="add"><td> -p tcp -s 10.66.1.1 -d 10.66.2.0/24 --dport 22 -j ACCEPT</td></tr><tr class="add"><td> -p tcp -s 10.66.1.1 -d 10.66.2.0/24 --dport 22 -j LOG --log-level 2 --log-prefix ssh_mgmt</td></tr><tr class="add"><td> -p tcp -s 10.66.1.2 -d 10.66.1.1 --dport 443 -j ACCEPT</td></tr><tr class="add"><td>-i eth1  -j LOG --log-level 1 --log-prefix default</td></tr><tr class="add"><td> -j LOG --log-level 1 --log-prefix default</td></tr><tr class="add"><td>-i eth0  -j LOG --log-level 1 --log-prefix default</td></tr><tr class="add"><td> -p udp -s 172.16.2.223 -d 10.66.1.3 --dport 123 -j ACCEPT</td></tr><tr class="add"><td> -p udp -s 10.66.1.3 -d 172.16.2.223 --dport 123 -j ACCEPT</td></tr><tr class="add"><td>-i eth1  -s 10.66.1.3 -d 10.66.1.1 -j LOG --log-level 3 --log-prefix NoSmeagol</td></tr><tr class="add"><td> -p udp -s 10.66.2.2 -d 172.16.2.223 --dport 123 -j ACCEPT</td></tr><tr class="add"><td> -j DROP</td></tr><tr class="add"><td> -p udp -s 10.66.1.3 -d 172.16.2.223 --dport 123 -j LOG --log-level 0 --log-prefix ntp</td></tr><tr class="del"><td># Completed on Sun Jul  4 09:28:19 2010</td></tr><tr class="del"><td>*nat</td></tr><tr class="del"><td>:PREROUTING ACCEPT [8:3712]</td></tr><tr class="del"><td>:INPUT ACCEPT [4304:2534591]</td></tr><tr class="del"><td>:POSTROUTING ACCEPT [32:3081]</td></tr><tr class="del"><td>:OUTPUT ACCEPT [4589:2195434]</td></tr><tr class="del"><td>-A OUTPUT -d 10.10.10.10/32 -p udp -m udp --dport 123 -j ACCEPT</td></tr><tr class="del"><td>-A FORWARD -s 1.2.3.4/32 -d 5.6.7.8/32 -p tcp -m multiport --dports 22,80,443 -j ACCEPT</td></tr><tr class="del"><td># Generated by iptables-save v1.4.8 on Sun Jul  4 09:28:19 2010</td></tr><tr class="del"><td>:OUTPUT ACCEPT [32:3081]</td></tr><tr class="del"><td>COMMIT</td></tr><tr class="del"><td>-A INPUT -s 10.0.0.0/8 -p tcp -m tcp --dport 80 -j ACCEPT</td></tr><tr class="del"><td>-A POSTROUTING -o eth3 -j MASQUERADE</td></tr><tr class="del"><td>:FORWARD ACCEPT [0:0]</td></tr><tr class="del"><td>*filter</td></tr></table><h4 class='dtt'>Smeagol</h4><table class='phdiff_table'><tr class="add"><td> -s 10.66.1.3 -d 10.66.1.1 -j DROP</td></tr><tr class="add"><td>-m state --state RELATED,ESTABLISHED -j ACCEPT</td></tr><tr class="add"><td> -s 10.66.1.3 -d 10.66.1.1 -j LOG --log-level 3 --log-prefix NoSmeagol</td></tr><tr class="add"><td> -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 -j LOG --log-level 2 --log-prefix imap</td></tr><tr class="add"><td> -p udp -s 10.66.2.2 -d 10.66.1.3 --dport 123 -j ACCEPT</td></tr><tr class="add"><td> -j LOG --log-level 1 --log-prefix default</td></tr><tr class="add"><td>-i eth0  -j LOG --log-level 1 --log-prefix default</td></tr><tr class="add"><td>-j DROP</td></tr><tr class="add"><td> -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 -j ACCEPT</td></tr><tr class="add"><td> -p udp -s 172.16.2.223 -d 10.66.1.3 --dport 123 -j ACCEPT</td></tr><tr class="add"><td> -p udp -s 10.66.1.3 -d 172.16.2.223 --dport 123 -j ACCEPT</td></tr><tr class="add"><td> -j DROP</td></tr><tr class="add"><td> -p tcp -s 10.66.2.2 -d 10.66.1.3 --dport 6660:6669 -j ACCEPT</td></tr><tr class="del"><td># Completed on Sun Jul  4 09:28:19 2010</td></tr><tr class="del"><td>*nat</td></tr><tr class="del"><td>:PREROUTING ACCEPT [8:3712]</td></tr><tr class="del"><td>:INPUT ACCEPT [4304:2534591]</td></tr><tr class="del"><td>:POSTROUTING ACCEPT [32:3081]</td></tr><tr class="del"><td>:OUTPUT ACCEPT [4589:2195434]</td></tr><tr class="del"><td>-A OUTPUT -d 10.10.10.10/32 -p udp -m udp --dport 123 -j ACCEPT</td></tr><tr class="del"><td>-A FORWARD -s 1.2.3.4/32 -d 5.6.7.8/32 -p tcp -m multiport --dports 22,80,443 -j ACCEPT</td></tr><tr class="del"><td># Generated by iptables-save v1.4.8 on Sun Jul  4 09:28:19 2010</td></tr><tr class="del"><td>:OUTPUT ACCEPT [32:3081]</td></tr><tr class="del"><td>COMMIT</td></tr><tr class="del"><td>-A INPUT -s 10.0.0.0/8 -p tcp -m tcp --dport 80 -j ACCEPT</td></tr><tr class="del"><td>-A POSTROUTING -o eth3 -j MASQUERADE</td></tr><tr class="del"><td>:FORWARD ACCEPT [0:0]</td></tr><tr class="del"><td>*filter</td></tr></table>
+"""
+    assert dt == ok, dt
+
+@with_setup(setup_dir, teardown_dir)
+def test_DemoGitFireset_check():
+    fs = DemoGitFireSet()
+    dt = fs.check()
+    assert 'ACCEPT' in dt
+
+@with_setup(setup_dir, teardown_dir)
+def test_DemoGitFireset_deploy():
+    fs = DemoGitFireSet()
+    dt = fs.deploy()
+    for h in fs.hosts:
+        r = map(str.rstrip, open('/tmp/firelet/iptables-save-%s' % h.hostname))
+        ok = map(str.rstrip, open('/tmp/firelet/iptables-save-%s-correct' % h.hostname))
+        for a, b in zip(r, ok):
+            assert a == b, "%s differs from %s in iptables-save-%s" % (a, b, h.hostname)
 
 
 
@@ -339,7 +393,7 @@ def test_compare():
 @with_setup(setup_dir, teardown_dir)
 def test_compilation():
     fs = GitFireSet(repodir='/tmp/firelet')
-    rd = fs.compile()
+    rd = fs.compile_rules()
 
     r = {'Bilbo': {'FORWARD': ['-m state --state RELATED,ESTABLISHED -j ACCEPT',
                        ' -p tcp -s 10.66.1.1 -d 10.66.2.0/24 --dport 22 -j LOG --log-level 2 --log-prefix ssh_mgmt',
@@ -431,11 +485,11 @@ def test_compilation():
             assert rd[hostname][chain] == r[hostname][chain], "Incorrect rules in %s %s:\n%s" % (hostname, chain, pformat(rd[hostname][chain]))
 
 
-@with_setup(setup_dir, teardown_dir)
-def test_select_rules():
-    fs = GitFireSet(repodir='/tmp/firelet')
-    rd = fs.compile_dict()
-    r = {'Bilbo': {'eth1': [], 'eth0': ['-A FORWARD -p tcp -s 10.66.1.2 -d 10.66.1.1 --dport 443 -j ACCEPT', '-A FORWARD -p tcp -s 10.66.1.2 -d 10.66.2.2 --dport 80 -j ACCEPT', '-A FORWARD -p tcp -s 10.66.1.2 -d 10.66.1.3 --dport 6660:6669 -j ACCEPT', '-A FORWARD -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 --log-level 2 --log-prefix imap -j LOG', '-A FORWARD -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 -j ACCEPT']}, 'Fangorn': {'eth0': ['-A FORWARD -p tcp -s 10.66.1.2 -d 10.66.2.2 --dport 80 -j ACCEPT']}, 'Gandalf': {'eth1': ['-A FORWARD -p tcp -s 10.66.1.2 -d 10.66.1.1 --dport 443 -j ACCEPT'], 'eth0': ['-A FORWARD -s 10.66.1.3 -d 172.16.2.223 --log-level 3 --log-prefix NoSmeagol -j LOG', '-A FORWARD -s 10.66.1.3 -d 172.16.2.223 -j DROP', '-A FORWARD -p tcp -s 172.16.2.223 -d 10.66.2.0/255.255.255.0 --dport 22 --log-level 2 --log-prefix ssh_mgmt -j LOG', '-A FORWARD -p tcp -s 172.16.2.223 -d 10.66.2.0/255.255.255.0 --dport 22 -j ACCEPT', '-A FORWARD -p udp -s 172.16.2.223 -d 172.16.2.223 --dport 123 -j ACCEPT']}, 'Smeagol': {'eth0': ['-A FORWARD -s 10.66.1.3 -d 172.16.2.223 --log-level 3 --log-prefix NoSmeagol -j LOG', '-A FORWARD -s 10.66.1.3 -d 172.16.2.223 -j DROP', '-A FORWARD -p tcp -s 10.66.1.2 -d 10.66.1.3 --dport 6660:6669 -j ACCEPT', '-A FORWARD -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 --log-level 2 --log-prefix imap -j LOG', '-A FORWARD -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 -j ACCEPT']}}
+#@with_setup(setup_dir, teardown_dir)
+#def test_select_rules():
+#    fs = GitFireSet(repodir='/tmp/firelet')
+#    rd = fs.compile_dict()
+#    r = {'Bilbo': {'eth1': [], 'eth0': ['-A FORWARD -p tcp -s 10.66.1.2 -d 10.66.1.1 --dport 443 -j ACCEPT', '-A FORWARD -p tcp -s 10.66.1.2 -d 10.66.2.2 --dport 80 -j ACCEPT', '-A FORWARD -p tcp -s 10.66.1.2 -d 10.66.1.3 --dport 6660:6669 -j ACCEPT', '-A FORWARD -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 --log-level 2 --log-prefix imap -j LOG', '-A FORWARD -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 -j ACCEPT']}, 'Fangorn': {'eth0': ['-A FORWARD -p tcp -s 10.66.1.2 -d 10.66.2.2 --dport 80 -j ACCEPT']}, 'Gandalf': {'eth1': ['-A FORWARD -p tcp -s 10.66.1.2 -d 10.66.1.1 --dport 443 -j ACCEPT'], 'eth0': ['-A FORWARD -s 10.66.1.3 -d 172.16.2.223 --log-level 3 --log-prefix NoSmeagol -j LOG', '-A FORWARD -s 10.66.1.3 -d 172.16.2.223 -j DROP', '-A FORWARD -p tcp -s 172.16.2.223 -d 10.66.2.0/255.255.255.0 --dport 22 --log-level 2 --log-prefix ssh_mgmt -j LOG', '-A FORWARD -p tcp -s 172.16.2.223 -d 10.66.2.0/255.255.255.0 --dport 22 -j ACCEPT', '-A FORWARD -p udp -s 172.16.2.223 -d 172.16.2.223 --dport 123 -j ACCEPT']}, 'Smeagol': {'eth0': ['-A FORWARD -s 10.66.1.3 -d 172.16.2.223 --log-level 3 --log-prefix NoSmeagol -j LOG', '-A FORWARD -s 10.66.1.3 -d 172.16.2.223 -j DROP', '-A FORWARD -p tcp -s 10.66.1.2 -d 10.66.1.3 --dport 6660:6669 -j ACCEPT', '-A FORWARD -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 --log-level 2 --log-prefix imap -j LOG', '-A FORWARD -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 -j ACCEPT']}}
 #    assert rd == r,  "select_rules generates:\n%s" % repr(rd)
 #TODO: remove this?
 

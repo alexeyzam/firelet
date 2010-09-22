@@ -414,7 +414,6 @@ def services():
         elif action == 'save':
             d = {'name': pg('name'),
                     'protocol': pg('protocol')}
-            print '123123123',  d['protocol']
             if d['protocol'] in ('TCP', 'UDP'):
                 d['ports'] = pg('ports')
             elif d['protocol'] == 'ICMP':

@@ -464,13 +464,12 @@ class HostGroups(SmartTable):
             raise Alert, "Item to be updated not found: one or more items has been modified in the meantime."
         if token:
             assert token == item._token(), "Unable to update: one or more items has been modified in the meantime."
-        print
         for child in d['childs']:
             flat = self._simpleflatten(child)
             assert item.name not in flat, "Loop "
-            print "flattened child %s -> %s" % (child,  repr(self._simpleflatten(child)))
-
-        print
+#            print "flattened child %s -> %s" % (child,  repr(self._simpleflatten(child)))
+#
+#        print
         item.update(d)
         self.save()
 
@@ -634,7 +633,7 @@ class FireSet(object):
                 items.add(c)
         for h in self.hosts:
             items.add("%s:%s" % (h.hostname, h.iface))
-        print repr(sorted(items))
+#        print repr(sorted(items))
         return sorted(items)
 
 
@@ -652,7 +651,7 @@ class FireSet(object):
     # Provide a diff of current VS new to the user before deploying.
 
     def _flattenhg(self, items, addr, net, hgs):
-        """Flatten host groups tree, used in compile()"""
+        """Flatten host groups tree, used in compiling)"""
         def flatten1(item):
             li = addr.get(item), net.get(item), self._flattenhg(hgs.get(item), addr, net, hgs)
             return filter(None, li)[0]
@@ -670,9 +669,10 @@ class FireSet(object):
                 d[h.hostname].append(h.ip_addr)
         for h, x in d.iteritems():
             assert len(x), "No management IP address for %s " % n
-        sx = self.SSHConnector(d, username='root')
+        sx = self.SSHConnector(d)
         self._remote_confs = sx.get_confs()
-        assert isinstance(self._remote_confs[0],  Bunch)
+#        for hostname, v in self._remote_confs.iteritems():
+#            assert isinstance(v, Bunch)
         if keep_sessions:
             return sx
         sx._disconnect()
@@ -729,26 +729,30 @@ class FireSet(object):
                 return True
         return False
 
-    def compile_dict(self, hosts=None, rset=None):
-        """Generate set of rules specific for each host.
-            rd = {hostname: {iface: [rules, ] }, ... }
-        """
-        assert not self.save_needed(), "Configuration must be saved before deployment."
-        if not hosts: hosts = self.hosts
-        if not rset: rset = self.compile()
-        # r[hostname][interface] = [rule, rule, ... ]
-        rd = defaultdict(dict)
-        for h in hosts:
-            myrules = [ r for r in rset if h.ip_addr in r ]   #TODO: match subnets as well
-            if not h.iface in rd[h.hostname]: rd[h.hostname][h.iface] = []
-            rd[h.hostname][h.iface].extend(myrules)
-        log.debug("Rules compiled as dict: %s" % repr(rd))
-        return rd
+#    def compile_dict(self, hosts=None, rset=None):
+#        """Generate set of rules specific for each host.
+#            rd = {hostname: {iface: [rules, ] }, ... }
+#        """
+#        assert not self.save_needed(), "Configuration must be saved before deployment."
+#        if not hosts:
+#            hosts = self.hosts
+#        if not rset:
+#            rset = self.compile_rules()
+#        # r[hostname][interface] = [rule, rule, ... ]
+#        rd = defaultdict(dict)
+#        for h in hosts:
+#            myrules = [ r for r in rset if h.ip_addr in r ]   #TODO: match subnets as well
+#            if not h.iface in rd[h.hostname]:
+#                rd[h.hostname][h.iface] = []
+#            rd[h.hostname][h.iface].extend(myrules)
+#            log.debug(rd[h.hostname])
+#        log.debug("Rules compiled as dict: %s" % repr(rd))
+#        return rd
 
 
     def compile_rules(self):
         """Compile iptables rules to be deployed in a dict:
-        { 'firewall_name': [rules...], ... }
+        { 'firewall_name': {'INPUT',[rules...]},{'OUTPUT',[rules...]},{'FORWARD',[rules...]}, ... }
 
         During the compilation many checks are performed."""
         assert not self.save_needed(), "Configuration must be saved before deployment."
@@ -798,8 +802,6 @@ class FireSet(object):
             assert rule.action in ('ACCEPT', 'DROP'),  'The Action field must be "ACCEPT" or "DROP" in rule "%s"' % rule.name
             srcs = res(rule.src)
             dsts = res(rule.dst)    # list of Host and Network instances
-
-
 
             sproto, sports = proto_port[rule.src_serv]
             dproto, dports = proto_port[rule.dst_serv]
@@ -856,20 +858,21 @@ class FireSet(object):
                         rd[h.hostname]['FORWARD'] = ["-j DROP"]
 #                    rd[h.hostname].append("-A INPUT -s lo -j ACCEPT")
 #                    rd[h.hostname].append("-A OUTPUT -d lo -j ACCEPT")
-
                 if src and dst and src.ipt() == dst.ipt():
                     continue
 
                 # Build INPUT rules: where the host is in the destination
                 if dst and h in dst or not dst:
                     if log_val:
-                        rd[h.hostname]['INPUT'].append("-i %s %s%s%s%s%s -j LOG --log-level %d --log-prefix %s" %   (h.iface, proto,  _src, sports, _dst, dports, log_val, name))
+                        rd[h.hostname]['INPUT'].append("-i %s %s%s%s%s%s -j LOG --log-level %d --log-prefix %s" %
+                                                          (h.iface, proto,  _src, sports, _dst, dports, log_val, name))
                     rd[h.hostname]['INPUT'].append("%s%s%s%s%s -j %s" %   (proto, _src, sports, _dst, dports, action))
 
                 # Build OUTPUT rules: where the host is in the source
                 if src and h in src or not src:
                     if log_val:
-                        rd[h.hostname]['OUTPUT'].append("%s%s%s%s%s -j LOG --log-level %d --log-prefix %s" %   (proto, _src, sports, _dst, dports, log_val, name))
+                        rd[h.hostname]['OUTPUT'].append("%s%s%s%s%s -j LOG --log-level %d --log-prefix %s" %
+                                                           (proto, _src, sports, _dst, dports, log_val, name))
                     rd[h.hostname]['OUTPUT'].append("%s%s%s%s%s -j %s" %   (proto, _src, sports, _dst, dports, action))
 
                 # Build FORWARD rules: where the source and destination are both in directly connected or routed networks
@@ -884,7 +887,8 @@ class FireSet(object):
                 forw = self._oo_forwarded(src, dst, h, resolved_routed, other_ifaces)
 
                 if forw:
-                    rd[h.hostname]['FORWARD'].append("%s%s%s%s%s -j LOG --log-level %d --log-prefix %s" %   (proto, _src, sports, _dst, dports, log_val, name))
+                    rd[h.hostname]['FORWARD'].append("%s%s%s%s%s -j LOG --log-level %d --log-prefix %s" %
+                                                     (proto, _src, sports, _dst, dports, log_val, name))
                     rd[h.hostname]['FORWARD'].append("%s%s%s%s%s -j %s" %   (proto, _src, sports, _dst, dports, action))
 
             # "for every host"
@@ -896,11 +900,8 @@ class FireSet(object):
 #            for chain, li in v.iteritems():
 #                for x in li:
 #                    log.debug("%s %s" % (chain, x))
+        log.debug("rd first 300 bytes: %s" % repr(rd)[:300])
         return rd
-
-
-    def compile(self, hosts=None, rset=None):
-        return self.compile_rules()
 
     def _diff_table(self):      # Ridefined below!
         """Generate an HTML table containing the changes between the existing and the compiled iptables ruleset *on each host* """
@@ -917,17 +918,20 @@ class FireSet(object):
                 diff = differ.make_table(ex_iptables, new_iptables,context=True,numlines=0)
                 html += "<h4 class='dtt'>%s</h4>" % hostname + diff
             else:
-                log.debug('%s removed?' % hostname) #TODO: review this, manage *new* hosts as well
+                log.debug('%s removed?' % hostname)
+                # TODO: review this, manage *new* hosts as well
         return html
 
     def _diff_table(self):
-        """Generate an HTML table containing the changes between the existing and the compiled iptables ruleset *on each host* """
-        #TODO: this is a hack - rewrite it with two-step comparison (existing VS old, existing VS new) and rule injection.
+        """Generate an HTML table containing the changes between the existing and
+        the compiled iptables ruleset *on each host* """
+        # TODO: this is a hack - rewrite it with two-step comparison
+        # (existing VS old, existing VS new) and rule injection.
         html = ''
-        for hostname, (ex_iptables_d, ex_ip_a_s) in self._remote_confs.iteritems():   # existing iptables ruleset
-            # rd[hostname][iface] = [rule, rule,]
+        for hostname, bunch in self._remote_confs.iteritems():
+            # looping through existing iptables ruleset and ip_a_s
             if hostname in self.rd:
-                ex_iptables = ex_iptables_d['filter']
+                ex_iptables = bunch.iptables
                 a = self.rd[hostname]
                 new_iptables = sum(a.values(),[]) # flattened
                 new_s = set(new_iptables)
@@ -945,21 +949,17 @@ class FireSet(object):
             return '<p>The firewalls are up to date. No deployment needed.</p>'
         return html
 
-        # unused
-        from difflib import HtmlDiff
-        differ = HtmlDiff()
-        html = ''
-        for hostname, (ex_iptables_d, ex_ip_a_s) in self._remote_confs.iteritems():   # existing iptables ruleset
-            # rd[hostname][iface] = [rule, rule,]
-            if hostname in self.rd:
-                ex_iptables = ex_iptables_d['filter']
-                a = self.rd[hostname]
-                new_iptables = sum(a.values(),[]) # flattened
-                diff = differ.make_table(ex_iptables, new_iptables,context=True,numlines=0)
-                html += "<h4 class='dtt'>%s</h4>" % hostname + diff
-            else:
-                log.debug('%s removed?' % hostname) #TODO: review this, manage *new* hosts as well
-        return html
+    def _build_ipt_restore(self, (hostname, b)):
+        """Build a list of strings compatible with iptables-restore"""
+        li = []
+        li.append('# Created by Firelet for host %s' % hostname)
+        li.append('*filter')
+        for chain, rules in b.iteritems():
+            for rule in rules:
+                li.append("-A %s %s"% (chain, rule))
+
+        li.append('COMMIT')
+        return (hostname, li)
 
     def check(self):
         """Check the configuration on the firewalls.
@@ -967,26 +967,28 @@ class FireSet(object):
         if self.save_needed():
             raise Alert, "Configuration must be saved before check."
 
-        comp_rules = self.compile()
+        comp_rules = self.compile_rules()
         sx = self._get_confs(keep_sessions=True)
         self._check_ifaces()
-        self.rd = self.compile_dict()
+        self.rd = self.compile_rules()
         log.debug('Diff table: %s' % self._diff_table())
 
         return self._diff_table()
-
 
     def deploy(self, ignore_unreachables=False, replace_ruleset=False):
         """Check and then deploy the configuration to the firewalls.
         Some ignore flags can be set to force the deployment even in case of errors.
         """
-        assert not self.save_needed(), "Configuration must be saved before deployment."
+        if self.save_needed():
+            raise Alert, "Configuration must be saved before deployment."
 
-        comp_rules = self.compile()
+        comp_rules = self.compile_rules()
         sx = self._get_confs(keep_sessions=True)
         self._check_ifaces()
-        self.rd = self.compile_dict()
-        sx.deliver_confs(self.rd)
+        r = self.compile_rules()
+        m = map(self._build_ipt_restore, r.iteritems())
+        c = dict(m)
+        sx.deliver_confs(c)
         sx.apply_remote_confs()
 
 
@@ -1121,60 +1123,14 @@ class GitFireSet(FireSet):
         self._write(table)
 
 
-
-
 class DemoGitFireSet(GitFireSet):
     """Based on GitFireSet. Provide a demo version without real network interaction.
-    The status of the simulated remote hosts is kept in memory.
+    The status of the simulated remote hosts is kept on files.
     """
     def __init__(self):
         GitFireSet.__init__(self)
         self.SSHConnector = MockSSHConnector
         self._demo_rulelist = defaultdict(list)
-
-    def _get_confs(self, keep_sessions=False):
-        def ip_a_s(n):
-            """Build a dict: {'eth0': (addr, None)} for a given host"""
-            i = ((iface, (addr, None)) for hn,  iface, ipa, masklen, locfw, netfw, mng, routed in self.hosts if hn == n   )
-            return dict(i)
-        d = {} # {hostname: Bunch() }
-        for n, iface, addr, masklen, locfw, netfw, mng, routed in self.hosts:
-            d[n] = Bunch(filter=self._demo_rulelist[n], ip_a_s=ip_a_s(n))
-        self._remote_confs = d
-
-    def _get_confs(self, keep_sessions=False):
-        """Override the default _get_confs in order to create mock data instead of connecting to the firewalls."""
-        self._remote_confs = None
-        d = {}      # {hostname: [management ip address list ], ... }    If the IP addr list is empty firelet cannot reach that host.
-        for h in self.hosts:
-            if h.hostname not in d:
-                d[h.hostname] = []
-            if flag(h.mng):                            # IP address flagged for management
-                d[h.hostname].append(h.ip_addr)
-        for h, x in d.iteritems():
-            assert len(x), "No management IP address for %s " % n
-        mock = {}
-        for h in self.hosts:
-            mock[h.hostname] = '' #FIXME
-        self._remote_confs = '' #FIXME
-        assert isinstance(self._remote_confs[0],  Bunch)
-        if keep_sessions:
-            return sx
-        sx._disconnect()
-        del(sx)
-
-    def deploy(self, ignore_unreachables=False, replace_ruleset=False):
-        """Check and then deploy the configuration to the simulated firewalls."""
-        if self.save_needed():
-            raise Alert, "Configuration must be saved before deployment."
-        comp_rules = self.compile()
-        sx = self._get_confs(keep_sessions=True)
-        self._check_ifaces()
-        self.rd = self.compile_dict() # r[hostname][interface] = [rule, rule, ... ]
-        for n, k in self.rd.iteritems():
-            rules = sum(k.values(),[])
-            self._demo_rulelist[n] = rules
-
 
 
 # #  User management  # #
