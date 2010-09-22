@@ -49,12 +49,13 @@ except ImportError:
 try:
     from itertools import product
 except ImportError:
+
     def product(*args, **kwds):
         """List cartesian product - not available in Python 2.5"""
         pools = map(tuple, args) * kwds.get('repeat', 1)
         result = [[]]
         for pool in pools:
-            result = [x+[y] for x in result for y in pool]
+            result = [x + [y] for x in result for y in pool]
         for prod in result:
             yield tuple(prod)
 
@@ -75,15 +76,14 @@ icmp_types = {
     13: 'timestamp-request',
     14: 'timestamp-reply',
     17: 'address-mask-request',
-    18: 'address-mask-reply'
-}
+    18: 'address-mask-reply'}
 
 
 #input validation
 
 def validc(c):
     n = ord(c)
-    if 31< n < 127  and n not in (34, 39, 60, 62, 96):
+    if 31 < n < 127 and n not in (34, 39, 60, 62, 96):
         return True
     return False
 
@@ -95,7 +95,7 @@ def clean(s):
     o = ''
     for x in s:
         n = ord(x)
-        if 31< n < 127  and n not in (34, 39, 60, 62, 96):
+        if 31 < n < 127  and n not in (34, 39, 60, 62, 96):
             o += x
     return o
 
@@ -183,13 +183,13 @@ class HostGroup(Bunch):
         """Flatten the host groups hierarchy and returns a list of strings"""
         if hasattr(i, 'childs'):  # "i" is a hostgroup _object_!
             childs = i.childs
-            leaves =  sum(map(self._flatten, childs), [])
+            leaves = sum(map(self._flatten, childs), [])
             for x in leaves:
                 assert isinstance(x, str)
             return leaves
         if i in self._hbn:  # if "i" is a host group, fetch its childs:
             childs = self._hbn[i]
-            leaves =  sum(map(self._flatten, childs), [])
+            leaves = sum(map(self._flatten, childs), [])
             for x in leaves:
                 assert isinstance(x, str)
             return leaves
@@ -258,7 +258,7 @@ class NetworkObjTable(object):
     def __str__(self):
         """Pretty-print as a table"""
         cols = zip(*self)
-        cols_sizes = [(max(map(len,i))) for i in cols] # get the widest entry for each column
+        cols_sizes = [(max(map(len, i))) for i in cols] # get the widest entry for each column
 
         def j((n, li)):
             return "%d  " % n + "  ".join((item.ljust(pad) for item, pad in zip(li, cols_sizes) ))
@@ -281,7 +281,7 @@ class Table(list):
     """A list with pretty-print methods"""
     def __str__(self):
         cols = zip(*self)
-        cols_sizes = [(max(map(len,i))) for i in cols] # get the widest entry for each column
+        cols_sizes = [(max(map(len, i))) for i in cols] # get the widest entry for each column
 
         def j((n, li)):
             return "%d  " % n + "  ".join((item.ljust(pad) for item, pad in zip(li, cols_sizes) ))
@@ -337,8 +337,9 @@ class Rules(SmartTable):
     def __init__(self, d):
         self._dir = d
         li = readcsv('rules', d)
-        self._list = [ Bunch(enabled=r[0], name=r[1], src=r[2], src_serv=r[3], dst=r[4],
-                             dst_serv=r[5], action=r[6], log_level=r[7], desc=r[8]) for r in li ]
+        self._list = [Bunch(enabled=r[0], name=r[1], src=r[2], src_serv=r[3],
+            dst=r[4], dst_serv=r[5], action=r[6], log_level=r[7], desc=r[8])
+            for r in li ]
 
     def save(self):
         li = [[x.enabled, x.name, x.src, x.src_serv, x.dst, x.dst_serv,
@@ -425,7 +426,7 @@ class HostGroups(SmartTable):
     def __init__(self, d):
         self._dir = d
         li = readcsv('hostgroups', d)
-        self._list = [ HostGroup(r) for r in li ]
+        self._list = [HostGroup(r) for r in li]
     def save(self):
         li = [[x.name] + x.childs for x in self._list]
         savecsv('hostgroups', li, self._dir)
@@ -481,7 +482,7 @@ class Networks(SmartTable):
     def __init__(self, d):
         self._dir = d
         li = readcsv('networks', d)
-        self._list = [ Network(r) for r in li ]
+        self._list = [Network(r) for r in li]
 
     def save(self):
         li = [[x.name, x.ip_addr, x.masklen] for x in self._list]
@@ -573,8 +574,8 @@ def net_addr(a, n):
     return str(q)
 
     addr = map(int, a.split('.'))
-    x =unpack('!L',inet_aton(a))[0]  &  2L**(n + 1) -1
-    return inet_ntoa(pack('L',x))
+    x =unpack('!L', inet_aton(a))[0] & 2L**(n + 1) - 1
+    return inet_ntoa(pack('L', x))
 
 
 
@@ -607,7 +608,8 @@ class FireSet(object):
     # editing methods
 
     def fetch(self, table, rid):
-        assert table in ('rules', 'hosts', 'hostgroups', 'services', 'networks') ,  "Incorrect table name."
+        assert table in ('rules', 'hosts', 'hostgroups', 'services',
+            'networks'),  "Incorrect table name."
         try:
             return self.__dict__[table][rid]
         except Exception, e:
@@ -615,7 +617,8 @@ class FireSet(object):
 
 
     def delete(self, table, rid):
-        assert table in ('rules', 'hosts', 'hostgroups', 'services', 'networks') ,  "Incorrect table name."
+        assert table in ('rules', 'hosts', 'hostgroups', 'services',
+            'networks'),  "Incorrect table name."
         try:
             self.__dict__[table].pop(rid)
         except Exception, e:

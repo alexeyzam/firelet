@@ -16,6 +16,7 @@
 
 from ConfigParser import SafeConfigParser
 
+
 class ConfReader(object):
     def __init__(self, fn):
         defaults = {
@@ -29,7 +30,8 @@ class ConfReader(object):
             'email_source': 'firelet@localhost.local',
             'email_dests': 'root@localhost',
         }
-         #TODO: validate strings from the .ini file  ---> fmt = "-ofmt:%" + conf.ip_list_netflow_address
+        #TODO: validate strings from the .ini file  ---> fmt = "-ofmt:%" +
+            # conf.ip_list_netflow_address
         self.__slots__ = defaults.keys()
         config = SafeConfigParser(defaults)
         config.read(fn)
@@ -41,4 +43,3 @@ class ConfReader(object):
                 self.__dict__[name] = config.getfloat('global', name)
             else:
                 self.__dict__[name] = config.get('global', name)
-

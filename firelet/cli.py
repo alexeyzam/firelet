@@ -52,6 +52,7 @@ from sys import argv, exit
 
 _, a1, a2, a3 = argv + [None] * (4 - len(argv))
 
+
 def help():
     #TODO
     print """
@@ -81,13 +82,16 @@ def help():
     """
     exit(0)
 
+
 def deletion(table):
-    if not a3: help()
+    if not a3:
+        help()
     try:
         rid = int(a3)
         rd.delete(table, rid)
     except:
-        pass #TODO
+        pass
+        #TODO
 
 
 if len(argv) == 1:
@@ -96,11 +100,13 @@ if len(argv) == 1:
 fs = DumbFireSet()
 
 if a1 == 'save':
-    if a3 or not a2: help()
+    if a3 or not a2:
+        help()
     fs.save(str(a2))
 
 elif a1 == 'reset':
-    if a2: help()
+    if a2:
+        help()
     fs.reset()
 
 elif a1 == 'version':
@@ -157,8 +163,3 @@ elif a1 == 'service':
         raise NotImplementedError
     elif a2 == 'del':
         deletion('services')
-
-
-
-
-

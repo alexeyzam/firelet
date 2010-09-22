@@ -24,7 +24,8 @@ log = logging.getLogger()
 
 
 class SSHConnector(object):
-    """Manage a pool of pxssh connections to the firewalls. Get the running configuation and deploy new configurations.
+    """Manage a pool of pxssh connections to the firewalls. Get the running
+    configuation and deploy new configurations.
     """
 
     def __init__(self, targets=None, username='firelet'):
@@ -40,7 +41,8 @@ class SSHConnector(object):
         unreachables = []
         assert isinstance(self._targets, dict), "self._targets must be a dict"
         for hostname, addrs in self._targets.iteritems():
-            if hostname in self._pool and self._pool[hostname] and self._pool[hostname].isalive():
+            if hostname in self._pool and self._pool[hostname] and \
+            self._pool[hostname].isalive():
                 continue # already connected
             assert len(addrs), "No management IP address for %s, " % hostname
             ip_addr = addrs[0]      #TODO: cycle through different addrs?
@@ -49,7 +51,8 @@ class SSHConnector(object):
                 log.debug("Connecting to %s" % ip_addr)
                 p.login(ip_addr, self._username)
             except Exception, e:
-                log.info("Unable to connect to %s as %s: %s" % (hostname, self._username, e))
+                log.info("Unable to connect to %s as %s: %s" %
+                          (hostname, self._username, e))
                 unreachables.append(hostname)
             self._pool[hostname] = p
         return unreachables
@@ -113,7 +116,8 @@ class SSHConnector(object):
             return []
 
         def good(x):
-            return x.startswith(('-A PREROUTING', '-A POSTROUTING', '-A OUTPUT', '-A INPUT', '-A FORWARD'))
+            return x.startswith(('-A PREROUTING', '-A POSTROUTING',
+                '-A OUTPUT', '-A INPUT', '-A FORWARD'))
 
 
         block = get_block(s, '*nat')

@@ -35,11 +35,14 @@ from flutils import flag, extract_all
 
 from bottle import HTTPResponse, HTTPError
 
+
 class LoggedHTTPError(bottle.HTTPResponse):
     """ Used to generate an error page """
-    def __init__(self, code=500, output='Unknown Error', exception=None, traceback=None, header=None):
+    def __init__(self, code=500, output='Unknown Error', exception=None,
+                 traceback=None, header=None):
         super(bottle.HTTPError, self).__init__(output, code, header)
-        log.debug(            """Internal error '%s':\n  Output: %s\n  Header: %s\n  %s--- End of traceback ---"""% (exception, output, header, traceback))
+        log.debug("""Internal error '%s':\n  Output: %s\n  Header: %s\n  %s---
+            End of traceback ---""" % (exception, output, header, traceback))
 
 
 bottle.HTTPError = LoggedHTTPError
@@ -59,6 +62,7 @@ bottle.HTTPError = LoggedHTTPError
 
 msg_list = []
 
+
 def say(s, level='info'):
     """level can be: info, warning, alert"""
     if level == 'error':
@@ -68,6 +72,7 @@ def say(s, level='info'):
     msg_list.append((level, ts, s))
     if len(msg_list) > 10:
         msg_list.pop(0)
+
 
 def ack(s=None):
     """Acknowledge successful form processing and returns ajax confirmation."""
@@ -116,7 +121,8 @@ def _require(role='readonly'):
     m = {'admin': 15, 'editor': 10, 'readonly': 5}
     s = bottle.request.environ.get('beaker.session')
     if not s:
-        say("User needs to be authenticated.", level="warning") #TODO: not really explanatory in a multiuser session.
+        say("User needs to be authenticated.", level="warning")
+        #TODO: not really explanatory in a multiuser session.
         raise Alert, "User needs to be authenticated."
     myrole = s.get('role', '')
     if m[myrole] >= m[role]:
@@ -155,8 +161,6 @@ def logout():
         say('User %s logged out.' % u)
     s.delete()
     bottle.redirect('')
-
-
 
 #
 #class WebApp(object):
@@ -244,13 +248,11 @@ def ruleset_form():
     _require()
     rid = int_pg('rid')
     rule = fs.rules[rid]
-    services =  ['*'] + [s.name for s in fs.services]
+    services = ['*'] + [s.name for s in fs.services]
     objs = ["%s:%s" % (h.hostname, h.iface) for h in fs.hosts] + \
         [hg.name for hg in fs.hostgroups] + \
         [n.name for n in fs.networks]
     return dict(rule=rule, rid=rid, services=services, objs=objs)
-
-
 
 @bottle.route('/sib_names', method='POST')
 def sib_names():
@@ -297,7 +299,6 @@ def hostgroups():
     except Exception, e:
         say("Unable to %s hostgroup n. %s - %s" % (action, rid, e), level="alert")
         abort(500)
-
 
 
 @bottle.route('/hosts')
