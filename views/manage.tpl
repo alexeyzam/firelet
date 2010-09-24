@@ -52,6 +52,7 @@ div#help_ovr {
     -moz-box-shadow: 0 0 50px #ccc;
     -webkit-box-shadow: 0 0 50px #ccc;
 }
+
 div.tabpane div button {
     width: 6em;
     padding: 1px;
@@ -60,18 +61,20 @@ div.tabpane div button {
 div#check_ovr {
     background-color:#fff;
     display:none;
-    width: 70em;
+    width: 70%;
+    height: 80%;
+    top: 10%;
     padding:15px;
     text-align:left;
     border:2px solid #333;
-
     opacity:0.8;
     -moz-border-radius:6px;
     -webkit-border-radius:6px;
     -moz-box-shadow: 0 0 50px #ccc;
     -webkit-box-shadow: 0 0 50px #ccc;
 }
-div#check_ovr div#diff_table {
+
+div#diff_table {
     display: inline;
     border: 0;
     padding: 0;
@@ -106,8 +109,16 @@ div#version_list{
 
 div#version_list table {
     margin: 2em;
-
 }
+
+div#diff_table {
+    height: 90%;
+    width: 95%;
+    background-color:#ffffff;
+    overflow: auto;
+    position: absolute;
+}
+
 </style>
 
 <script>
@@ -120,7 +131,6 @@ $(function() {
 
     $('button#check').click(function() {
         $.post("check", function(json) {
-            console.log(json.diff_table);
             });
     });
 

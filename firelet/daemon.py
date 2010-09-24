@@ -490,7 +490,7 @@ def checkbtn():
         say("Check failed: %s" % e,  level="alert")
         return dict(diff_table="Check failed: %s" % e)
     except Exception, e:
-        import traceback
+        import traceback # TODO: remove traceback
         log.debug(traceback.format_exc())
         return
     say('Configuration check successful.', level="success")

@@ -903,44 +903,26 @@ class FireSet(object):
         log.debug("rd first 300 bytes: %s" % repr(rd)[:300])
         return rd
 
-    def _diff_table(self):      # Ridefined below!
-        """Generate an HTML table containing the changes between the existing and the compiled iptables ruleset *on each host* """
-        #TODO: this is a hack - rewrite it with two-step comparison (existing VS old, existing VS new) and rule injection.
-        from difflib import HtmlDiff
-        differ = HtmlDiff()
-        html = ''
-        for hostname, (ex_iptables_d, ex_ip_a_s) in self._remote_confs.iteritems():   # existing iptables ruleset
-            # rd[hostname][iface] = [rule, rule,]
-            if hostname in self.rd:
-                ex_iptables = ex_iptables_d['filter']
-                a = self.rd[hostname]
-                new_iptables = sum(a.values(),[]) # flattened
-                diff = differ.make_table(ex_iptables, new_iptables,context=True,numlines=0)
-                html += "<h4 class='dtt'>%s</h4>" % hostname + diff
-            else:
-                log.debug('%s removed?' % hostname)
-                # TODO: review this, manage *new* hosts as well
-        return html
-
-    def _diff_table(self):
+    def _diff_table(self, remote_confs, new_confs):
         """Generate an HTML table containing the changes between the existing and
         the compiled iptables ruleset *on each host* """
-        # TODO: this is a hack - rewrite it with two-step comparison
-        # (existing VS old, existing VS new) and rule injection.
+        # TODO: this is a hack - rewrite it with two-step comparison:
+        # existing VS old (stored locally), existing VS new and then perform rule injection.
         html = ''
-        for hostname, bunch in self._remote_confs.iteritems():
+        for hostname, ex_iptables in remote_confs.iteritems():
             # looping through existing iptables ruleset and ip_a_s
-            if hostname in self.rd:
-                ex_iptables = bunch.iptables
-                a = self.rd[hostname]
-                new_iptables = sum(a.values(),[]) # flattened
-                new_s = set(new_iptables)
+            if hostname in new_confs:
+                new_s = set(new_confs[hostname])
                 ex_s = set(ex_iptables)
+                print '-------'
+                print new_confs
                 tab = ''
-                for r in list(new_s - ex_s):
-                    tab += '<tr class="add"><td>%s</td></tr>' % r
-                for r in list(ex_s - new_s):
-                    tab += '<tr class="del"><td>%s</td></tr>' % r
+                for r in new_confs[hostname]:
+                    if r in list(new_s - ex_s):
+                        tab += '<tr class="add"><td>%s</td></tr>' % r
+                for r in ex_iptables:
+                    if r in list(ex_s - new_s):
+                        tab += '<tr class="del"><td>%s</td></tr>' % r
                 if tab:
                     html += "<h4 class='dtt'>%s</h4><table class='phdiff_table'>%s</table>" % (hostname, tab)
             else:
@@ -949,15 +931,18 @@ class FireSet(object):
             return '<p>The firewalls are up to date. No deployment needed.</p>'
         return html
 
+    def _build_ipt_restore_blocks(self, (hostname, b)):
+        """Build a list of strings for each chain compatible with iptables-restore"""
+        li = []
+        for chain in ('INPUT', 'FORWARD', 'OUTPUT'):
+            for rule in b[chain]:
+                li.append("-A %s %s"% (chain, rule))
+        return li
+
     def _build_ipt_restore(self, (hostname, b)):
         """Build a list of strings compatible with iptables-restore"""
-        li = []
-        li.append('# Created by Firelet for host %s' % hostname)
-        li.append('*filter')
-        for chain, rules in b.iteritems():
-            for rule in rules:
-                li.append("-A %s %s"% (chain, rule))
-
+        li = ['# Created by Firelet for host %s' % hostname, '*filter']
+        li.extend(self._build_ipt_restore_blocks((hostname, b)))
         li.append('COMMIT')
         return (hostname, li)
 
@@ -966,14 +951,30 @@ class FireSet(object):
         """
         if self.save_needed():
             raise Alert, "Configuration must be saved before check."
-
         comp_rules = self.compile_rules()
         sx = self._get_confs(keep_sessions=True)
         self._check_ifaces()
-        self.rd = self.compile_rules()
-        log.debug('Diff table: %s' % self._diff_table())
+        new_rules = {}
+        for hn, b in comp_rules.iteritems():
+            li = self._build_ipt_restore_blocks((hn, b))
+            new_rules[hn] = li
 
-        return self._diff_table()
+        existing_confs = {}
+        for hn in self._remote_confs:
+            ipt_save_li = self._remote_confs[hn]['iptables']
+            li = []
+            in_range = False
+            for line in ipt_save_li:
+                line = line.strip()
+                if in_range and line == 'COMMIT':
+                    break
+                elif line == '*filter':
+                    in_range = True
+                elif in_range and line.startswith('-A '):
+                    li.append(line)
+            existing_confs[hn] = li
+        assert isinstance(new_rules,  dict)
+        return self._diff_table(existing_confs, new_rules)
 
     def deploy(self, ignore_unreachables=False, replace_ruleset=False):
         """Check and then deploy the configuration to the firewalls.
@@ -981,16 +982,13 @@ class FireSet(object):
         """
         if self.save_needed():
             raise Alert, "Configuration must be saved before deployment."
-
         comp_rules = self.compile_rules()
         sx = self._get_confs(keep_sessions=True)
         self._check_ifaces()
-        r = self.compile_rules()
-        m = map(self._build_ipt_restore, r.iteritems())
+        m = map(self._build_ipt_restore, comp_rules.iteritems())
         c = dict(m)
         sx.deliver_confs(c)
         sx.apply_remote_confs()
-
 
     def _check_remote_confs(self):
         pass

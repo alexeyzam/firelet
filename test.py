@@ -287,9 +287,9 @@ def test_DemoGitFireset_build_ipt_restore():
 def test_DemoGitFireset_diff_table_simple():
     """Run diff between compiled rules and empty remote confs"""
     fs = DemoGitFireSet()
-    fs.rd = fs.compile_rules()
-    fs._remote_confs = {}
-    dt = fs._diff_table()
+    new_confs = fs.compile_rules()
+    remote_confs = {}
+    dt = fs._diff_table(remote_confs, new_confs)
     assert dt == '<p>The firewalls are up to date. No deployment needed.</p>'
     #FIXME: maybe deployment IS needed
 
@@ -309,19 +309,20 @@ def test_DemoGitFireset_diff_table():
 def test_DemoGitFireset_check():
     fs = DemoGitFireSet()
     dt = fs.check()
-    assert 'ACCEPT' in dt
-
-@with_setup(setup_dir, teardown_dir)
-def test_DemoGitFireset_deploy():
-    fs = DemoGitFireSet()
-    dt = fs.deploy()
-    for h in fs.hosts:
-        r = map(str.rstrip, open('/tmp/firelet/iptables-save-%s' % h.hostname))
-        ok = map(str.rstrip, open('/tmp/firelet/iptables-save-%s-correct' % h.hostname))
-        for a, b in zip(r, ok):
-            assert a == b, "%s differs from %s in iptables-save-%s" % (a, b, h.hostname)
+    assert 'ACCEPT' in dt, dt
 
 
+#@with_setup(setup_dir, teardown_dir)
+#def test_DemoGitFireset_deploy():
+#    fs = DemoGitFireSet()
+#    dt = fs.deploy()
+#    for h in fs.hosts:
+#        r = map(str.rstrip, open('/tmp/firelet/iptables-save-%s' % h.hostname))
+#        ok = map(str.rstrip, open('/tmp/firelet/iptables-save-%s-correct' % h.hostname))
+#        for a, b in zip(r, ok):
+#            assert a == b, "%s differs from %s in iptables-save-%s" % (a, b, h.hostname)
+#
+#
 
 #@with_setup(setup_dummy_flssh)
 #def test_get_confs_local_dummy():
