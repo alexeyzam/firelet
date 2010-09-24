@@ -498,15 +498,58 @@ def test_DemoGitFireset_build_ipt_restore():
             assert my_line == ok_line, "Incorrect rule built for %s:\ngot [%s]\nexpected [%s]" % (hostname, my_line,  ok_line )
 
 
-@with_setup(setup_dir, teardown_dir)
-def test_DemoGitFireset_diff_table_simple():
-    """Run diff between compiled rules and empty remote confs"""
-    fs = DemoGitFireSet()
-    new_confs = fs.compile_rules()
-    remote_confs = {}
-    dt = fs._diff_table(remote_confs, new_confs)
-    assert dt == '<p>The firewalls are up to date. No deployment needed.</p>'
+#@with_setup(setup_dir, teardown_dir)
+#def test_DemoGitFireset_diff_table_simple():
+#    """Run diff between compiled rules and empty remote confs"""
+#    fs = DemoGitFireSet()
+#    new_confs = fs.compile_rules()
+#    remote_confs = {}
+#    dt = fs._diff(remote_confs, new_confs)
+#    assert dt == '<p>The firewalls are up to date. No deployment needed.</p>'
     #FIXME:  deployment IS needed
+
+
+@with_setup(setup_dir, teardown_dir)
+def test_DemoGitFireset_extract_iptables_rules():
+    fs = DemoGitFireSet()
+    fs._get_confs(keep_sessions=False)
+    rules_d = fs._extract_ipt_filter_rules(fs._remote_confs)
+    for hn, rules in rules_d.iteritems():
+        assert len(rules) > 12,  rules
+        assert len(rules) < 32,  rules
+        for rule in rules:
+            assert rule not in ('COMMIT', '*filter', '*nat')
+
+@with_setup(setup_dir, teardown_dir)
+def test_DemoGitFireset_diff_table_generation_1():
+    fs = DemoGitFireSet()
+    diff_dict = fs._diff({}, {})
+    assert diff_dict == {}
+
+@with_setup(setup_dir, teardown_dir)
+def test_DemoGitFireset_diff_table_generation_2():
+    fs = DemoGitFireSet()
+    diff_dict = fs._diff({'Bilbo':['']}, {'Bilbo':['']})
+    assert diff_dict == {}
+
+@with_setup(setup_dir, teardown_dir)
+def test_DemoGitFireset_diff_table_generation_3():
+    fs = DemoGitFireSet()
+    diff_dict = fs._diff({'Bilbo':['old item', 'static item', 'old item2']},
+                                   {'Bilbo':['static item', 'new item', 'new item2']})
+    assert diff_dict == {'Bilbo': (['new item', 'new item2'], ['old item', 'old item2'])}
+
+@with_setup(setup_dir, teardown_dir)
+def test_DemoGitFireset_diff_table_generation_4():
+    fs = DemoGitFireSet()
+    fs._get_confs(keep_sessions=False)
+    assert False, fs._remote_confs
+    diff_dict = fs._diff({'Bilbo':['old item', 'static item', 'old item2']},
+                                   {'Bilbo':['static item', 'new item', 'new item2']})
+    assert diff_dict == {'Bilbo': (['new item', 'new item2'], ['old item', 'old item2'])}
+
+
+
 
 @with_setup(setup_dir, teardown_dir)
 def test_DemoGitFireset_diff_table():
@@ -517,12 +560,13 @@ def test_DemoGitFireset_diff_table():
     fs._get_confs(keep_sessions=False)
     dt = fs._diff_table()
 
-@with_setup(setup_dir, teardown_dir)
-def test_DemoGitFireset_check():
-    """Given the test files, the check should be ok and require no deployment"""
-    fs = DemoGitFireSet()
-    dt = fs.check()
-    assert dt == '<p>The firewalls are up to date. No deployment needed.</p>'
+#FIXME: enable this
+#@with_setup(setup_dir, teardown_dir)
+#def test_DemoGitFireset_check():
+#    """Given the test files, the check should be ok and require no deployment"""
+#    fs = DemoGitFireSet()
+#    diff_dict = fs.check()
+#    assert diff_dict == {},  repr(diff_dict)[:300]
 
 
 #TODO: test deploy

@@ -905,19 +905,17 @@ class FireSet(object):
         for hostname, ex_iptables in remote_confs.iteritems():
             # looping through existing iptables ruleset and ip_a_s
             if hostname in new_confs:
-                new_s = set(new_confs[hostname])
-                ex_s = set(ex_iptables)
-                added = new_s - ex_s
-                removed = ex_s - new_s
-                log.debug("Rules for %-15s old: %d new: %d added: %d removed: %d" % (hostname, len(ex_s), len(new_s), len(added), len(removed)))
-                log.debug(repr(ex_iptables[:5]))
-                added_li = [x for x in new_confs[hostname] if x in added]
-                removed_li = [x for x in ex_iptables if x in removed]
+                new = new_confs[hostname]
+                added_li = [x for x in new if x not in ex_iptables]
+                removed_li = [x for x in ex_iptables if x not in new]
+#                log.debug("Rules for %-15s old: %d new: %d added: %d removed: %d" % (hostname, len(ex_s), len(new_s), len(added), len(removed)))
+#                log.debug(repr(ex_iptables[:5]))
                 if added_li or removed_li:
                     d[hostname] = (added_li, removed_li)
             else:
                 log.debug('%s removed?' % hostname) #TODO: review this, manage *new* hosts as well
         return d
+
 
     def _build_ipt_restore_blocks(self, (hostname, b)):
         """Build a list of strings for each chain compatible with iptables-restore"""
@@ -934,6 +932,25 @@ class FireSet(object):
         li.append('COMMIT')
         return (hostname, li)
 
+    def _extract_ipt_filter_rules(self, remote_confs):
+        """Extract the relevant iptables rules from the output of iptables-save,
+        delimited by '*filter' and 'COMMIT' """
+        rules = {}
+        for hn in remote_confs:
+            ipt_save_li = remote_confs[hn]['iptables']
+            li = []
+            in_range = False
+            for line in ipt_save_li:
+                line = line.strip()
+                if in_range and line == 'COMMIT':
+                    break
+                elif line == '*filter':
+                    in_range = True
+                elif in_range and line.startswith('-A '):
+                    li.append(line)
+            rules[hn] = li
+        return rules
+
     def check(self):
         """Check the configuration on the firewalls.
         """
@@ -947,22 +964,8 @@ class FireSet(object):
             li = self._build_ipt_restore_blocks((hn, b))
             new_rules[hn] = li
 
-        existing_confs = {}
-        for hn in self._remote_confs:
-            ipt_save_li = self._remote_confs[hn]['iptables']
-            li = []
-            in_range = False
-            for line in ipt_save_li:
-                line = line.strip()
-                if in_range and line == 'COMMIT':
-                    break
-                elif line == '*filter':
-                    in_range = True
-                elif in_range and line.startswith('-A '):
-                    li.append(line)
-            existing_confs[hn] = li
-        assert isinstance(new_rules,  dict)
-        return self._diff(existing_confs, new_rules)
+        existing_rules = self._extract_ipt_filter_rules(self._remote_confs)
+        return self._diff(existing_rules, new_rules)
 
     def deploy(self, ignore_unreachables=False, replace_ruleset=False):
         """Check and then deploy the configuration to the firewalls.
