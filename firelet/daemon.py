@@ -496,6 +496,24 @@ def checkbtn():
     say('Configuration check successful.', level="success")
     return dict(diff_table=diff_table)
 
+@bottle.route('/check', method='POST')
+@view('rules_diff_table')
+def checkbtn():
+    _require()
+    say('Configuration check started...')
+    try:
+        diff_dict = fs.check()
+    except Alert, e:
+        say("Check failed: %s" % e,  level="alert")
+        return dict(diff_dict="Check failed: %s" % e)
+    except Exception, e:
+        import traceback # TODO: remove traceback
+        log.debug(traceback.format_exc())
+        return
+    say('Configuration check successful.', level="success")
+    return dict(diff_dict=diff_dict)
+
+
 @bottle.route('/deploy', method='POST')
 def deploybtn():
     _require('admin')

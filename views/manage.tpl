@@ -182,9 +182,7 @@ $(function() {
             dt = $('div#diff_table');
             dt.html('<p>Check in progress...</p><p id="spinner"><img src="static/spinner_big.gif" /></p>')
                 // When loaded, run the check command using POST and display the output
-                $.post("check", function(json) {
-                        dt.html(json.diff_table);
-                });
+                dt.load("check", {});
             }
         },
         closeOnClick: false

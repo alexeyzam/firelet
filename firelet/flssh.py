@@ -93,7 +93,7 @@ class SSHConnector(object):
         if not keep_sessions:
             log.debug("Closing connections.")
             d = self._disconnect()
-        log.debug("Dictionary built by get_confs: %s" % repr(confs))
+#        log.debug("Dictionary built by get_confs: %s" % repr(confs))
         return confs
 
 

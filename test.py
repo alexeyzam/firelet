@@ -251,9 +251,7 @@ def test_MockSSHConnector_get_confs():
     for x in d:
         for y in d[x]:
             assert d[x][y] == ok[x][y], "%s incorrect" % d[x][y]
-
     assert_raises(NotImplementedError,  sshconn._interact, '', 'echo hi')
-
 
 
 @with_setup(setup_dir, teardown_dir)
@@ -265,14 +263,123 @@ def test_DemoGitFireset_get_confs():
     for h in fs.hosts:
         assert h.hostname in fs._remote_confs, "Missing host %s" % h.hostname
 
+# # Rule compliation and deployment testing # #
+
+
 @with_setup(setup_dir, teardown_dir)
-def test_DemoGitFireset_compile_rules():
-    """Run diff between compiled rules and empty remote confs"""
+def test_DemoGitFireset_compile_rules_basic():
+    """Compile rules and perform basic testing"""
     fs = DemoGitFireSet()
     rset = fs.compile_rules()
     for hn, d in rset.iteritems():
         for chain,  rules in d.iteritems():
             assert ' -j DROP' in rules or '-j DROP' in rules,  rules
+
+
+@with_setup(setup_dir, teardown_dir)
+def test_DemoGitFireset_compile_rules_full():
+    fs = GitFireSet(repodir='/tmp/firelet')
+    rd = fs.compile_rules()
+
+    ok = {'Bilbo': {'FORWARD': ['-m state --state RELATED,ESTABLISHED -j ACCEPT',
+                       ' -p tcp -s 10.66.1.1 -d 10.66.2.0/24 --dport 22 -j LOG --log-level 2 --log-prefix ssh_mgmt',
+                       ' -p tcp -s 10.66.1.1 -d 10.66.2.0/24 --dport 22 -j ACCEPT',
+                       ' -p tcp -s 10.66.2.2 -d 10.66.1.3 --dport 6660:6669 -j LOG --log-level 0 --log-prefix irc',
+                       ' -p tcp -s 10.66.2.2 -d 10.66.1.3 --dport 6660:6669 -j ACCEPT',
+                       ' -p udp -s 10.66.1.3 -d 172.16.2.223 --dport 123 -j LOG --log-level 0 --log-prefix ntp',
+                       ' -p udp -s 10.66.1.3 -d 172.16.2.223 --dport 123 -j ACCEPT',
+                       ' -p udp -s 10.66.2.2 -d 172.16.2.223 --dport 123 -j LOG --log-level 0 --log-prefix ntp',
+                       ' -p udp -s 10.66.2.2 -d 172.16.2.223 --dport 123 -j ACCEPT',
+                       ' -p udp -s 10.66.2.2 -d 10.66.1.3 --dport 123 -j LOG --log-level 0 --log-prefix ntp',
+                       ' -p udp -s 10.66.2.2 -d 10.66.1.3 --dport 123 -j ACCEPT',
+                       ' -j LOG --log-level 1 --log-prefix default',
+                       ' -j DROP',
+                       ' -j LOG --log-level 1 --log-prefix default',
+                       ' -j DROP'],
+           'INPUT': ['-m state --state RELATED,ESTABLISHED -j ACCEPT',
+                     '-i lo -j ACCEPT',
+                     '-i eth1  -p tcp -s 10.66.1.1 -d 10.66.2.0/24 --dport 22 -j LOG --log-level 2 --log-prefix ssh_mgmt',
+                     ' -p tcp -s 10.66.1.1 -d 10.66.2.0/24 --dport 22 -j ACCEPT',
+                     '-i eth0  -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 -j LOG --log-level 2 --log-prefix imap',
+                     ' -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 -j ACCEPT',
+                     '-i eth0  -j LOG --log-level 1 --log-prefix default',
+                     ' -j DROP',
+                     '-i eth1  -j LOG --log-level 1 --log-prefix default',
+                     ' -j DROP'],
+           'OUTPUT': ['-m state --state RELATED,ESTABLISHED -j ACCEPT',
+                      '-o lo -j ACCEPT',
+                      ' -p tcp -s 10.66.1.2 -d 10.66.1.1 --dport 443 -j ACCEPT',
+                      ' -p tcp -s 10.66.2.1 -d 10.66.2.2 --dport 80 -j ACCEPT',
+                      ' -j LOG --log-level 1 --log-prefix default',
+                      ' -j DROP',
+                      ' -j LOG --log-level 1 --log-prefix default',
+                      ' -j DROP']},
+ 'Fangorn': {'FORWARD': ['-j DROP'],
+             'INPUT': ['-m state --state RELATED,ESTABLISHED -j ACCEPT',
+                       '-i lo -j ACCEPT',
+                       ' -p tcp -s 10.66.2.1 -d 10.66.2.2 --dport 80 -j ACCEPT',
+                       '-i eth0  -p tcp -s 10.66.1.1 -d 10.66.2.0/24 --dport 22 -j LOG --log-level 2 --log-prefix ssh_mgmt',
+                       ' -p tcp -s 10.66.1.1 -d 10.66.2.0/24 --dport 22 -j ACCEPT',
+                       '-i eth0  -j LOG --log-level 1 --log-prefix default',
+                       ' -j DROP'],
+             'OUTPUT': ['-m state --state RELATED,ESTABLISHED -j ACCEPT',
+                        '-o lo -j ACCEPT',
+                        ' -p tcp -s 10.66.2.2 -d 10.66.1.3 --dport 6660:6669 -j ACCEPT',
+                        ' -p udp -s 10.66.2.2 -d 172.16.2.223 --dport 123 -j ACCEPT',
+                        ' -p udp -s 10.66.2.2 -d 10.66.1.3 --dport 123 -j ACCEPT',
+                        ' -j LOG --log-level 1 --log-prefix default',
+                        ' -j DROP']},
+ 'Gandalf': {'FORWARD': ['-m state --state RELATED,ESTABLISHED -j ACCEPT',
+                         ' -p udp -s 10.66.1.3 -d 172.16.2.223 --dport 123 -j LOG --log-level 0 --log-prefix ntp',
+                         ' -p udp -s 10.66.1.3 -d 172.16.2.223 --dport 123 -j ACCEPT',
+                         ' -j LOG --log-level 1 --log-prefix default',
+                         ' -j DROP',
+                         ' -j LOG --log-level 1 --log-prefix default',
+                         ' -j DROP'],
+             'INPUT': ['-m state --state RELATED,ESTABLISHED -j ACCEPT',
+                       '-i lo -j ACCEPT',
+                       ' -p tcp -s 10.66.1.2 -d 10.66.1.1 --dport 443 -j ACCEPT',
+                       '-i eth1  -s 10.66.1.3 -d 10.66.1.1 -j LOG --log-level 3 --log-prefix NoSmeagol',
+                       ' -s 10.66.1.3 -d 10.66.1.1 -j DROP',
+                       ' -p udp -s 10.66.1.3 -d 172.16.2.223 --dport 123 -j ACCEPT',
+                       ' -p udp -s 10.66.2.2 -d 172.16.2.223 --dport 123 -j ACCEPT',
+                       '-i eth0  -j LOG --log-level 1 --log-prefix default',
+                       ' -j DROP',
+                       '-i eth1  -j LOG --log-level 1 --log-prefix default',
+                       ' -j DROP'],
+             'OUTPUT': ['-m state --state RELATED,ESTABLISHED -j ACCEPT',
+                        '-o lo -j ACCEPT',
+                        ' -p tcp -s 10.66.1.1 -d 10.66.2.0/24 --dport 22 -j LOG --log-level 2 --log-prefix ssh_mgmt',
+                        ' -p tcp -s 10.66.1.1 -d 10.66.2.0/24 --dport 22 -j ACCEPT',
+                        ' -p udp -s 172.16.2.223 -d 10.66.1.3 --dport 123 -j ACCEPT',
+                        ' -j LOG --log-level 1 --log-prefix default',
+                        ' -j DROP',
+                        ' -j LOG --log-level 1 --log-prefix default',
+                        ' -j DROP']},
+ 'Smeagol': {'FORWARD': ['-j DROP'],
+             'INPUT': ['-m state --state RELATED,ESTABLISHED -j ACCEPT',
+                       '-i lo -j ACCEPT',
+                       ' -p tcp -s 10.66.2.2 -d 10.66.1.3 --dport 6660:6669 -j ACCEPT',
+                       ' -p udp -s 172.16.2.223 -d 10.66.1.3 --dport 123 -j ACCEPT',
+                       ' -p udp -s 10.66.2.2 -d 10.66.1.3 --dport 123 -j ACCEPT',
+                       '-i eth0  -j LOG --log-level 1 --log-prefix default',
+                       ' -j DROP'],
+             'OUTPUT': ['-m state --state RELATED,ESTABLISHED -j ACCEPT',
+                        '-o lo -j ACCEPT',
+                        ' -s 10.66.1.3 -d 10.66.1.1 -j LOG --log-level 3 --log-prefix NoSmeagol',
+                        ' -s 10.66.1.3 -d 10.66.1.1 -j DROP',
+                        ' -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 -j LOG --log-level 2 --log-prefix imap',
+                        ' -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 -j ACCEPT',
+                        ' -p udp -s 10.66.1.3 -d 172.16.2.223 --dport 123 -j ACCEPT',
+                        ' -j LOG --log-level 1 --log-prefix default',
+                        ' -j DROP']}}
+
+    for hostname in ok:
+        for chain in ok[hostname]:
+            for n, my_line in enumerate(rd[hostname][chain]):
+                ok_line = ok[hostname][chain][n]
+                assert my_line == ok_line, "Incorrect rules in %s chain %s:\ngot [%s]\nexpected [%s]" % (hostname, chain, my_line,  ok_line )
+
 
 @with_setup(setup_dir, teardown_dir)
 def test_DemoGitFireset_build_ipt_restore():
@@ -281,7 +388,115 @@ def test_DemoGitFireset_build_ipt_restore():
     rset = fs.compile_rules()
     m = map(fs._build_ipt_restore, rset.iteritems())
     m = dict(m)
-    # TODO
+    ok = {'Bilbo': ['# Created by Firelet for host Bilbo',
+           '*filter',
+           '-A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT',
+           '-A INPUT -i lo -j ACCEPT',
+           '-A INPUT -i eth1  -p tcp -s 10.66.1.1 -d 10.66.2.0/24 --dport 22 -j LOG --log-level 2 --log-prefix ssh_mgmt',
+           '-A INPUT  -p tcp -s 10.66.1.1 -d 10.66.2.0/24 --dport 22 -j ACCEPT',
+           '-A INPUT -i eth0  -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 -j LOG --log-level 2 --log-prefix imap',
+           '-A INPUT  -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 -j ACCEPT',
+           '-A INPUT -i eth0  -j LOG --log-level 1 --log-prefix default',
+           '-A INPUT  -j DROP',
+           '-A INPUT -i eth1  -j LOG --log-level 1 --log-prefix default',
+           '-A INPUT  -j DROP',
+           '-A FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT',
+           '-A FORWARD  -p tcp -s 10.66.1.1 -d 10.66.2.0/24 --dport 22 -j LOG --log-level 2 --log-prefix ssh_mgmt',
+           '-A FORWARD  -p tcp -s 10.66.1.1 -d 10.66.2.0/24 --dport 22 -j ACCEPT',
+           '-A FORWARD  -p tcp -s 10.66.2.2 -d 10.66.1.3 --dport 6660:6669 -j LOG --log-level 0 --log-prefix irc',
+           '-A FORWARD  -p tcp -s 10.66.2.2 -d 10.66.1.3 --dport 6660:6669 -j ACCEPT',
+           '-A FORWARD  -p udp -s 10.66.1.3 -d 172.16.2.223 --dport 123 -j LOG --log-level 0 --log-prefix ntp',
+           '-A FORWARD  -p udp -s 10.66.1.3 -d 172.16.2.223 --dport 123 -j ACCEPT',
+           '-A FORWARD  -p udp -s 10.66.2.2 -d 172.16.2.223 --dport 123 -j LOG --log-level 0 --log-prefix ntp',
+           '-A FORWARD  -p udp -s 10.66.2.2 -d 172.16.2.223 --dport 123 -j ACCEPT',
+           '-A FORWARD  -p udp -s 10.66.2.2 -d 10.66.1.3 --dport 123 -j LOG --log-level 0 --log-prefix ntp',
+           '-A FORWARD  -p udp -s 10.66.2.2 -d 10.66.1.3 --dport 123 -j ACCEPT',
+           '-A FORWARD  -j LOG --log-level 1 --log-prefix default',
+           '-A FORWARD  -j DROP',
+           '-A FORWARD  -j LOG --log-level 1 --log-prefix default',
+           '-A FORWARD  -j DROP',
+           '-A OUTPUT -m state --state RELATED,ESTABLISHED -j ACCEPT',
+           '-A OUTPUT -o lo -j ACCEPT',
+           '-A OUTPUT  -p tcp -s 10.66.1.2 -d 10.66.1.1 --dport 443 -j ACCEPT',
+           '-A OUTPUT  -p tcp -s 10.66.2.1 -d 10.66.2.2 --dport 80 -j ACCEPT',
+           '-A OUTPUT  -j LOG --log-level 1 --log-prefix default',
+           '-A OUTPUT  -j DROP',
+           '-A OUTPUT  -j LOG --log-level 1 --log-prefix default',
+           '-A OUTPUT  -j DROP',
+           'COMMIT'],
+ 'Fangorn': ['# Created by Firelet for host Fangorn',
+             '*filter',
+             '-A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT',
+             '-A INPUT -i lo -j ACCEPT',
+             '-A INPUT  -p tcp -s 10.66.2.1 -d 10.66.2.2 --dport 80 -j ACCEPT',
+             '-A INPUT -i eth0  -p tcp -s 10.66.1.1 -d 10.66.2.0/24 --dport 22 -j LOG --log-level 2 --log-prefix ssh_mgmt',
+             '-A INPUT  -p tcp -s 10.66.1.1 -d 10.66.2.0/24 --dport 22 -j ACCEPT',
+             '-A INPUT -i eth0  -j LOG --log-level 1 --log-prefix default',
+             '-A INPUT  -j DROP',
+             '-A FORWARD -j DROP',
+             '-A OUTPUT -m state --state RELATED,ESTABLISHED -j ACCEPT',
+             '-A OUTPUT -o lo -j ACCEPT',
+             '-A OUTPUT  -p tcp -s 10.66.2.2 -d 10.66.1.3 --dport 6660:6669 -j ACCEPT',
+             '-A OUTPUT  -p udp -s 10.66.2.2 -d 172.16.2.223 --dport 123 -j ACCEPT',
+             '-A OUTPUT  -p udp -s 10.66.2.2 -d 10.66.1.3 --dport 123 -j ACCEPT',
+             '-A OUTPUT  -j LOG --log-level 1 --log-prefix default',
+             '-A OUTPUT  -j DROP',
+             'COMMIT'],
+ 'Gandalf': ['# Created by Firelet for host Gandalf',
+             '*filter',
+             '-A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT',
+             '-A INPUT -i lo -j ACCEPT',
+             '-A INPUT  -p tcp -s 10.66.1.2 -d 10.66.1.1 --dport 443 -j ACCEPT',
+             '-A INPUT -i eth1  -s 10.66.1.3 -d 10.66.1.1 -j LOG --log-level 3 --log-prefix NoSmeagol',
+             '-A INPUT  -s 10.66.1.3 -d 10.66.1.1 -j DROP',
+             '-A INPUT  -p udp -s 10.66.1.3 -d 172.16.2.223 --dport 123 -j ACCEPT',
+             '-A INPUT  -p udp -s 10.66.2.2 -d 172.16.2.223 --dport 123 -j ACCEPT',
+             '-A INPUT -i eth0  -j LOG --log-level 1 --log-prefix default',
+             '-A INPUT  -j DROP',
+             '-A INPUT -i eth1  -j LOG --log-level 1 --log-prefix default',
+             '-A INPUT  -j DROP',
+             '-A FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT',
+             '-A FORWARD  -p udp -s 10.66.1.3 -d 172.16.2.223 --dport 123 -j LOG --log-level 0 --log-prefix ntp',
+             '-A FORWARD  -p udp -s 10.66.1.3 -d 172.16.2.223 --dport 123 -j ACCEPT',
+             '-A FORWARD  -j LOG --log-level 1 --log-prefix default',
+             '-A FORWARD  -j DROP',
+             '-A FORWARD  -j LOG --log-level 1 --log-prefix default',
+             '-A FORWARD  -j DROP',
+             '-A OUTPUT -m state --state RELATED,ESTABLISHED -j ACCEPT',
+             '-A OUTPUT -o lo -j ACCEPT',
+             '-A OUTPUT  -p tcp -s 10.66.1.1 -d 10.66.2.0/24 --dport 22 -j LOG --log-level 2 --log-prefix ssh_mgmt',
+             '-A OUTPUT  -p tcp -s 10.66.1.1 -d 10.66.2.0/24 --dport 22 -j ACCEPT',
+             '-A OUTPUT  -p udp -s 172.16.2.223 -d 10.66.1.3 --dport 123 -j ACCEPT',
+             '-A OUTPUT  -j LOG --log-level 1 --log-prefix default',
+             '-A OUTPUT  -j DROP',
+             '-A OUTPUT  -j LOG --log-level 1 --log-prefix default',
+             '-A OUTPUT  -j DROP',
+             'COMMIT'],
+ 'Smeagol': ['# Created by Firelet for host Smeagol',
+             '*filter',
+             '-A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT',
+             '-A INPUT -i lo -j ACCEPT',
+             '-A INPUT  -p tcp -s 10.66.2.2 -d 10.66.1.3 --dport 6660:6669 -j ACCEPT',
+             '-A INPUT  -p udp -s 172.16.2.223 -d 10.66.1.3 --dport 123 -j ACCEPT',
+             '-A INPUT  -p udp -s 10.66.2.2 -d 10.66.1.3 --dport 123 -j ACCEPT',
+             '-A INPUT -i eth0  -j LOG --log-level 1 --log-prefix default',
+             '-A INPUT  -j DROP',
+             '-A FORWARD -j DROP',
+             '-A OUTPUT -m state --state RELATED,ESTABLISHED -j ACCEPT',
+             '-A OUTPUT -o lo -j ACCEPT',
+             '-A OUTPUT  -s 10.66.1.3 -d 10.66.1.1 -j LOG --log-level 3 --log-prefix NoSmeagol',
+             '-A OUTPUT  -s 10.66.1.3 -d 10.66.1.1 -j DROP',
+             '-A OUTPUT  -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 -j LOG --log-level 2 --log-prefix imap',
+             '-A OUTPUT  -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 -j ACCEPT',
+             '-A OUTPUT  -p udp -s 10.66.1.3 -d 172.16.2.223 --dport 123 -j ACCEPT',
+             '-A OUTPUT  -j LOG --log-level 1 --log-prefix default',
+             '-A OUTPUT  -j DROP',
+             'COMMIT']}
+
+    for hostname in m:
+        for ok_line, my_line in zip(ok[hostname], m[hostname]):
+            assert my_line == ok_line, "Incorrect rule built for %s:\ngot [%s]\nexpected [%s]" % (hostname, my_line,  ok_line )
+
 
 @with_setup(setup_dir, teardown_dir)
 def test_DemoGitFireset_diff_table_simple():
@@ -291,25 +506,32 @@ def test_DemoGitFireset_diff_table_simple():
     remote_confs = {}
     dt = fs._diff_table(remote_confs, new_confs)
     assert dt == '<p>The firewalls are up to date. No deployment needed.</p>'
-    #FIXME: maybe deployment IS needed
+    #FIXME:  deployment IS needed
 
 @with_setup(setup_dir, teardown_dir)
 def test_DemoGitFireset_diff_table():
     """Run diff between complied rules and remote confs"""
     fs = DemoGitFireSet()
-    fs.rd = fs.compile_rules()
+    dt = fs.check()
     return
     fs._get_confs(keep_sessions=False)
     dt = fs._diff_table()
-    ok = """<h4 class='dtt'>Bilbo</h4><table class='phdiff_table'><tr class="add"><td>-m state --state RELATED,ESTABLISHED -j ACCEPT</td></tr><tr class="add"><td> -p tcp -s 10.66.2.1 -d 10.66.2.2 --dport 80 -j ACCEPT</td></tr><tr class="add"><td> -p udp -s 10.66.2.2 -d 172.16.2.223 --dport 123 -j LOG --log-level 0 --log-prefix ntp</td></tr><tr class="add"><td> -p tcp -s 10.66.1.1 -d 10.66.2.0/24 --dport 22 -j ACCEPT</td></tr><tr class="add"><td>-i eth1  -p tcp -s 10.66.1.1 -d 10.66.2.0/24 --dport 22 -j LOG --log-level 2 --log-prefix ssh_mgmt</td></tr><tr class="add"><td>-i eth0  -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 -j LOG --log-level 2 --log-prefix imap</td></tr><tr class="add"><td> -p udp -s 10.66.2.2 -d 10.66.1.3 --dport 123 -j LOG --log-level 0 --log-prefix ntp</td></tr><tr class="add"><td> -p udp -s 10.66.2.2 -d 10.66.1.3 --dport 123 -j ACCEPT</td></tr><tr class="add"><td> -p tcp -s 10.66.1.1 -d 10.66.2.0/24 --dport 22 -j LOG --log-level 2 --log-prefix ssh_mgmt</td></tr><tr class="add"><td> -p tcp -s 10.66.1.2 -d 10.66.1.1 --dport 443 -j ACCEPT</td></tr><tr class="add"><td> -p tcp -s 10.66.2.2 -d 10.66.1.3 --dport 6660:6669 -j LOG --log-level 0 --log-prefix irc</td></tr><tr class="add"><td> -j LOG --log-level 1 --log-prefix default</td></tr><tr class="add"><td>-i eth0  -j LOG --log-level 1 --log-prefix default</td></tr><tr class="add"><td> -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 -j ACCEPT</td></tr><tr class="add"><td> -p udp -s 10.66.1.3 -d 172.16.2.223 --dport 123 -j ACCEPT</td></tr><tr class="add"><td> -p udp -s 10.66.1.3 -d 172.16.2.223 --dport 123 -j LOG --log-level 0 --log-prefix ntp</td></tr><tr class="add"><td>-i eth1  -j LOG --log-level 1 --log-prefix default</td></tr><tr class="add"><td> -j DROP</td></tr><tr class="add"><td> -p udp -s 10.66.2.2 -d 172.16.2.223 --dport 123 -j ACCEPT</td></tr><tr class="add"><td> -p tcp -s 10.66.2.2 -d 10.66.1.3 --dport 6660:6669 -j ACCEPT</td></tr><tr class="del"><td># Completed on Sun Jul  4 09:28:19 2010</td></tr><tr class="del"><td>*nat</td></tr><tr class="del"><td>:PREROUTING ACCEPT [8:3712]</td></tr><tr class="del"><td>:INPUT ACCEPT [4304:2534591]</td></tr><tr class="del"><td>:POSTROUTING ACCEPT [32:3081]</td></tr><tr class="del"><td>:OUTPUT ACCEPT [4589:2195434]</td></tr><tr class="del"><td>-A OUTPUT -d 10.10.10.10/32 -p udp -m udp --dport 123 -j ACCEPT</td></tr><tr class="del"><td>-A FORWARD -s 1.2.3.4/32 -d 5.6.7.8/32 -p tcp -m multiport --dports 22,80,443 -j ACCEPT</td></tr><tr class="del"><td># Generated by iptables-save v1.4.8 on Sun Jul  4 09:28:19 2010</td></tr><tr class="del"><td>:OUTPUT ACCEPT [32:3081]</td></tr><tr class="del"><td>COMMIT</td></tr><tr class="del"><td>-A INPUT -s 10.0.0.0/8 -p tcp -m tcp --dport 80 -j ACCEPT</td></tr><tr class="del"><td>-A POSTROUTING -o eth3 -j MASQUERADE</td></tr><tr class="del"><td>:FORWARD ACCEPT [0:0]</td></tr><tr class="del"><td>*filter</td></tr></table><h4 class='dtt'>Fangorn</h4><table class='phdiff_table'><tr class="add"><td>-i eth0  -p tcp -s 10.66.1.1 -d 10.66.2.0/24 --dport 22 -j LOG --log-level 2 --log-prefix ssh_mgmt</td></tr><tr class="add"><td>-m state --state RELATED,ESTABLISHED -j ACCEPT</td></tr><tr class="add"><td> -p tcp -s 10.66.1.1 -d 10.66.2.0/24 --dport 22 -j ACCEPT</td></tr><tr class="add"><td> -p tcp -s 10.66.2.1 -d 10.66.2.2 --dport 80 -j ACCEPT</td></tr><tr class="add"><td> -p udp -s 10.66.2.2 -d 10.66.1.3 --dport 123 -j ACCEPT</td></tr><tr class="add"><td> -j LOG --log-level 1 --log-prefix default</td></tr><tr class="add"><td>-i eth0  -j LOG --log-level 1 --log-prefix default</td></tr><tr class="add"><td>-j DROP</td></tr><tr class="add"><td> -p udp -s 10.66.2.2 -d 172.16.2.223 --dport 123 -j ACCEPT</td></tr><tr class="add"><td> -j DROP</td></tr><tr class="add"><td> -p tcp -s 10.66.2.2 -d 10.66.1.3 --dport 6660:6669 -j ACCEPT</td></tr><tr class="del"><td># Completed on Sun Jul  4 09:28:19 2010</td></tr><tr class="del"><td>*nat</td></tr><tr class="del"><td>:PREROUTING ACCEPT [8:3712]</td></tr><tr class="del"><td>:INPUT ACCEPT [4304:2534591]</td></tr><tr class="del"><td>:POSTROUTING ACCEPT [32:3081]</td></tr><tr class="del"><td>:OUTPUT ACCEPT [4589:2195434]</td></tr><tr class="del"><td>-A OUTPUT -d 10.10.10.10/32 -p udp -m udp --dport 123 -j ACCEPT</td></tr><tr class="del"><td>-A FORWARD -s 1.2.3.4/32 -d 5.6.7.8/32 -p tcp -m multiport --dports 22,80,443 -j ACCEPT</td></tr><tr class="del"><td># Generated by iptables-save v1.4.8 on Sun Jul  4 09:28:19 2010</td></tr><tr class="del"><td>:OUTPUT ACCEPT [32:3081]</td></tr><tr class="del"><td>COMMIT</td></tr><tr class="del"><td>-A INPUT -s 10.0.0.0/8 -p tcp -m tcp --dport 80 -j ACCEPT</td></tr><tr class="del"><td>-A POSTROUTING -o eth3 -j MASQUERADE</td></tr><tr class="del"><td>:FORWARD ACCEPT [0:0]</td></tr><tr class="del"><td>*filter</td></tr></table><h4 class='dtt'>Gandalf</h4><table class='phdiff_table'><tr class="add"><td> -s 10.66.1.3 -d 10.66.1.1 -j DROP</td></tr><tr class="add"><td>-m state --state RELATED,ESTABLISHED -j ACCEPT</td></tr><tr class="add"><td> -p tcp -s 10.66.1.1 -d 10.66.2.0/24 --dport 22 -j ACCEPT</td></tr><tr class="add"><td> -p tcp -s 10.66.1.1 -d 10.66.2.0/24 --dport 22 -j LOG --log-level 2 --log-prefix ssh_mgmt</td></tr><tr class="add"><td> -p tcp -s 10.66.1.2 -d 10.66.1.1 --dport 443 -j ACCEPT</td></tr><tr class="add"><td>-i eth1  -j LOG --log-level 1 --log-prefix default</td></tr><tr class="add"><td> -j LOG --log-level 1 --log-prefix default</td></tr><tr class="add"><td>-i eth0  -j LOG --log-level 1 --log-prefix default</td></tr><tr class="add"><td> -p udp -s 172.16.2.223 -d 10.66.1.3 --dport 123 -j ACCEPT</td></tr><tr class="add"><td> -p udp -s 10.66.1.3 -d 172.16.2.223 --dport 123 -j ACCEPT</td></tr><tr class="add"><td>-i eth1  -s 10.66.1.3 -d 10.66.1.1 -j LOG --log-level 3 --log-prefix NoSmeagol</td></tr><tr class="add"><td> -p udp -s 10.66.2.2 -d 172.16.2.223 --dport 123 -j ACCEPT</td></tr><tr class="add"><td> -j DROP</td></tr><tr class="add"><td> -p udp -s 10.66.1.3 -d 172.16.2.223 --dport 123 -j LOG --log-level 0 --log-prefix ntp</td></tr><tr class="del"><td># Completed on Sun Jul  4 09:28:19 2010</td></tr><tr class="del"><td>*nat</td></tr><tr class="del"><td>:PREROUTING ACCEPT [8:3712]</td></tr><tr class="del"><td>:INPUT ACCEPT [4304:2534591]</td></tr><tr class="del"><td>:POSTROUTING ACCEPT [32:3081]</td></tr><tr class="del"><td>:OUTPUT ACCEPT [4589:2195434]</td></tr><tr class="del"><td>-A OUTPUT -d 10.10.10.10/32 -p udp -m udp --dport 123 -j ACCEPT</td></tr><tr class="del"><td>-A FORWARD -s 1.2.3.4/32 -d 5.6.7.8/32 -p tcp -m multiport --dports 22,80,443 -j ACCEPT</td></tr><tr class="del"><td># Generated by iptables-save v1.4.8 on Sun Jul  4 09:28:19 2010</td></tr><tr class="del"><td>:OUTPUT ACCEPT [32:3081]</td></tr><tr class="del"><td>COMMIT</td></tr><tr class="del"><td>-A INPUT -s 10.0.0.0/8 -p tcp -m tcp --dport 80 -j ACCEPT</td></tr><tr class="del"><td>-A POSTROUTING -o eth3 -j MASQUERADE</td></tr><tr class="del"><td>:FORWARD ACCEPT [0:0]</td></tr><tr class="del"><td>*filter</td></tr></table><h4 class='dtt'>Smeagol</h4><table class='phdiff_table'><tr class="add"><td> -s 10.66.1.3 -d 10.66.1.1 -j DROP</td></tr><tr class="add"><td>-m state --state RELATED,ESTABLISHED -j ACCEPT</td></tr><tr class="add"><td> -s 10.66.1.3 -d 10.66.1.1 -j LOG --log-level 3 --log-prefix NoSmeagol</td></tr><tr class="add"><td> -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 -j LOG --log-level 2 --log-prefix imap</td></tr><tr class="add"><td> -p udp -s 10.66.2.2 -d 10.66.1.3 --dport 123 -j ACCEPT</td></tr><tr class="add"><td> -j LOG --log-level 1 --log-prefix default</td></tr><tr class="add"><td>-i eth0  -j LOG --log-level 1 --log-prefix default</td></tr><tr class="add"><td>-j DROP</td></tr><tr class="add"><td> -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 -j ACCEPT</td></tr><tr class="add"><td> -p udp -s 172.16.2.223 -d 10.66.1.3 --dport 123 -j ACCEPT</td></tr><tr class="add"><td> -p udp -s 10.66.1.3 -d 172.16.2.223 --dport 123 -j ACCEPT</td></tr><tr class="add"><td> -j DROP</td></tr><tr class="add"><td> -p tcp -s 10.66.2.2 -d 10.66.1.3 --dport 6660:6669 -j ACCEPT</td></tr><tr class="del"><td># Completed on Sun Jul  4 09:28:19 2010</td></tr><tr class="del"><td>*nat</td></tr><tr class="del"><td>:PREROUTING ACCEPT [8:3712]</td></tr><tr class="del"><td>:INPUT ACCEPT [4304:2534591]</td></tr><tr class="del"><td>:POSTROUTING ACCEPT [32:3081]</td></tr><tr class="del"><td>:OUTPUT ACCEPT [4589:2195434]</td></tr><tr class="del"><td>-A OUTPUT -d 10.10.10.10/32 -p udp -m udp --dport 123 -j ACCEPT</td></tr><tr class="del"><td>-A FORWARD -s 1.2.3.4/32 -d 5.6.7.8/32 -p tcp -m multiport --dports 22,80,443 -j ACCEPT</td></tr><tr class="del"><td># Generated by iptables-save v1.4.8 on Sun Jul  4 09:28:19 2010</td></tr><tr class="del"><td>:OUTPUT ACCEPT [32:3081]</td></tr><tr class="del"><td>COMMIT</td></tr><tr class="del"><td>-A INPUT -s 10.0.0.0/8 -p tcp -m tcp --dport 80 -j ACCEPT</td></tr><tr class="del"><td>-A POSTROUTING -o eth3 -j MASQUERADE</td></tr><tr class="del"><td>:FORWARD ACCEPT [0:0]</td></tr><tr class="del"><td>*filter</td></tr></table>
-"""
-    assert dt == ok, dt
 
 @with_setup(setup_dir, teardown_dir)
 def test_DemoGitFireset_check():
+    """Given the test files, the check should be ok and require no deployment"""
     fs = DemoGitFireSet()
     dt = fs.check()
-    assert 'ACCEPT' in dt, dt
+    assert dt == '<p>The firewalls are up to date. No deployment needed.</p>'
+
+
+#TODO: test deploy
+#@with_setup(setup_dir, teardown_dir)
+#def test_deployment():
+#    """Test host connectivity is required"""
+#    fs = GitFireSet(repodir='/tmp/firelet')
+#    fs.deploy()
+
 
 
 #@with_setup(setup_dir, teardown_dir)
@@ -388,216 +610,6 @@ def test_compare():
 #    assert ['h', 'h'] == [h.hostname for h in hg.hosts()]
 #    assert ['n'] == [h.name for h in hg.networks()], repr(hg.networks())
 
-
-# # Rule compliation and deployment testing # #
-
-@with_setup(setup_dir, teardown_dir)
-def test_compilation():
-    fs = GitFireSet(repodir='/tmp/firelet')
-    rd = fs.compile_rules()
-
-    r = {'Bilbo': {'FORWARD': ['-m state --state RELATED,ESTABLISHED -j ACCEPT',
-                       ' -p tcp -s 10.66.1.1 -d 10.66.2.0/24 --dport 22 -j LOG --log-level 2 --log-prefix ssh_mgmt',
-                       ' -p tcp -s 10.66.1.1 -d 10.66.2.0/24 --dport 22 -j ACCEPT',
-                       ' -p tcp -s 10.66.2.2 -d 10.66.1.3 --dport 6660:6669 -j LOG --log-level 0 --log-prefix irc',
-                       ' -p tcp -s 10.66.2.2 -d 10.66.1.3 --dport 6660:6669 -j ACCEPT',
-                       ' -p udp -s 10.66.1.3 -d 172.16.2.223 --dport 123 -j LOG --log-level 0 --log-prefix ntp',
-                       ' -p udp -s 10.66.1.3 -d 172.16.2.223 --dport 123 -j ACCEPT',
-                       ' -p udp -s 10.66.2.2 -d 172.16.2.223 --dport 123 -j LOG --log-level 0 --log-prefix ntp',
-                       ' -p udp -s 10.66.2.2 -d 172.16.2.223 --dport 123 -j ACCEPT',
-                       ' -p udp -s 10.66.2.2 -d 10.66.1.3 --dport 123 -j LOG --log-level 0 --log-prefix ntp',
-                       ' -p udp -s 10.66.2.2 -d 10.66.1.3 --dport 123 -j ACCEPT',
-                       ' -j LOG --log-level 1 --log-prefix default',
-                       ' -j DROP',
-                       ' -j LOG --log-level 1 --log-prefix default',
-                       ' -j DROP'],
-           'INPUT': ['-m state --state RELATED,ESTABLISHED -j ACCEPT',
-                     '-i eth1  -p tcp -s 10.66.1.1 -d 10.66.2.0/24 --dport 22 -j LOG --log-level 2 --log-prefix ssh_mgmt',
-                     ' -p tcp -s 10.66.1.1 -d 10.66.2.0/24 --dport 22 -j ACCEPT',
-                     '-i eth0  -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 -j LOG --log-level 2 --log-prefix imap',
-                     ' -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 -j ACCEPT',
-                     '-i eth0  -j LOG --log-level 1 --log-prefix default',
-                     ' -j DROP',
-                     '-i eth1  -j LOG --log-level 1 --log-prefix default',
-                     ' -j DROP'],
-           'OUTPUT': ['-m state --state RELATED,ESTABLISHED -j ACCEPT',
-                      ' -p tcp -s 10.66.1.2 -d 10.66.1.1 --dport 443 -j ACCEPT',
-                      ' -p tcp -s 10.66.2.1 -d 10.66.2.2 --dport 80 -j ACCEPT',
-                      ' -j LOG --log-level 1 --log-prefix default',
-                      ' -j DROP',
-                      ' -j LOG --log-level 1 --log-prefix default',
-                      ' -j DROP']},
- 'Fangorn': {'FORWARD': ['-j DROP'],
-             'INPUT': ['-m state --state RELATED,ESTABLISHED -j ACCEPT',
-                       ' -p tcp -s 10.66.2.1 -d 10.66.2.2 --dport 80 -j ACCEPT',
-                       '-i eth0  -p tcp -s 10.66.1.1 -d 10.66.2.0/24 --dport 22 -j LOG --log-level 2 --log-prefix ssh_mgmt',
-                       ' -p tcp -s 10.66.1.1 -d 10.66.2.0/24 --dport 22 -j ACCEPT',
-                       '-i eth0  -j LOG --log-level 1 --log-prefix default',
-                       ' -j DROP'],
-             'OUTPUT': ['-m state --state RELATED,ESTABLISHED -j ACCEPT',
-                        ' -p tcp -s 10.66.2.2 -d 10.66.1.3 --dport 6660:6669 -j ACCEPT',
-                        ' -p udp -s 10.66.2.2 -d 172.16.2.223 --dport 123 -j ACCEPT',
-                        ' -p udp -s 10.66.2.2 -d 10.66.1.3 --dport 123 -j ACCEPT',
-                        ' -j LOG --log-level 1 --log-prefix default',
-                        ' -j DROP']},
- 'Gandalf': {'FORWARD': ['-m state --state RELATED,ESTABLISHED -j ACCEPT',
-                         ' -p udp -s 10.66.1.3 -d 172.16.2.223 --dport 123 -j LOG --log-level 0 --log-prefix ntp',
-                         ' -p udp -s 10.66.1.3 -d 172.16.2.223 --dport 123 -j ACCEPT',
-                         ' -j LOG --log-level 1 --log-prefix default',
-                         ' -j DROP',
-                         ' -j LOG --log-level 1 --log-prefix default',
-                         ' -j DROP'],
-             'INPUT': ['-m state --state RELATED,ESTABLISHED -j ACCEPT',
-                       ' -p tcp -s 10.66.1.2 -d 10.66.1.1 --dport 443 -j ACCEPT',
-                       '-i eth1  -s 10.66.1.3 -d 10.66.1.1 -j LOG --log-level 3 --log-prefix NoSmeagol',
-                       ' -s 10.66.1.3 -d 10.66.1.1 -j DROP',
-                       ' -p udp -s 10.66.1.3 -d 172.16.2.223 --dport 123 -j ACCEPT',
-                       ' -p udp -s 10.66.2.2 -d 172.16.2.223 --dport 123 -j ACCEPT',
-                       '-i eth0  -j LOG --log-level 1 --log-prefix default',
-                       ' -j DROP',
-                       '-i eth1  -j LOG --log-level 1 --log-prefix default',
-                       ' -j DROP'],
-             'OUTPUT': ['-m state --state RELATED,ESTABLISHED -j ACCEPT',
-                        ' -p tcp -s 10.66.1.1 -d 10.66.2.0/24 --dport 22 -j LOG --log-level 2 --log-prefix ssh_mgmt',
-                        ' -p tcp -s 10.66.1.1 -d 10.66.2.0/24 --dport 22 -j ACCEPT',
-                        ' -p udp -s 172.16.2.223 -d 10.66.1.3 --dport 123 -j ACCEPT',
-                        ' -j LOG --log-level 1 --log-prefix default',
-                        ' -j DROP',
-                        ' -j LOG --log-level 1 --log-prefix default',
-                        ' -j DROP']},
- 'Smeagol': {'FORWARD': ['-j DROP'],
-             'INPUT': ['-m state --state RELATED,ESTABLISHED -j ACCEPT',
-                       ' -p tcp -s 10.66.2.2 -d 10.66.1.3 --dport 6660:6669 -j ACCEPT',
-                       ' -p udp -s 172.16.2.223 -d 10.66.1.3 --dport 123 -j ACCEPT',
-                       ' -p udp -s 10.66.2.2 -d 10.66.1.3 --dport 123 -j ACCEPT',
-                       '-i eth0  -j LOG --log-level 1 --log-prefix default',
-                       ' -j DROP'],
-             'OUTPUT': ['-m state --state RELATED,ESTABLISHED -j ACCEPT',
-                        ' -s 10.66.1.3 -d 10.66.1.1 -j LOG --log-level 3 --log-prefix NoSmeagol',
-                        ' -s 10.66.1.3 -d 10.66.1.1 -j DROP',
-                        ' -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 -j LOG --log-level 2 --log-prefix imap',
-                        ' -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 -j ACCEPT',
-                        ' -p udp -s 10.66.1.3 -d 172.16.2.223 --dport 123 -j ACCEPT',
-                        ' -j LOG --log-level 1 --log-prefix default',
-                        ' -j DROP']}}
-
-    for hostname in r:
-        for chain in r[hostname]:
-            assert rd[hostname][chain] == r[hostname][chain], "Incorrect rules in %s %s:\n%s" % (hostname, chain, pformat(rd[hostname][chain]))
-
-
-#@with_setup(setup_dir, teardown_dir)
-#def test_select_rules():
-#    fs = GitFireSet(repodir='/tmp/firelet')
-#    rd = fs.compile_dict()
-#    r = {'Bilbo': {'eth1': [], 'eth0': ['-A FORWARD -p tcp -s 10.66.1.2 -d 10.66.1.1 --dport 443 -j ACCEPT', '-A FORWARD -p tcp -s 10.66.1.2 -d 10.66.2.2 --dport 80 -j ACCEPT', '-A FORWARD -p tcp -s 10.66.1.2 -d 10.66.1.3 --dport 6660:6669 -j ACCEPT', '-A FORWARD -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 --log-level 2 --log-prefix imap -j LOG', '-A FORWARD -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 -j ACCEPT']}, 'Fangorn': {'eth0': ['-A FORWARD -p tcp -s 10.66.1.2 -d 10.66.2.2 --dport 80 -j ACCEPT']}, 'Gandalf': {'eth1': ['-A FORWARD -p tcp -s 10.66.1.2 -d 10.66.1.1 --dport 443 -j ACCEPT'], 'eth0': ['-A FORWARD -s 10.66.1.3 -d 172.16.2.223 --log-level 3 --log-prefix NoSmeagol -j LOG', '-A FORWARD -s 10.66.1.3 -d 172.16.2.223 -j DROP', '-A FORWARD -p tcp -s 172.16.2.223 -d 10.66.2.0/255.255.255.0 --dport 22 --log-level 2 --log-prefix ssh_mgmt -j LOG', '-A FORWARD -p tcp -s 172.16.2.223 -d 10.66.2.0/255.255.255.0 --dport 22 -j ACCEPT', '-A FORWARD -p udp -s 172.16.2.223 -d 172.16.2.223 --dport 123 -j ACCEPT']}, 'Smeagol': {'eth0': ['-A FORWARD -s 10.66.1.3 -d 172.16.2.223 --log-level 3 --log-prefix NoSmeagol -j LOG', '-A FORWARD -s 10.66.1.3 -d 172.16.2.223 -j DROP', '-A FORWARD -p tcp -s 10.66.1.2 -d 10.66.1.3 --dport 6660:6669 -j ACCEPT', '-A FORWARD -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 --log-level 2 --log-prefix imap -j LOG', '-A FORWARD -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 -j ACCEPT']}}
-#    assert rd == r,  "select_rules generates:\n%s" % repr(rd)
-#TODO: remove this?
-
-@with_setup(setup_dir, teardown_dir)
-def test_compile_rules():
-    fs = GitFireSet(repodir='/tmp/firelet')
-    rd = fs.compile_rules()
-
-    r = {'Bilbo': {'FORWARD': ['-m state --state RELATED,ESTABLISHED -j ACCEPT',
-                       ' -p tcp -s 10.66.1.1 -d 10.66.2.0/24 --dport 22 -j LOG --log-level 2 --log-prefix ssh_mgmt',
-                       ' -p tcp -s 10.66.1.1 -d 10.66.2.0/24 --dport 22 -j ACCEPT',
-                       ' -p tcp -s 10.66.2.2 -d 10.66.1.3 --dport 6660:6669 -j LOG --log-level 0 --log-prefix irc',
-                       ' -p tcp -s 10.66.2.2 -d 10.66.1.3 --dport 6660:6669 -j ACCEPT',
-                       ' -p udp -s 10.66.1.3 -d 172.16.2.223 --dport 123 -j LOG --log-level 0 --log-prefix ntp',
-                       ' -p udp -s 10.66.1.3 -d 172.16.2.223 --dport 123 -j ACCEPT',
-                       ' -p udp -s 10.66.2.2 -d 172.16.2.223 --dport 123 -j LOG --log-level 0 --log-prefix ntp',
-                       ' -p udp -s 10.66.2.2 -d 172.16.2.223 --dport 123 -j ACCEPT',
-                       ' -p udp -s 10.66.2.2 -d 10.66.1.3 --dport 123 -j LOG --log-level 0 --log-prefix ntp',
-                       ' -p udp -s 10.66.2.2 -d 10.66.1.3 --dport 123 -j ACCEPT',
-                       ' -j LOG --log-level 1 --log-prefix default',
-                       ' -j DROP',
-                       ' -j LOG --log-level 1 --log-prefix default',
-                       ' -j DROP'],
-           'INPUT': ['-m state --state RELATED,ESTABLISHED -j ACCEPT',
-                     '-i eth1  -p tcp -s 10.66.1.1 -d 10.66.2.0/24 --dport 22 -j LOG --log-level 2 --log-prefix ssh_mgmt',
-                     ' -p tcp -s 10.66.1.1 -d 10.66.2.0/24 --dport 22 -j ACCEPT',
-                     '-i eth0  -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 -j LOG --log-level 2 --log-prefix imap',
-                     ' -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 -j ACCEPT',
-                     '-i eth0  -j LOG --log-level 1 --log-prefix default',
-                     ' -j DROP',
-                     '-i eth1  -j LOG --log-level 1 --log-prefix default',
-                     ' -j DROP'],
-           'OUTPUT': ['-m state --state RELATED,ESTABLISHED -j ACCEPT',
-                      ' -p tcp -s 10.66.1.2 -d 10.66.1.1 --dport 443 -j ACCEPT',
-                      ' -p tcp -s 10.66.2.1 -d 10.66.2.2 --dport 80 -j ACCEPT',
-                      ' -j LOG --log-level 1 --log-prefix default',
-                      ' -j DROP',
-                      ' -j LOG --log-level 1 --log-prefix default',
-                      ' -j DROP']},
- 'Fangorn': {'FORWARD': ['-j DROP'],
-             'INPUT': ['-m state --state RELATED,ESTABLISHED -j ACCEPT',
-                       ' -p tcp -s 10.66.2.1 -d 10.66.2.2 --dport 80 -j ACCEPT',
-                       '-i eth0  -p tcp -s 10.66.1.1 -d 10.66.2.0/24 --dport 22 -j LOG --log-level 2 --log-prefix ssh_mgmt',
-                       ' -p tcp -s 10.66.1.1 -d 10.66.2.0/24 --dport 22 -j ACCEPT',
-                       '-i eth0  -j LOG --log-level 1 --log-prefix default',
-                       ' -j DROP'],
-             'OUTPUT': ['-m state --state RELATED,ESTABLISHED -j ACCEPT',
-                        ' -p tcp -s 10.66.2.2 -d 10.66.1.3 --dport 6660:6669 -j ACCEPT',
-                        ' -p udp -s 10.66.2.2 -d 172.16.2.223 --dport 123 -j ACCEPT',
-                        ' -p udp -s 10.66.2.2 -d 10.66.1.3 --dport 123 -j ACCEPT',
-                        ' -j LOG --log-level 1 --log-prefix default',
-                        ' -j DROP']},
- 'Gandalf': {'FORWARD': ['-m state --state RELATED,ESTABLISHED -j ACCEPT',
-                         ' -p udp -s 10.66.1.3 -d 172.16.2.223 --dport 123 -j LOG --log-level 0 --log-prefix ntp',
-                         ' -p udp -s 10.66.1.3 -d 172.16.2.223 --dport 123 -j ACCEPT',
-                         ' -j LOG --log-level 1 --log-prefix default',
-                         ' -j DROP',
-                         ' -j LOG --log-level 1 --log-prefix default',
-                         ' -j DROP'],
-             'INPUT': ['-m state --state RELATED,ESTABLISHED -j ACCEPT',
-                       ' -p tcp -s 10.66.1.2 -d 10.66.1.1 --dport 443 -j ACCEPT',
-                       '-i eth1  -s 10.66.1.3 -d 10.66.1.1 -j LOG --log-level 3 --log-prefix NoSmeagol',
-                       ' -s 10.66.1.3 -d 10.66.1.1 -j DROP',
-                       ' -p udp -s 10.66.1.3 -d 172.16.2.223 --dport 123 -j ACCEPT',
-                       ' -p udp -s 10.66.2.2 -d 172.16.2.223 --dport 123 -j ACCEPT',
-                       '-i eth0  -j LOG --log-level 1 --log-prefix default',
-                       ' -j DROP',
-                       '-i eth1  -j LOG --log-level 1 --log-prefix default',
-                       ' -j DROP'],
-             'OUTPUT': ['-m state --state RELATED,ESTABLISHED -j ACCEPT',
-                        ' -p tcp -s 10.66.1.1 -d 10.66.2.0/24 --dport 22 -j LOG --log-level 2 --log-prefix ssh_mgmt',
-                        ' -p tcp -s 10.66.1.1 -d 10.66.2.0/24 --dport 22 -j ACCEPT',
-                        ' -p udp -s 172.16.2.223 -d 10.66.1.3 --dport 123 -j ACCEPT',
-                        ' -j LOG --log-level 1 --log-prefix default',
-                        ' -j DROP',
-                        ' -j LOG --log-level 1 --log-prefix default',
-                        ' -j DROP']},
- 'Smeagol': {'FORWARD': ['-j DROP'],
-             'INPUT': ['-m state --state RELATED,ESTABLISHED -j ACCEPT',
-                       ' -p tcp -s 10.66.2.2 -d 10.66.1.3 --dport 6660:6669 -j ACCEPT',
-                       ' -p udp -s 172.16.2.223 -d 10.66.1.3 --dport 123 -j ACCEPT',
-                       ' -p udp -s 10.66.2.2 -d 10.66.1.3 --dport 123 -j ACCEPT',
-                       '-i eth0  -j LOG --log-level 1 --log-prefix default',
-                       ' -j DROP'],
-             'OUTPUT': ['-m state --state RELATED,ESTABLISHED -j ACCEPT',
-                         ' -s 10.66.1.3 -d 10.66.1.1 -j LOG --log-level 3 --log-prefix NoSmeagol',
-                         ' -s 10.66.1.3 -d 10.66.1.1 -j DROP',
-                         ' -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 -j LOG --log-level 2 --log-prefix imap',
-                         ' -p tcp -s 10.66.1.3 -d 10.66.1.2 -m multiport --dport 143,585,993 -j ACCEPT',
-                         ' -p udp -s 10.66.1.3 -d 172.16.2.223 --dport 123 -j ACCEPT',
-                         ' -j LOG --log-level 1 --log-prefix default',
-                        ' -j DROP']}}
-
-
-    for hostname in r:
-        for chain in r[hostname]:
-            assert rd[hostname][chain] == r[hostname][chain], "Incorrect rules in %s %s:\n%s" % (hostname, chain, pformat(rd[hostname][chain]))
-
-#    assert rd == r,  "compile_rules generates:\n%s" % pformat(rd)
-    assert isinstance(rd, dict)    #FIXME: enable testing
-
-
-#@with_setup(setup_dir, teardown_dir)
-#def test_deployment():
-#    """Test host connectivity is required"""
-#    fs = GitFireSet(repodir='/tmp/firelet')
-#    fs.deploy()
 
 
 
