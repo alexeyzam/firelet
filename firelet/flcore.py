@@ -119,7 +119,7 @@ class Host(Bunch):
 
     def ipt(self):
         """String representation for iptables"""
-        return "%s" % self.ip_addr
+        return "%s/32" % self.ip_addr
 
     def __contains__(self, other):
         """A host is "contained" in another host only when they have the same address"""""
@@ -763,8 +763,6 @@ class FireSet(object):
         # build dictionaries to perform resolution
         addr = dict(((h.hostname + ":" + h.iface), h.ip_addr) for h in self.hosts) # host to ip_addr
         net = dict((n.name, (n.ip_addr, n.masklen)) for n in self.networks) # network name to addressing
-#        hgs = dict((entry[0], (entry[1:])) for entry in self.hostgroups) # host groups
-#        hg_flat = dict((hg, self._flattenhg(hgs[hg], addr, net, hgs)) for hg in hgs) # flattened to {hg: hosts and networks}
 
         proto_port = dict((sr.name, (sr.protocol, sr.ports)) for sr in self.services) # protocol
         proto_port['*'] = (None, '') # special case for "any"      # port format: "2:4,5:10,10:33,40,50"
@@ -774,8 +772,6 @@ class FireSet(object):
         net_by_name = dict((n.name, n) for n in self.networks)
 
         hg_by_name = dict((hg.name, hg.childs) for hg in self.hostgroups)  # hg name  to its child names
-
-#        flat_hg_by_name = dict((hg.name, self._oo_flatten(hg, host_by_name_col_iface, )) for hg in hgs) #TODO finish this
 
         flat_hg = dict((hg.name, hg.flat(host_by_name_col_iface, net_by_name, hg_by_name)) for hg in self.hostgroups)
 
@@ -795,7 +791,7 @@ class FireSet(object):
         log.debug('Compiling ruleset...')
         # for each rule, for each (src,dst) tuple, compiles a list  [ (protocol, src, sports, dst, dports, log_val, rule_name, action), ... ]
         compiled = []
-#        for ena, name, src, src_serv, dst, dst_serv, action, log_val, desc in self.rules:  # for each rule
+    #        for ena, name, src, src_serv, dst, dst_serv, action, log_val, desc in self.rules:  # for each rule
         for rule in self.rules:  # for each rule
             if rule.enabled == '0':
                 continue
@@ -808,21 +804,42 @@ class FireSet(object):
             assert sproto in protocols + [None], "Unknown source protocol: %s" % sproto
             assert dproto in protocols + [None], "Unknown dest protocol: %s" % dproto
 
-            if sproto and dproto and sproto != dproto:
-                raise Alert, "Source and destination protocol must be the same in rule \"%s\"." % rule.name
-            if dproto:
-                proto = " -p %s" % dproto.lower()
-            elif sproto:
-                proto = " -p %s" % sproto.lower()
+
+            if sproto:
+                if dproto and sproto != dproto:
+                    raise Alert, "Source and destination protocol must be the same in rule \"%s\"." % rule.name
+                proto = sproto.lower()
+            elif dproto:
+                proto = dproto.lower()
             else:
                 proto = ''
 
-            if sports:
-                ms = ' -m multiport' if ',' in sports else ''
-                sports = "%s --sport %s" % (ms, sports)
-            if dports:
-                md = ' -m multiport' if ',' in dports else ''
-                dports = "%s --dport %s" % (md, dports)
+            if ',' in sports or ',' in dports:
+                multiport = True
+            else:
+                multiport = False
+
+            if multiport:
+                modules = ' -m multiport'
+                if sports:
+                    sports = " --sports %s" % sports
+                if dports:
+                    dports = " --dports %s" % dports
+            elif proto in ('udp', 'tcp', 'icmp'):
+                modules = ' -m %s ' % proto
+                if sports:
+                    sports = " --sport %s" % sports
+                if dports:
+                    dports = " --dport %s" % dports
+            else:
+                assert not sports
+                assert not dports
+                modules = ''
+
+            if proto:
+                proto = " -p %s " % proto
+            #FIXME: handle other protocols
+
 
             for x in rule.name:
                 assert validc(x), "Invalid character in '%s': x" % (repr(rule.name), repr(x))
@@ -835,16 +852,18 @@ class FireSet(object):
             for src, dst in product(srcs, dsts):
                 assert isinstance(src, Host) or isinstance(src, Network) or src == None, repr(src)
                 assert isinstance(dst, Host) or isinstance(dst, Network) or dst == None, repr(dst)
-                compiled.append((proto, src, sports, dst, dports, log_val,  rule.name, rule.action))
-
-
+                compiled.append((proto, modules, src, sports, dst, dports, log_val,  rule.name, rule.action))
 
         log.debug('Splicing ruleset...')
+
+        # Creating iptables-compatible rules, using the following format:
+        #
+        # -A <chain> -s <ipa/mask> -d <ipa/mask> -i <iface> -p <proto> -m <module> --sport <nn> --dport <nn> -j ACCEPT
+        #
         # r[hostname] = [rule, rule, ... ]
-        rd = defaultdict(list)
         rd = {}
-        for proto, src, sports, dst, dports, log_val, name, action in compiled: # for each compiled rule
-            _src = " -s %s" % src.ipt() if src else ''
+        for proto, modules, src, sports, dst, dports, log_val, name, action in compiled: # for each compiled rule
+            _src = "-s %s" % src.ipt() if src else ''
             _dst = " -d %s" % dst.ipt() if dst else ''
             for h in self.hosts:   # for each host (interface)
                 # Insert first rules
@@ -862,16 +881,16 @@ class FireSet(object):
                 # Build INPUT rules: where the host is in the destination
                 if dst and h in dst or not dst:
                     if log_val:
-                        rd[h.hostname]['INPUT'].append("-i %s %s%s%s%s%s -j LOG --log-level %d --log-prefix %s" %
-                                                          (h.iface, proto,  _src, sports, _dst, dports, log_val, name))
-                    rd[h.hostname]['INPUT'].append("%s%s%s%s%s -j %s" %   (proto, _src, sports, _dst, dports, action))
+                        rd[h.hostname]['INPUT'].append('%s%s -i %s %s%s%s%s -j LOG --log-prefix "%s" --log-level %d' %
+                                                          (_src, _dst, h.iface, proto, modules, sports, dports, name, log_val))
+                    rd[h.hostname]['INPUT'].append("%s%s -i %s %s%s%s%s -j %s" %   (_src, _dst, h.iface, proto, modules, sports, dports, action))
 
                 # Build OUTPUT rules: where the host is in the source
                 if src and h in src or not src:
                     if log_val:
-                        rd[h.hostname]['OUTPUT'].append("%s%s%s%s%s -j LOG --log-level %d --log-prefix %s" %
-                                                           (proto, _src, sports, _dst, dports, log_val, name))
-                    rd[h.hostname]['OUTPUT'].append("%s%s%s%s%s -j %s" %   (proto, _src, sports, _dst, dports, action))
+                        rd[h.hostname]['OUTPUT'].append('%s%s -o %s %s%s%s%s -j LOG --log-prefix "%s" --log-level %d' %
+                                                           (_src, _dst, h.iface, proto, modules, sports, dports, name, log_val))
+                    rd[h.hostname]['OUTPUT'].append("%s%s -o %s %s%s%s%s -j %s" %   (_src, _dst, h.iface, proto, modules, sports, dports, action))
 
                 # Build FORWARD rules: where the source and destination are both in directly connected or routed networks
                 if h.network_fw in ('0', 0, False):
@@ -881,19 +900,21 @@ class FireSet(object):
 
                 other_ifaces = [k for k in self.hosts if k.hostname == h.hostname and k.iface != h.iface]
 
-
                 forw = self._oo_forwarded(src, dst, h, resolved_routed, other_ifaces)
 
                 if forw:
-                    rd[h.hostname]['FORWARD'].append("%s%s%s%s%s -j LOG --log-level %d --log-prefix %s" %
-                                                     (proto, _src, sports, _dst, dports, log_val, name))
-                    rd[h.hostname]['FORWARD'].append("%s%s%s%s%s -j %s" %   (proto, _src, sports, _dst, dports, action))
+                    rd[h.hostname]['FORWARD'].append('%s%s%s%s%s%s -j LOG  --log-prefix "%s"--log-level %d' %
+                                                     (_src, _dst, proto,  modules, sports, dports, name, log_val))
+                    rd[h.hostname]['FORWARD'].append("%s%s%s%s%s%s -j %s" %   (_src, _dst, proto, modules, sports, dports, action))
 
             # "for every host"
         # "for every rule"
 
         log.debug("rd first 300 bytes: %s" % repr(rd)[:300])
         return rd
+
+    def _remove_dup_spaces(self, s):
+        return ' '.join(s.split())
 
     def _diff(self, remote_confs, new_confs):
         """Generate a dict containing the changes between the existing and
@@ -906,9 +927,20 @@ class FireSet(object):
             # looping through existing iptables ruleset and ip_a_s
             if hostname in new_confs:
                 new = new_confs[hostname]
+                new = map(self._remove_dup_spaces, new)
+                ex_iptables = map(self._remove_dup_spaces, ex_iptables)
                 added_li = [x for x in new if x not in ex_iptables]
                 removed_li = [x for x in ex_iptables if x not in new]
-#                log.debug("Rules for %-15s old: %d new: %d added: %d removed: %d" % (hostname, len(ex_s), len(new_s), len(added), len(removed)))
+
+#                for x in new:
+#                    if x not in ex_iptables:
+#                        bi = ex_iptables + [x + ' ' + '#' * 20]
+#                        bi.sort()
+#                        for eee in bi:
+#                            print eee
+#                        print
+
+                log.debug("Rules for %-15s old: %d new: %d added: %d removed: %d" % (hostname, len(ex_iptables), len(new), len(added_li), len(removed_li)))
 #                log.debug(repr(ex_iptables[:5]))
                 if added_li or removed_li:
                     d[hostname] = (added_li, removed_li)
