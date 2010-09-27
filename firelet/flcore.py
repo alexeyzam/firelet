@@ -903,7 +903,7 @@ class FireSet(object):
                 forw = self._oo_forwarded(src, dst, h, resolved_routed, other_ifaces)
 
                 if forw:
-                    rd[h.hostname]['FORWARD'].append('%s%s%s%s%s%s -j LOG  --log-prefix "%s"--log-level %d' %
+                    rd[h.hostname]['FORWARD'].append('%s%s%s%s%s%s -j LOG  --log-prefix "%s" --log-level %d' %
                                                      (_src, _dst, proto,  modules, sports, dports, name, log_val))
                     rd[h.hostname]['FORWARD'].append("%s%s%s%s%s%s -j %s" %   (_src, _dst, proto, modules, sports, dports, action))
 
@@ -932,13 +932,13 @@ class FireSet(object):
                 added_li = [x for x in new if x not in ex_iptables]
                 removed_li = [x for x in ex_iptables if x not in new]
 
-#                for x in new:
-#                    if x not in ex_iptables:
-#                        bi = ex_iptables + [x + ' ' + '#' * 20]
-#                        bi.sort()
-#                        for eee in bi:
-#                            print eee
-#                        print
+                for x in new:
+                    if x not in ex_iptables:
+                        bi = ex_iptables + [x + ' ' + '#' * 20]
+                        bi.sort()
+                        for eee in bi:
+                            print eee
+                        print
 
                 log.debug("Rules for %-15s old: %d new: %d added: %d removed: %d" % (hostname, len(ex_iptables), len(new), len(added_li), len(removed_li)))
 #                log.debug(repr(ex_iptables[:5]))
