@@ -536,7 +536,7 @@ def savecsv(n, stuff, d):
     f.close()
     f = open("%s/%s.csv" % (d, n), 'wb')
     f.writelines(comments)
-    writer = csv.writer(f,  delimiter=' ')
+    writer = csv.writer(f,  delimiter=' ', lineterminator='\n')
     writer.writerows(stuff)
     f.close()
 

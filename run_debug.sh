@@ -1,5 +1,6 @@
 #!/bin/bash
 
+sudo rm /var/lib/firelet -rf
 sudo mkdir -p /var/lib/firelet
 sudo chmod a+rw /var/lib/firelet
 while true; do
