@@ -300,7 +300,7 @@ div#gradient {
     </div>
     <div id="savereset">
         <span>
-            <button class="modalInput" rel="#savediag"><img src="static/save.png"  title="Save"> Save</button>
+            <img src="static/save.png"  rel="#savediag" title="Save" id="saveimg">
         </span>
         <span>
             <img src="static/reset.png" title="Reset" id="reset">
@@ -416,7 +416,7 @@ $(function() {
 
     // Save form
 
-    var triggers = $(".modalInput").overlay({
+    var triggers = $("img#saveimg").overlay({
         mask: {
             color: '#ebecff',
             loadSpeed: 200,
