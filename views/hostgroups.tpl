@@ -138,12 +138,12 @@ $(function() {
         offset: [15, 15]
     });
 
-    $("table#items tr td img").fadeTo("fast", 0.6);
+    $("table#items tr td img").fadeTo(0, 0.6);
 
     $("table#items tr td img").hover(function() {
       $(this).fadeTo("fast", 1);
     }, function() {
-      $(this).fadeTo("fast", 0.6);
+      $(this).fadeTo(0, 0.6);
     });
 
     $(function() {

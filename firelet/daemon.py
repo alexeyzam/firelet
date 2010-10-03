@@ -64,7 +64,7 @@ msg_list = []
 
 
 def say(s, level='info'):
-    """level can be: info, warning, alert"""
+    """Generate a message. level can be: info, warning, alert"""
     if level == 'error':
         level = 'alert'
     log.debug(s)
@@ -75,10 +75,22 @@ def say(s, level='info'):
 
 
 def ack(s=None):
-    """Acknowledge successful form processing and returns ajax confirmation."""
+    """Acknowledge successful processing and returns ajax confirmation."""
     if s:
         say(s, level="success")
     return {'ok': True}
+
+def ret_warn(s=None):
+    """Generate warn message and returns ajax 'ok: False'."""
+    if s:
+        say(s, level="warning")
+    return {'ok': False}
+
+def ret_alert(s=None):
+    """Generate alert message and returns ajax 'ok: False'."""
+    if s:
+        say(s, level="alert")
+    return {'ok': False}
 
 def pg(name, default=''):
     """Retrieve an element from a POST request"""
@@ -458,43 +470,19 @@ def savebtn():
     _require()
     msg = pg('msg', '')
     if not fs.save_needed():
-        say('Save not needed.', level="warning")
-        return
-    say('Saving configuration...')
-    say("Commit msg: \"%s\"" % msg)
+        ret_warn('Save not needed.')
+    say("Commit msg: \"%s\". Saving configuration..." % msg)
     saved = fs.save(msg)
-    if saved:
-        say('Configuration saved.', level="success")
-        return
+    ack('Configuration saved.')
 
 @bottle.route('/reset', method='POST')
 def resetbtn():
     _require()
     if not fs.save_needed():
-        say('Reset not needed.', level="warning")
-        return
+        ret_warn('Reset not needed.')
     say("Resetting configuration changes...")
     fs.reset()
-    say('Configuration reset.', level="success")
-    return
-
-@bottle.route('/check', method='POST')
-def checkbtn():
-    _require()
-    say('Configuration check started...')
-    try:
-#        import time
-#        time.sleep(1)
-        diff_table = fs.check()
-    except Alert, e:
-        say("Check failed: %s" % e,  level="alert")
-        return dict(diff_table="Check failed: %s" % e)
-    except Exception, e:
-        import traceback # TODO: remove traceback
-        log.debug(traceback.format_exc())
-        return
-    say('Configuration check successful.', level="success")
-    return dict(diff_table=diff_table)
+    ack('Configuration reset.')
 
 @bottle.route('/check', method='POST')
 @view('rules_diff_table')
@@ -522,10 +510,8 @@ def deploybtn():
     try:
         fs.deploy()
     except Alert, e:
-        say("Compilation failed: %s" % e,  level="alert")
-        return
-    say('Configuration deployed.', level="success")
-    return
+        ret_alert("Compilation failed: %s" % e)
+    ack('Configuration deployed.')
 
 @bottle.route('/version_list')
 @view('version_list')
@@ -549,8 +535,7 @@ def rollback():
     _require('admin')
     cid = pg('commit_id') #TODO validate cid?
     fs.rollback(cid)
-    say("Configuration rolled back.")
-    return
+    ack("Configuration rolled back.")
 
 # serving static files
 

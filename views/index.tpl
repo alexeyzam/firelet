@@ -368,6 +368,10 @@ function refresh_msg()
     th = $("table#msgs").height();
     delta = th - t - 100;
     if (delta < 10) { $("table#msgs").load("/messages"); }
+    $.getJSON("save_needed", function(json){
+        if (json.sn === true) $("div#savereset").show();
+        else $("div#savereset").hide();
+    });
 }
 
 
@@ -399,12 +403,12 @@ $(function() {
         offset: [15, -30]
     });
 
-    $("div#savereset img").fadeTo("fast", 0.6);
+    $("div#savereset img").fadeTo(0, 0.6);
 
     $("div#savereset img").hover(function() {
       $(this).fadeTo("fast", 1);
     }, function() {
-      $(this).fadeTo("fast", 0.6);
+      $(this).fadeTo(0, 0.6);
     });
 
 
@@ -412,7 +416,6 @@ $(function() {
       $.post("reset");
       $('div#savereset').hide();
     });
-
 
     // Save form
 
@@ -429,6 +432,7 @@ $(function() {
         var input = $("input", this).val();
         $.post("save",{msg: input}, function(json) {
             triggers.eq(0).overlay().close();
+            $('div#savereset').hide();
         },"json");
         return e.preventDefault();
     });
