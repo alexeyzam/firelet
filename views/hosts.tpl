@@ -189,7 +189,7 @@ $(function() {
     $("table#items tr td img").hover(function() {
       $(this).fadeTo("fast", 1);
     }, function() {
-      $(this).fadeTo(0, 0.6);
+      $(this).fadeTo("fast", 0.6);
     });
 
 

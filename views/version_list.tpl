@@ -1,4 +1,9 @@
+% if version_list:
 <tr><th>Author</th><th>Date</th><th>Message</th><th>Actions</th></tr>
+% end
+% if not version_list:
+<tr><th>(No saved configurations)</th></tr>
+% end
 % for author, date, msgs, commit in version_list:
 <tr>
     <td>{{author}}</td>
