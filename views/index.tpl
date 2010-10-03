@@ -85,7 +85,6 @@ ul.css-tabs a.current {
     cursor:default;
 }
 
-
 /* tab pane */
 .tabpane div {
     display:none;
@@ -96,15 +95,11 @@ ul.css-tabs a.current {
     background-color:#eee;
 }
 
-
-#pageLogin
-{
+#pageLogin {
     font-size: 10px;
     font-family: verdana;
     text-align: right;
 }
-
-
 
 html, body {
   color: black;
@@ -114,13 +109,11 @@ html, body {
   padding: 0;
 }
 
-
 #header {
   height: 36px;
   width: 100%;
   background: #5ec2dd URL('static/header_inner.png') no-repeat;
   margin: 0 auto 0 auto;
-
 }
 
 #header div {
@@ -131,11 +124,9 @@ html, body {
     font-weight: bold;
 }
 
-
 a.link, a, a.active {
   color: #369;
 }
-
 
 #main_content {
   color: black;
@@ -147,7 +138,6 @@ a.link, a, a.active {
   border-right: 1px solid #aaa;
   padding: 10px;
 }
-
 
 #footer {
   color: #999;
