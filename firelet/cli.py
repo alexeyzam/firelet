@@ -94,72 +94,78 @@ def deletion(table):
         #TODO
 
 
-if len(argv) == 1:
-    help()
-
-fs = DumbFireSet()
-
-if a1 == 'save':
-    if a3 or not a2:
-        help()
-    fs.save(str(a2))
-
-elif a1 == 'reset':
-    if a2:
-        help()
-    fs.reset()
-
-elif a1 == 'version':
-    if a2 == 'list' or None:
-        print fs.version_list()
-    elif a2 == 'rollback':
-        fs.rollback()
-    else:
+def main():
+    if len(argv) == 1:
         help()
 
-elif a1 == 'check':
-    if a2: help()
-    raise NotImplementedError
+    fs = DumbFireSet()
 
-elif a1 == 'compile':
-    if a2: help()
-    c = fs.compile()
-    for li in c:
-        print li
+    if a1 == 'save':
+        if a3 or not a2:
+            help()
+        fs.save(str(a2))
 
-elif a1 == 'deploy':
-    if a2: help()
-    fs.deploy()
+    elif a1 == 'reset':
+        if a2:
+            help()
+        fs.reset()
 
-elif a1 == 'rule':
-    if a2 == 'list' or None:
-        print fs.rules
+    elif a1 == 'version':
+        if a2 == 'list' or None:
+            print fs.version_list()
+        elif a2 == 'rollback':
+            fs.rollback()
+        else:
+            help()
 
-    if a2 == 'add':
+    elif a1 == 'check':
+        if a2: help()
         raise NotImplementedError
-    elif a2 == 'del':
-        deletion('rules')
 
-elif a1 == 'hostgroup':
-    if a2 == 'list' or None:
-        print fs.hostgroups
-    elif a2 == 'add':
-        raise NotImplementedError
-    elif a2 == 'del':
-        deletion('hostgroups')
+    elif a1 == 'compile':
+        if a2: help()
+        c = fs.compile()
+        for li in c:
+            print li
 
-elif a1 == 'host':
-    if a2 == 'list' or None:
-        print fs.hosts
-    elif a2 == 'add':
-        raise NotImplementedError
-    elif a2 == 'del':
-        deletion('hosts')
+    elif a1 == 'deploy':
+        if a2: help()
+        fs.deploy()
 
-elif a1 == 'service':
-    if a2 == 'list' or None:
-        print fs.services
-    elif a2 == 'add':
-        raise NotImplementedError
-    elif a2 == 'del':
-        deletion('services')
+    elif a1 == 'rule':
+        if a2 == 'list' or None:
+            print fs.rules
+
+        if a2 == 'add':
+            raise NotImplementedError
+        elif a2 == 'del':
+            deletion('rules')
+
+    elif a1 == 'hostgroup':
+        if a2 == 'list' or None:
+            print fs.hostgroups
+        elif a2 == 'add':
+            raise NotImplementedError
+        elif a2 == 'del':
+            deletion('hostgroups')
+
+    elif a1 == 'host':
+        if a2 == 'list' or None:
+            print fs.hosts
+        elif a2 == 'add':
+            raise NotImplementedError
+        elif a2 == 'del':
+            deletion('hosts')
+
+    elif a1 == 'service':
+        if a2 == 'list' or None:
+            print fs.services
+        elif a2 == 'add':
+            raise NotImplementedError
+        elif a2 == 'del':
+            deletion('services')
+
+
+if __name__ == '__main__':
+    main()
+
