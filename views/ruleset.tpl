@@ -121,8 +121,6 @@ table#items { width: 100%;}
         <td>{{rule.action}}</td>
         <td>{{rule.log_level}}</td>
         <td>{{rule.desc}}</td>
-        <td>{{rule._token()}}</td>
-
     </tr>
     % end
 </table>
