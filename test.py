@@ -25,6 +25,9 @@ from firelet.flutils import flag, Bunch
 from nose.tools import assert_raises, with_setup
 from pprint import pformat
 
+from firelet import cli
+from firelet.cli import main as cli_main
+
 import logging
 log = logging.getLogger()
 
@@ -559,6 +562,7 @@ def test_DemoGitFireset_diff_table_generation_all_fw_added():
     """Test diff right after all the firewalls has been added.
     An empty diff should be generated."""
     fs = DemoGitFireSet()
+    fs.save('test') #FIXME: shouldn't be required
     comp_rules = fs.compile_rules()
     new_rules = {}
     for hn, b in comp_rules.iteritems():
@@ -585,6 +589,7 @@ def test_DemoGitFireset_check():
     """Run diff between complied rules and remote confs.
     Given the test files, the check should be ok and require no deployment"""
     fs = DemoGitFireSet()
+    fs.save('test') #FIXME: shouldn't be required
     diff_dict = fs.check()
     assert diff_dict == {},  repr(diff_dict)[:300]
 
@@ -690,6 +695,40 @@ def test_svg_map():
     svg = draw_svg_map(fs)
     assert 'DOCTYPE svg PUBLIC' in svg, "No SVG output?"
     assert 'rivendell' in svg, "No rivendell in the map"
+
+
+#  # Test CLI # #
+
+
+class MockSay():
+    def __init__(self):
+        self.li = []
+    def __call__(self, s):
+        self.li.append(s)
+
+def cli_setup():
+    cli.say = MockSay()
+    shutil.rmtree('/tmp/firelet', True)
+    shutil.copytree('test/', '/tmp/firelet')
+
+@with_setup(cli_setup)
+def test_cli_rule_list():
+    cli.main('rule', 'list', '')
+    assert len(cli.say.li) > 5, cli.say.li
+
+@with_setup(cli_setup)
+def test_cli_help():
+    assert_raises(Exception, cli.main, '')
+
+@with_setup(cli_setup)
+def test_cli_list():
+    old = 0
+    for x in ('rule', 'host', 'hostgroup', 'service', 'network'):
+        print "Running cli %s list" % x
+        cli.main(x, 'list', '')
+        assert len(cli.say.li) > old + 2, "No output from cli %s list" % x
+        old = len(cli.say.li)
+
 
 # #  Test JSON lib  # #
 

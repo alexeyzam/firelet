@@ -1097,15 +1097,20 @@ class GitFireSet(FireSet):
         o, e = self._git('reset --hard')
         assert 'HEAD is now at' in o, "Git reset --hard output: '%s' error: '%s'" % (o, e)
 
-    def rollback(self, n):
-        """Rollback to n commits ago"""
-        try:
-            n = int(n)
-        except ValueError:
-            raise Alert, "rollback requires an integer"
-        self.reset()
-        o, e = self._git("reset --hard HEAD~%d" % n)
-        assert 'HEAD is now at' in o, "Git reset --hard HEAD~%d output: '%s' error: '%s'" % (n, o, e)
+    def rollback(self, n=None, commit_id=None):
+        """Rollback to n commits ago or given a specific commit_id"""
+        if n:
+            try:
+                n = int(n)
+            except ValueError:
+                raise Alert, "rollback requires an integer"
+            self.reset()
+            o, e = self._git("reset --hard HEAD~%d" % n)
+            assert 'HEAD is now at' in o, "Git reset --hard HEAD~%d output: '%s' error: '%s'" % (n, o, e)
+        elif commit_id:
+            self.reset()
+            o, e = self._git("reset --hard %s" % commit_id)
+            assert 'HEAD is now at' in o, "Git reset --hard %s output: '%s' error: '%s'" % (commit_id, o, e)
 
     def save_needed(self):
         """True if commit is required: files has been changed"""

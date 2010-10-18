@@ -24,6 +24,9 @@ class Bunch(object):
     def __iter__(self):
         return self.__dict__.__iter__()
 
+    def keys(self):
+        return self.__dict__.keys()
+
     def _token(self):
         """Generate a simple hash"""
         return hex(abs(hash(str(self.__dict__))))[2:]

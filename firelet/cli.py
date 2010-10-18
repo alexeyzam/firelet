@@ -19,8 +19,7 @@
 # Firelet Command Line Interface
 
 from confreader import ConfReader
-from flcore import *
-
+from flcore import GitFireSet, DemoGitFireSet
 from sys import argv, exit
 
 #   commands
@@ -50,12 +49,9 @@ from sys import argv, exit
 #       list
 #
 
-_, a1, a2, a3 = argv + [None] * (4 - len(argv))
-
-
 def help():
     #TODO
-    print """
+    say("""
     Firelet CLI
 
     Commands:
@@ -79,7 +75,7 @@ def help():
         del
     hostgroup
         ...
-    """
+    """)
     exit(0)
 
 
@@ -93,12 +89,46 @@ def deletion(table):
         pass
         #TODO
 
+def prettyprint(li):
+    """Pretty-print as a table"""
+    keys = sorted(li[0].keys())
+    t = [keys]
+    for d in li:
+        m =[d[k] for k in keys]
+        m = map(str, m)
+        t.append(m)
 
-def main():
-    if len(argv) == 1:
+    cols = zip(*t)
+    cols_sizes = [(max(map(len, i))) for i in cols] # get the widest entry in each column
+
+    for m in t:
+        s = " | ".join((item.ljust(pad) for item, pad in zip(m, cols_sizes)))
+        say(s)
+
+#        def j((n, li)):
+#            return "%d  " % n + "  ".join((item.ljust(pad) for item, pad in zip(li, cols_sizes) ))
+#        return '\n'.join(map(j, enumerate(self)))
+
+def say(s):
+    print s
+
+def main(a1, a2, a3):
+    if not a1:
         help()
 
-    fs = DumbFireSet()
+    # read configuration,
+    try:
+        conf = ConfReader(fn='firelet.ini')
+    except Exception, e:
+        log.error("Exception %s while reading configuration file '%s'" % (e, fn))
+        exit(1)
+
+    if conf.demo_mode == 'False':
+        fs = GitFireSet()
+        say( "Firelet CLI.")
+    elif conf.demo_mode == 'True':
+        fs = DemoGitFireSet()
+        say( "Firelet CLI - demo mode.")
 
     if a1 == 'save':
         if a3 or not a2:
@@ -112,9 +142,17 @@ def main():
 
     elif a1 == 'version':
         if a2 == 'list' or None:
-            print fs.version_list()
+            for user, date, msg, commit_id in fs.version_list():
+                s = '%s | %s | %s | %s |' % (commit_id, date, user, msg[0])
+                say(s)
         elif a2 == 'rollback':
-            fs.rollback()
+            if not a3:
+                help()
+            try:
+                n = int(a3)
+                fs.rollback(n=n)
+            except ValueError:
+                fs.rollback(commit_id=a3)
         else:
             help()
 
@@ -126,7 +164,7 @@ def main():
         if a2: help()
         c = fs.compile()
         for li in c:
-            print li
+            say(li)
 
     elif a1 == 'deploy':
         if a2: help()
@@ -134,16 +172,15 @@ def main():
 
     elif a1 == 'rule':
         if a2 == 'list' or None:
-            print fs.rules
-
-        if a2 == 'add':
+            prettyprint(fs.rules)
+        elif a2 == 'add':
             raise NotImplementedError
         elif a2 == 'del':
             deletion('rules')
 
     elif a1 == 'hostgroup':
         if a2 == 'list' or None:
-            print fs.hostgroups
+            prettyprint(fs.hostgroups)
         elif a2 == 'add':
             raise NotImplementedError
         elif a2 == 'del':
@@ -151,21 +188,32 @@ def main():
 
     elif a1 == 'host':
         if a2 == 'list' or None:
-            print fs.hosts
+            prettyprint(fs.hosts)
         elif a2 == 'add':
             raise NotImplementedError
         elif a2 == 'del':
             deletion('hosts')
 
+    elif a1 == 'network':
+        if a2 == 'list' or None:
+            prettyprint(fs.networks)
+        elif a2 == 'add':
+            raise NotImplementedError
+        elif a2 == 'del':
+            deletion('networks')
+
     elif a1 == 'service':
         if a2 == 'list' or None:
-            print fs.services
+            prettyprint(fs.services)
         elif a2 == 'add':
             raise NotImplementedError
         elif a2 == 'del':
             deletion('services')
 
+    else:
+        help()
 
 if __name__ == '__main__':
-    main()
+    _, a1, a2, a3 = argv + [None] * (4 - len(argv))
+    main(a1, a2, a3)
 
