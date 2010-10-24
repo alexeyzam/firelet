@@ -714,25 +714,29 @@ def mock_open_fs():
 
 def cli_setup():
     cli.say = MockSay()
-#    cli.open_fs = mock_open_fs
     shutil.rmtree('/tmp/firelet_test', True)
     shutil.copytree('test/', '/tmp/firelet_test')
 
+def cli_run(*args):
+    """Wrap CLI invocation"""
+    a = list(args)
+    assert_raises(SystemExit, cli.main, a)
+
 @with_setup(cli_setup)
 def test_cli_rule_list():
-    cli.main('-c test/firelet_test.ini', 'rule', 'list', '')
-    assert len(cli.say.li) > 5, cli.say.li
+    cli_run('-c test/firelet_test.ini', 'rule', 'list')
+    assert len(cli.say.li) > 5, cli.say.hist()
 
 @with_setup(cli_setup)
 def test_cli_help():
-    assert_raises(Exception, cli.main, '')
+    assert_raises(SystemExit, cli.main), "Exit 1, print help"
 
 @with_setup(cli_setup)
 def test_cli_list():
     old = 0
     for x in ('rule', 'host', 'hostgroup', 'service', 'network'):
         print "Running cli %s list" % x
-        cli.main(x, 'list', '')
+        cli_run(x, 'list', '')
         assert len(cli.say.li) > old + 3, \
             "Short or no output from cli %s list: %s" % (x, repr(cli.say.li[old:]))
         old = len(cli.say.li)
@@ -740,13 +744,13 @@ def test_cli_list():
 @with_setup(cli_setup)
 def test_versioning():
     """Versioning functional testing"""
-    cli.main('-c test/firelet_test.ini', 'save_needed', '', '')
-    assert cli.say.li == ['No'], "No save needed here"
-    cli.main('-c test/firelet_test.ini', 'version', 'list', '') # no versions
+    cli_run('-c test/firelet_test.ini', 'save_needed', '-q')
+    assert cli.say.li == ['No'], "No save needed here" + cli.say.hist()
+    cli_run('-c test/firelet_test.ini', 'version', 'list', '') # no versions
     assert cli.say.li == ['No'], "No versions expected" + cli.say.hist()
-    cli.main('-c test/firelet_test.ini', 'rule', 'disable', '2')
-    cli.main('-c test/firelet_test.ini', 'save', 'test1', '') # save 1
-    cli.main('-c test/firelet_test.ini', 'version', 'list', '')
+    cli_run('-c test/firelet_test.ini', 'rule', 'disable', '2')
+    cli_run('-c test/firelet_test.ini', 'save', 'test1', '') # save 1
+    cli_run('-c test/firelet_test.ini', 'version', 'list', '')
     assert 'Configuration saved. Message: "test1"' in cli.say.li
     for i in cli.say.li:
         print i

@@ -126,16 +126,26 @@ def open_fs(fn):
         log.error("Exception %s while reading configuration file '%s'" % (e, fn))
         exit(1)
 
-    fs = GitFireSet()
+    fs = GitFireSet(repodir=conf.data_dir)
     return fs
 
-def main(args, fn='firelet.ini', debug=None):
-    a1, a2, a3 = args
+
+def main(mockargs=None):
+
+    if mockargs:
+        opts, args = cli_args(args=mockargs)
+    else:
+        opts, args = cli_args(args=mockargs)
+
+    if  not opts.quiet:
+        say( "Firelet %s CLI." % __version__)
+
+    a1, a2, a3 = args+ [None] * (3 - len(args))
+
     if not a1:
         help()
-    assert fn, "Configuration file not specified"
 
-    fs = open_fs(fn)
+    fs = open_fs(opts.conffile.strip())
 
     if a1 == 'save':
         if a3 or not a2:
@@ -240,15 +250,8 @@ def main(args, fn='firelet.ini', debug=None):
     else:
         help()
 
-if __name__ == '__main__':
-    """If run by command line, parse arguments and options"""
-    opts, args = cli_args() #TODO: merge -h and help()
-    if  not opts.quiet:
-        say( "Firelet %s CLI." % __version__)
-    args = args+ [None] * (3 - len(args))
-    if opts.conffile:
-        main(args, fn=opts.conffile, debug=opts.debug)
-    else:
-        main(args, debug=opts.debug)
+    exit(0)
 
+if __name__ == '__main__':
+    main()
 
