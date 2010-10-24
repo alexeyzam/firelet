@@ -225,10 +225,11 @@ class MockSSHConnector(SSHConnector):
 
     def _interact(self, p, s):
         """Fake interaction using files instead"""
+        d = self.repodir
         if s == 'sudo /sbin/iptables-save':
-            return map(str.rstrip, open('/tmp/firelet/iptables-save-%s' % p))
+            return map(str.rstrip, open('%s/iptables-save-%s' % (d, p)))
         elif s == '/bin/ip addr show':
-            return map(str.rstrip, open('/tmp/firelet/ip-addr-show-%s' % p))
+            return map(str.rstrip, open('%s/ip-addr-show-%s' % (d, p)))
         else:
             raise NotImplementedError
 
@@ -238,10 +239,10 @@ class MockSSHConnector(SSHConnector):
         """
         assert isinstance(newconfs_d, dict), "Dict expected"
         self._connect()
+        d = self.repodir
         for hostname, p in self._pool.iteritems():
             li = newconfs_d[hostname]
-            open('/tmp/firelet/iptables-save-%s' % p, 'w').write('\n'.join(li)+'\n')
-            open('/tmp/iptables-save-%s-x' % p, 'w').write('\n'.join(li)+'\n')
+            open('%s/iptables-save-%s' % (d, p), 'w').write('\n'.join(li)+'\n')
             ret = ''
             log.debug("Deployed ruleset file to %s, got %s" % (hostname, ret)  )
         return

@@ -19,8 +19,10 @@
 # Firelet Command Line Interface
 
 from confreader import ConfReader
-from flcore import GitFireSet, DemoGitFireSet
+from flcore import GitFireSet, DemoGitFireSet, __version__
+from flutils import cli_args
 from sys import argv, exit
+import logging as log
 
 #   commands
 #
@@ -63,12 +65,15 @@ def help():
     save    - save the current configuration
     reset   - revert the configuration to the last saved state
     version
+    save_needed
     check
     deploy
     rule
         list
         add
         del
+        enable <id>
+        disable <id>
     host
         list
         add
@@ -112,33 +117,37 @@ def prettyprint(li):
 def say(s):
     print s
 
-def main(a1, a2, a3):
-    if not a1:
-        help()
-
+def open_fs(fn):
+    """Read configuration and instance the required FireSet"""
     # read configuration,
     try:
-        conf = ConfReader(fn='firelet.ini')
+        conf = ConfReader(fn=fn)
     except Exception, e:
         log.error("Exception %s while reading configuration file '%s'" % (e, fn))
         exit(1)
 
-    if conf.demo_mode == 'False':
-        fs = GitFireSet()
-        say( "Firelet CLI.")
-    elif conf.demo_mode == 'True':
-        fs = DemoGitFireSet()
-        say( "Firelet CLI - demo mode.")
+    fs = GitFireSet()
+    return fs
+
+def main(args, fn='firelet.ini', debug=None):
+    a1, a2, a3 = args
+    if not a1:
+        help()
+    assert fn, "Configuration file not specified"
+
+    fs = open_fs(fn)
 
     if a1 == 'save':
         if a3 or not a2:
             help()
         fs.save(str(a2))
+        say('Configuration saved. Message: "%s"' % str(a2))
 
     elif a1 == 'reset':
         if a2:
             help()
         fs.reset()
+        say('Reset complete.')
 
     elif a1 == 'version':
         if a2 == 'list' or None:
@@ -155,6 +164,16 @@ def main(a1, a2, a3):
                 fs.rollback(commit_id=a3)
         else:
             help()
+
+    elif a1 == 'save_needed':
+        if fs.save_needed():
+            say('Yes')
+            if __name__ == '__main__':
+                exit(0)
+        else:
+            say('No')
+            if __name__ == '__main__':
+                exit(1)
 
     elif a1 == 'check':
         if a2: help()
@@ -177,6 +196,14 @@ def main(a1, a2, a3):
             raise NotImplementedError
         elif a2 == 'del':
             deletion('rules')
+        elif a2 == 'enable':
+            i = int(a3)
+            fs.rules.enable(i)
+            say('Rule %d enabled.' %i)
+        elif a2 == 'disable':
+            i = int(a3)
+            fs.rules.disable(i)
+            say('Rule %d disabled.' %i)
 
     elif a1 == 'hostgroup':
         if a2 == 'list' or None:
@@ -214,6 +241,14 @@ def main(a1, a2, a3):
         help()
 
 if __name__ == '__main__':
-    _, a1, a2, a3 = argv + [None] * (4 - len(argv))
-    main(a1, a2, a3)
+    """If run by command line, parse arguments and options"""
+    opts, args = cli_args() #TODO: merge -h and help()
+    if  not opts.quiet:
+        say( "Firelet %s CLI." % __version__)
+    args = args+ [None] * (3 - len(args))
+    if opts.conffile:
+        main(args, fn=opts.conffile, debug=opts.debug)
+    else:
+        main(args, debug=opts.debug)
+
 

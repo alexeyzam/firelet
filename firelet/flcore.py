@@ -1153,11 +1153,11 @@ class DemoGitFireSet(GitFireSet):
     """Based on GitFireSet. Provide a demo version without real network interaction.
     The status of the simulated remote hosts is kept on files.
     """
-    def __init__(self):
-        GitFireSet.__init__(self)
+    def __init__(self, repodir='/tmp/firelet_demo'):
+        GitFireSet.__init__(self, repodir=repodir)
         self.SSHConnector = MockSSHConnector
+        self.SSHConnector.repodir = repodir
         self._demo_rulelist = defaultdict(list)
-
 
 # #  User management  # #
 

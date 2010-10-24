@@ -1,4 +1,18 @@
 from copy import deepcopy
+from optparse import OptionParser
+
+def cli_args():
+    """Parse command line arguments"""
+    parser = OptionParser()
+    parser.add_option("-c", "--conffile", dest="conffile",
+        help="configuration file", metavar="FILE")
+    parser.add_option("-D", "--debug",
+        action="store_true", dest="debug", default=False,
+        help="run in debug mode and print messages to stdout")
+    parser.add_option("-q", "--quiet",
+        action="store_true", dest="quiet", default=False,
+        help="print less messages to stdout")
+    return parser.parse_args()
 
 class Alert(Exception):
     """Custom exception used to send an alert message to the user"""
