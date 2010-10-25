@@ -224,17 +224,19 @@ class MockSSHConnector(SSHConnector):
         #TODO: delete "None" hosts
 
     def _interact(self, p, s):
-        """Fake interaction using files instead"""
+        """Fake interaction using files instead of SSH connections"""
         d = self.repodir
         if s == 'sudo /sbin/iptables-save':
+            log.debug("Reading from %s/iptables-save-%s" % (d, p))
             return map(str.rstrip, open('%s/iptables-save-%s' % (d, p)))
         elif s == '/bin/ip addr show':
+            log.debug("Reading from %s/ip-addr-show-%s" % (d, p))
             return map(str.rstrip, open('%s/ip-addr-show-%s' % (d, p)))
         else:
             raise NotImplementedError
 
     def deliver_confs(self, newconfs_d):
-        """Connects to the firewall, deliver the configuration.
+        """Write the conf on local temp files instead of delivering it.
             newconfs_d =  {hostname: [iptables-save line, line, line, ], ... }
         """
         assert isinstance(newconfs_d, dict), "Dict expected"
@@ -242,7 +244,9 @@ class MockSSHConnector(SSHConnector):
         d = self.repodir
         for hostname, p in self._pool.iteritems():
             li = newconfs_d[hostname]
+            log.debug("Writing to %s/iptables-save-%s and -x" % (d, p))
             open('%s/iptables-save-%s' % (d, p), 'w').write('\n'.join(li)+'\n')
+            open('%s/iptables-save-%s-x' % (d, p), 'w').write('\n'.join(li)+'\n')
             ret = ''
             log.debug("Deployed ruleset file to %s, got %s" % (hostname, ret)  )
         return
