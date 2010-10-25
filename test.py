@@ -708,6 +708,8 @@ class MockSay():
         self.li.append(s)
     def hist(self):
         return '\n-----\n' + '\n'.join(self.li) + '\n-----\n'
+    def flush(self):
+        self.li = []
 
 def mock_open_fs():
     return DemoGitFireSet()
@@ -746,15 +748,42 @@ def test_versioning():
     """Versioning functional testing"""
     cli_run('-c test/firelet_test.ini', 'save_needed', '-q')
     assert cli.say.li == ['No'], "No save needed here" + cli.say.hist()
-    cli_run('-c test/firelet_test.ini', 'version', 'list', '') # no versions
+    cli_run('-c test/firelet_test.ini', 'version', 'list', '-q') # no versions
     assert cli.say.li == ['No'], "No versions expected" + cli.say.hist()
-    cli_run('-c test/firelet_test.ini', 'rule', 'disable', '2')
-    cli_run('-c test/firelet_test.ini', 'save', 'test1', '') # save 1
-    cli_run('-c test/firelet_test.ini', 'version', 'list', '')
-    assert 'Configuration saved. Message: "test1"' in cli.say.li
-    for i in cli.say.li:
-        print i
-    assert len(cli.say.li) > 121 #TODO
+    cli_run('-c test/firelet_test.ini', 'rule', 'disable', '2', '-q')
+    cli_run('-c test/firelet_test.ini', 'save', 'test1', '-q') # save 1
+    cli_run('-c test/firelet_test.ini', 'version', 'list', '-q')
+    assert cli.say.li[:3] == ['No', 'Rule 2 disabled.',
+    'Configuration saved. Message: "test1"'], "Incorrect behavior"
+    assert cli.say.li[-1].endswith('| test1 |'), cli.say.hist()
+    cli_run('-c test/firelet_test.ini', 'rule', 'enable', '2', '-q')
+    cli_run('-c test/firelet_test.ini', 'save', 'test2', '-q') # save 2
+    cli_run('-c test/firelet_test.ini', 'version', 'list', '-q')
+    assert cli.say.li[-2].endswith('| test2 |'), cli.say.hist()
+    cli_run('-c test/firelet_test.ini', 'rule', 'disable', '2', '-q')
+    cli_run('-c test/firelet_test.ini', 'save', 'test3', '-q') # save 1
+    cli_run('-c test/firelet_test.ini', 'version', 'list', '-q')
+    assert cli.say.li[-3].endswith('| test3 |'), cli.say.hist()
+    # rollback by number
+    cli.say.flush()
+    cli_run('-c test/firelet_test.ini', 'version', 'rollback', '1', '-q')
+    cli_run('-c test/firelet_test.ini', 'version', 'list', '-q')
+    assert cli.say.li[0].endswith('| test2 |') and \
+        cli.say.li[1].endswith('| test1 |'), "Incorrect rollback" + cli.say.hist()
+    # rollback by ID
+    commit_id = cli.say.li[1].split()[0]
+    cli.say.flush()
+    cli_run('-c test/firelet_test.ini', 'version', 'rollback', commit_id, '-q')
+    cli_run('-c test/firelet_test.ini', 'version', 'list', '-q')
+    assert cli.say.li[0].endswith('| test1 |'),  "Incorrect rollback" + cli.say.hist()
+    # reset
+    cli_run('-c test/firelet_test.ini', 'rule', 'enable', '2', '-q')
+    cli_run('-c test/firelet_test.ini', 'save_needed', '-q')
+    assert cli.say.li[-1] == 'Yes', "Save needed here" + cli.say.hist()
+    cli_run('-c test/firelet_test.ini', 'reset', '-q')
+    cli_run('-c test/firelet_test.ini', 'save_needed', '-q')
+    assert cli.say.li[-1] == 'No', "No save needed here" + cli.say.hist()
+
 
 
 # #  Test JSON lib  # #
