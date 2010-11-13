@@ -704,6 +704,7 @@ def test_svg_map():
 
 
 class MockSay():
+    """Mock the say() method in cli.py to store what is being printed"""
     def __init__(self):
         self.li = []
     def __call__(self, s):
@@ -716,13 +717,18 @@ class MockSay():
 def mock_open_fs():
     return DemoGitFireSet()
 
+def mock_getpass(s=None):
+    """Mock getpass() to unit-test user creation"""
+    return "12345"
+
 def cli_setup():
     cli.say = MockSay()
+    cli.getpass = mock_getpass
     shutil.rmtree('/tmp/firelet_test', True)
     shutil.copytree('test/', '/tmp/firelet_test')
 
 def cli_run(*args):
-    """Wrap CLI invocation"""
+    """Wrap CLI invocation to prevent os.exit() from breaking unit testing"""
     a = list(args)
     assert_raises(SystemExit, cli.main, a), "Exited without 0 or 1" + cli.say.hist()
 

@@ -18,7 +18,7 @@
 
 # Firelet Command Line Interface
 
-import getpass
+from getpass import getpass
 import logging as log
 from sys import argv, exit
 
@@ -56,8 +56,6 @@ from flutils import cli_args
 def give_help():
     #TODO
     say("""
-    Firelet CLI
-
     Commands:
 
     user    - web interface user management
@@ -272,9 +270,8 @@ def main(mockargs=None):
                 help("Missing role.")
             if not a5:
                 help("Missing email.")
-            pwd = getpass.getpass()
-            users.create(self, a3, a4, pwd, email=a5)
-
+            pwd = getpass('Enter new password: ')
+            users.create(a3, a4, pwd, email=a5)
         elif a2 == 'del':
             raise NotImplementedError
 
