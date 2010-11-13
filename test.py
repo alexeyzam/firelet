@@ -774,14 +774,12 @@ def test_cli_versioning():
     out = cli_run('-c test/firelet_test.ini', 'version', 'list', '-q')
     assert out[-3].endswith('| test3 |'), cli.say.hist()
     # rollback by number
-    cli.say.flush()
     out = cli_run('-c test/firelet_test.ini', 'version', 'rollback', '1', '-q')
     out = cli_run('-c test/firelet_test.ini', 'version', 'list', '-q')
     assert out[0].endswith('| test2 |') and \
         out[1].endswith('| test1 |'), "Incorrect rollback" + cli.say.hist()
     # rollback by ID
     commit_id = out[1].split()[0]
-    cli.say.flush()
     out = cli_run('-c test/firelet_test.ini', 'version', 'rollback', commit_id, '-q')
     out = cli_run('-c test/firelet_test.ini', 'version', 'list', '-q')
     assert out[0].endswith('| test1 |'),  "Incorrect rollback" + cli.say.hist()
@@ -798,38 +796,26 @@ def test_cli_versioning():
 
 @with_setup(cli_setup)
 def test_cli_user_management():
-    out = cli_run('-c test/firelet_test.ini', '-q', 'user', 'list')
-    assert out == [
+    out1 = cli_run('-c test/firelet_test.ini', '-q', 'user', 'list')
+    assert out1 == [
         u'Rob            readonly        None',
         u'Eddy           editor          None',
         u'Ada            admin           None'], "Incorrect user list" + cli.say.hist()
     out = cli_run('-c test/firelet_test.ini', '-q', 'user', 'add', 'Totoro',
         'admin', 'totoro@nowhere.forest')
-    cli.say.flush()
-    out = cli_run('-c test/firelet_test.ini', '-q', 'user', 'list')
-#    assert out == [
-#        u'Rob            readonly        None',
-#        u'Eddy           editor          None',
-#        u'Ada            admin           None',
-#        u'Totoro         admin           totoro@nowhere.forest'], "Incorrect user list" + cli.say.hist()
+    out2 = cli_run('-c test/firelet_test.ini', '-q', 'user', 'list')
+    assert out2 == [
+        u'Rob            readonly        None',
+        u'Ada            admin           None',
+        u'Eddy           editor          None',
+        u'Totoro         admin           totoro@nowhere.forest'], \
+        "Incorrect user list" + cli.say.hist()
+    cli_run('-c test/firelet_test.ini', '-q', 'user', 'validatepwd', 'Totoro')
+    cli_run('-c test/firelet_test.ini', '-q', 'user', 'del', 'Totoro')
+    out3 = cli_run('-c test/firelet_test.ini', '-q', 'user', 'list')
+    assert out3 == out1, "User not deleted" + cli.say.hist()
 
-#    out = cli_run('-c test/firelet_test.ini', '-q', '', '')
-#    out = cli_run('-c test/firelet_test.ini', '-q', '', '')
-#    out = cli_run('-c test/firelet_test.ini', '-q', '', '')
-#    u = Users(d='/tmp/firelet_test')
-#    u.create('Totoro', 'admin', 'rawr', 'totoro@nowhere.forest')
-#    assert_raises(Exception,  u.create, 'Totoro', '', '', '')
-#    u.validate('Totoro', 'rawr')
-#    assert_raises(Exception, u.validate, 'Totoro', 'booo')
-#    u.update('Totoro', role='user')
-#    assert u._users['Totoro'][0] == 'user'
-#    u.update('Totoro', pwd='')
-#    u.update('Totoro', email='')
-#    assert u._users['Totoro'][2] == ''
-#    assert_raises(Exception, u.update, 'Totoro2', 'email=""')
-#    u.delete('Totoro')
-#    assert_raises(Exception,  u.delete, 'Totoro')
-
+    #TODO: add user editing to the CLI and test it ?
 
 # #  Test JSON lib  # #
 

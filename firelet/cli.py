@@ -146,8 +146,11 @@ def main(mockargs=None):
     else:
         opts, args = cli_args(args=mockargs)
 
-    if not opts.quiet:
-        say( "Firelet %s CLI." % __version__)
+    whisper = say
+    if opts.quiet:
+        whisper = lambda x: None
+
+    whisper( "Firelet %s CLI." % __version__)
 
     a1, a2, a3, a4, a5, a6 = args+ [None] * (6 - len(args))
 
@@ -259,8 +262,7 @@ def main(mockargs=None):
     elif a1 == 'user':
         users = Users(d=repodir)
         if a2 == 'list' or None:
-            if not opts.quiet:
-                say("Name           Role            Email ")
+            whisper("Name           Role            Email ")
             for name, (role, secret, email) in users._users.iteritems():
                 say("%-14s %-15s %s" % (name, role, email))
         elif a2 == 'add':
@@ -273,7 +275,17 @@ def main(mockargs=None):
             pwd = getpass('Enter new password: ')
             users.create(a3, a4, pwd, email=a5)
         elif a2 == 'del':
-            raise NotImplementedError
+            if not a3:
+                help("Missing username.")
+            users.delete(a3)
+        elif a2 == 'validatepwd':
+            if not a3:
+                help("Missing username.")
+            pwd = getpass('Enter password: ')
+            users.validate(a3, pwd)
+        else:
+            give_help()
+            exit(1)
 
 
     else:
