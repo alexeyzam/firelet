@@ -724,7 +724,7 @@ def cli_setup():
 def cli_run(*args):
     """Wrap CLI invocation"""
     a = list(args)
-    assert_raises(SystemExit, cli.main, a)
+    assert_raises(SystemExit, cli.main, a), "Exited without 0 or 1" + cli.say.hist()
 
 @with_setup(cli_setup)
 def test_cli_rule_list():
@@ -746,7 +746,7 @@ def test_cli_list():
         old = len(cli.say.li)
 
 @with_setup(cli_setup)
-def test_versioning():
+def test_cli_versioning():
     """Versioning functional testing"""
     cli_run('-c test/firelet_test.ini', 'save_needed', '-q')
     assert cli.say.li == ['No'], "No save needed here" + cli.say.hist()
@@ -786,6 +786,35 @@ def test_versioning():
     cli_run('-c test/firelet_test.ini', 'save_needed', '-q')
     assert cli.say.li[-1] == 'No', "No save needed here" + cli.say.hist()
 
+
+# CLI user management
+
+@with_setup(cli_setup)
+def test_cli_user_management():
+    cli_run('-c test/firelet_test.ini', '-q', 'user', 'list')
+    assert cli.say.li == [
+        u'Rob            readonly        None',
+        u'Eddy           editor          None',
+        u'Ada            admin           None'], "Incorrect user list" + cli.say.hist()
+    cli_run('-c test/firelet_test.ini', '-q', 'user', 'add', 'Totoro',
+        'admin', 'totoro@nowhere.forest')
+
+#    cli_run('-c test/firelet_test.ini', '-q', '', '')
+#    cli_run('-c test/firelet_test.ini', '-q', '', '')
+#    cli_run('-c test/firelet_test.ini', '-q', '', '')
+#    u = Users(d='/tmp/firelet_test')
+#    u.create('Totoro', 'admin', 'rawr', 'totoro@nowhere.forest')
+#    assert_raises(Exception,  u.create, 'Totoro', '', '', '')
+#    u.validate('Totoro', 'rawr')
+#    assert_raises(Exception, u.validate, 'Totoro', 'booo')
+#    u.update('Totoro', role='user')
+#    assert u._users['Totoro'][0] == 'user'
+#    u.update('Totoro', pwd='')
+#    u.update('Totoro', email='')
+#    assert u._users['Totoro'][2] == ''
+#    assert_raises(Exception, u.update, 'Totoro2', 'email=""')
+#    u.delete('Totoro')
+#    assert_raises(Exception,  u.delete, 'Totoro')
 
 
 # #  Test JSON lib  # #

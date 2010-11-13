@@ -1175,6 +1175,8 @@ class Users(object):
         except:
             self._users = {} #TODO: raise alert?
 
+    def list(self):
+        return list(self._users)
     def _save(self):
         savejson('users', self._users, d=self._dir)
 

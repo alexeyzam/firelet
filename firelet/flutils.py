@@ -47,7 +47,7 @@ class Bunch(object):
         """Generate a simple hash"""
         return hex(abs(hash(str(self.__dict__))))[2:]
 
-    def validate_token(self, t): #TODO: unit testing
+    def validate_token(self, t):
         assert t == self._token(), \
         "Unable to update: one or more items has been modified in the meantime."
 
@@ -63,7 +63,8 @@ class Bunch(object):
             self.__dict__[k] = d[k]
 
 
-def flag(s):    #TODO: unit testing
+def flag(s):
+    """Parse string-based flags"""
     if s in (1, True, '1', 'True', 'y', 'on' ):
         return '1'
     elif s in (0, False, '0', 'False', 'n', 'off', ''):

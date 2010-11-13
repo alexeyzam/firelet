@@ -18,11 +18,13 @@
 
 # Firelet Command Line Interface
 
-from confreader import ConfReader
-from flcore import GitFireSet, DemoGitFireSet, __version__
-from flutils import cli_args
-from sys import argv, exit
+import getpass
 import logging as log
+from sys import argv, exit
+
+from confreader import ConfReader
+from flcore import GitFireSet, DemoGitFireSet, Users,  __version__
+from flutils import cli_args
 
 #   commands
 #
@@ -51,7 +53,7 @@ import logging as log
 #       list
 #
 
-def help():
+def give_help():
     #TODO
     say("""
     Firelet CLI
@@ -80,8 +82,17 @@ def help():
         del
     hostgroup
         ...
+    user
+        list
+        add <name> <group> <email>
+        del
     """)
-    exit(0)
+
+def help(s=None):
+    if s:
+        say(s)
+    give_help()
+    exit(1)
 
 
 def deletion(table):
@@ -127,7 +138,7 @@ def open_fs(fn):
         exit(1)
 
     fs = GitFireSet(repodir=conf.data_dir)
-    return fs
+    return (conf.data_dir, fs)
 
 
 def main(mockargs=None):
@@ -137,15 +148,15 @@ def main(mockargs=None):
     else:
         opts, args = cli_args(args=mockargs)
 
-    if  not opts.quiet:
+    if not opts.quiet:
         say( "Firelet %s CLI." % __version__)
 
-    a1, a2, a3 = args+ [None] * (3 - len(args))
+    a1, a2, a3, a4, a5, a6 = args+ [None] * (6 - len(args))
 
     if not a1:
         help()
 
-    fs = open_fs(opts.conffile.strip())
+    repodir, fs = open_fs(opts.conffile.strip())
 
     if a1 == 'save':
         if a3 or not a2:
@@ -247,8 +258,30 @@ def main(mockargs=None):
         elif a2 == 'del':
             deletion('services')
 
+    elif a1 == 'user':
+        users = Users(d=repodir)
+        if a2 == 'list' or None:
+            if not opts.quiet:
+                say("Name           Role            Email ")
+            for name, (role, secret, email) in users._users.iteritems():
+                say("%-14s %-15s %s" % (name, role, email))
+        elif a2 == 'add':
+            if not a3:
+                help("Missing username.")
+            if not a4:
+                help("Missing role.")
+            if not a5:
+                help("Missing email.")
+            pwd = getpass.getpass()
+            users.create(self, a3, a4, pwd, email=a5)
+
+        elif a2 == 'del':
+            raise NotImplementedError
+
+
     else:
-        help()
+        give_help()
+        exit(0)
 
     exit(0)
 
