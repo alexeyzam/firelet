@@ -68,22 +68,24 @@ def give_help():
     save_needed
     check
     deploy
-    rule
+    rule| host | hostgroup | service
         list
+        del <id>
+    rule
         add
-        del
         enable <id>
         disable <id>
     host
-        list
         add
-        del
     hostgroup
-        ...
+        add
+    service
+        add
     user
         list
         add <name> <group> <email>
-        del
+        del <name>
+        validatepwd <name>
     """)
 
 def help(s=None):
@@ -92,36 +94,47 @@ def help(s=None):
     give_help()
     exit(1)
 
+def to_int(s):
+    try:
+        return int(s)
+    except:
+        if s:
+            help("Unable to convert '%s' to int" % s)
+        help("Missing argument")
 
 def deletion(table):
     if not a3:
         help()
     try:
-        rid = int(a3)
+        rid = to_int(a3)
         rd.delete(table, rid)
     except:
         pass
         #TODO
 
+def max_len(li):
+    """Lenght of the longest item in a list"""
+    return max(map(len, li))
+
 def prettyprint(li):
-    """Pretty-print as a table"""
+    """Pretty-print a list of dicts a table"""
     keys = sorted(li[0].keys())
     t = [keys]
     for d in li:
-        m =[d[k] for k in keys]
+        m = [d[k] for k in keys]
         m = map(str, m)
         t.append(m)
 
     cols = zip(*t)
-    cols_sizes = [(max(map(len, i))) for i in cols] # get the widest entry in each column
-
-    for m in t:
-        s = " | ".join((item.ljust(pad) for item, pad in zip(m, cols_sizes)))
+    cols_sizes = map(max_len, cols) # get the widest entry in each column
+    id = 'id'
+    for row in t:
+        s = " %2s | " % id + " | ".join((item.ljust(pad) for item, pad in zip(row, cols_sizes)))
         say(s)
-
-#        def j((n, li)):
-#            return "%d  " % n + "  ".join((item.ljust(pad) for item, pad in zip(li, cols_sizes) ))
-#        return '\n'.join(map(j, enumerate(self)))
+        try:
+            id += 1
+        except TypeError:
+            id = 0
 
 def say(s):
     print s
@@ -211,53 +224,53 @@ def main(mockargs=None):
         if a2: help()
         fs.deploy()
 
+    # generic listing
+    elif a1 in ('rule', 'host', 'hostgroup', 'network', 'service') and a2 == 'list':
+        table = "%ss" % a1
+        prettyprint(fs.__dict__[table])
+
+    # generic deletion
+    elif a1 in ('rule', 'host', 'hostgroup', 'network', 'service') and a2 == 'del':
+        table = "%ss" % a1
+        fs.delete(table, to_int(a3))
+
     elif a1 == 'rule':
-        if a2 == 'list' or None:
-            prettyprint(fs.rules)
-        elif a2 == 'add':
-            raise NotImplementedError
-        elif a2 == 'del':
-            deletion('rules')
+        if a2 == 'add':
+            raise NotImplementedError   #TODO
         elif a2 == 'enable':
-            i = int(a3)
+            i = to_int(a3)
             fs.rules.enable(i)
             say('Rule %d enabled.' %i)
         elif a2 == 'disable':
-            i = int(a3)
+            i = to_int(a3)
             fs.rules.disable(i)
             say('Rule %d disabled.' %i)
+        else:
+            help('Incorrect arguments')
 
     elif a1 == 'hostgroup':
-        if a2 == 'list' or None:
-            prettyprint(fs.hostgroups)
-        elif a2 == 'add':
+        if a2 == 'add':
             raise NotImplementedError
-        elif a2 == 'del':
-            deletion('hostgroups')
+        else:
+            help('Incorrect arguments')
 
     elif a1 == 'host':
-        if a2 == 'list' or None:
-            prettyprint(fs.hosts)
-        elif a2 == 'add':
+        if a2 == 'add':
             raise NotImplementedError
-        elif a2 == 'del':
-            deletion('hosts')
+        else:
+            help('Incorrect arguments')
 
     elif a1 == 'network':
-        if a2 == 'list' or None:
-            prettyprint(fs.networks)
-        elif a2 == 'add':
+        if a2 == 'add':
             raise NotImplementedError
-        elif a2 == 'del':
-            deletion('networks')
+        else:
+            help('Incorrect arguments')
 
     elif a1 == 'service':
-        if a2 == 'list' or None:
-            prettyprint(fs.services)
-        elif a2 == 'add':
+        if a2 == 'add':
             raise NotImplementedError
-        elif a2 == 'del':
-            deletion('services')
+        else:
+            help('Incorrect arguments')
 
     elif a1 == 'user':
         users = Users(d=repodir)
@@ -283,10 +296,9 @@ def main(mockargs=None):
                 help("Missing username.")
             pwd = getpass('Enter password: ')
             users.validate(a3, pwd)
+            whisper('Password is valid.')
         else:
-            give_help()
-            exit(1)
-
+            help('Incorrect arguments')
 
     else:
         give_help()

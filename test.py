@@ -817,6 +817,43 @@ def test_cli_user_management():
 
     #TODO: add user editing to the CLI and test it ?
 
+# CLI rule management
+
+@with_setup(cli_setup)
+def test_cli_rule_list():
+    out = cli_run('-c test/firelet_test.ini', '-q', 'rule', 'list')
+    for line in out[1:]:
+        li = line.split('|')
+        li = map(str.strip, li)
+        assert li[1] in ('ACCEPT','DROP'), li
+        assert li[5] in ('0','1'), li #en/dis-abled
+
+@with_setup(cli_setup)
+def test_cli_rule_enable_disable():
+    out1 = cli_run('-c test/firelet_test.ini', '-q', 'rule', 'list')
+    assert out1[2].split('|')[5].strip() == '1',  "First rule should be enabled"
+    cli_run('-c test/firelet_test.ini', '-q', 'rule', 'disable', '1')
+    out = cli_run('-c test/firelet_test.ini', '-q', 'rule', 'list')
+    assert out[2].split('|')[5].strip() == '0',  "First rule should be disabled"
+    cli_run('-c test/firelet_test.ini', '-q', 'rule', 'enable', '1')
+    out = cli_run('-c test/firelet_test.ini', '-q', 'rule', 'list')
+    assert out == out1, "Rule enable/disable behavior is incorrect"
+
+@with_setup(cli_setup)
+def test_cli_rule_creation_deletion():
+    out1 = cli_run('-c test/firelet_test.ini', '-q', 'rule', 'list')
+    cli_run('-c test/firelet_test.ini', '-q', 'rule', 'del', '1')
+    out = cli_run('-c test/firelet_test.ini', '-q', 'rule', 'list')
+    assert len(out) == len(out1) - 1, "Rule not deleted" + cli.say.hist()
+
+@with_setup(cli_setup)
+def test_cli_multiple_list_and_deletion():
+    for name in ('rule', 'host', 'hostgroup', 'network', 'service'):
+        before = cli_run('-c test/firelet_test.ini', '-q', name, 'list')
+        cli_run('-c test/firelet_test.ini', '-q', name, 'del', '2')
+        after = cli_run('-c test/firelet_test.ini', '-q', name, 'list')
+        assert len(after) == len(before) - 1, "%s not deleted %s" % (name, cli.say.hist())
+
 # #  Test JSON lib  # #
 
 def json_loop(obj):
