@@ -715,6 +715,7 @@ class MockSay():
         self.li = []
 
 def mock_open_fs():
+    "Testing is performed against the Demo FireSet" #FIXME: use test directory
     return DemoGitFireSet()
 
 def mock_getpass(s=None):
@@ -730,11 +731,13 @@ def cli_setup():
 def cli_run(*args):
     """Wrap CLI invocation to prevent os.exit() from breaking unit testing"""
     a = list(args)
+    hist_len = len(cli.say.li)
     assert_raises(SystemExit, cli.main, a), "Exited without 0 or 1" + cli.say.hist()
+    return cli.say.li[hist_len:]
 
 @with_setup(cli_setup)
 def test_cli_rule_list():
-    cli_run('-c test/firelet_test.ini', 'rule', 'list')
+    out = cli_run('-c test/firelet_test.ini', 'rule', 'list')
     assert len(cli.say.li) > 5, cli.say.hist()
 
 @with_setup(cli_setup)
@@ -743,71 +746,76 @@ def test_cli_help():
 
 @with_setup(cli_setup)
 def test_cli_list():
-    old = 0
     for x in ('rule', 'host', 'hostgroup', 'service', 'network'):
         print "Running cli %s list" % x
-        cli_run(x, 'list', '')
-        assert len(cli.say.li) > old + 3, \
-            "Short or no output from cli %s list: %s" % (x, repr(cli.say.li[old:]))
-        old = len(cli.say.li)
+        out = cli_run(x, 'list', '')
+        assert len(out) > 3, \
+            "Short or no output from cli %s list: %s" % (x, repr(out))
 
 @with_setup(cli_setup)
 def test_cli_versioning():
     """Versioning functional testing"""
-    cli_run('-c test/firelet_test.ini', 'save_needed', '-q')
-    assert cli.say.li == ['No'], "No save needed here" + cli.say.hist()
-    cli_run('-c test/firelet_test.ini', 'version', 'list', '-q') # no versions
-    assert cli.say.li == ['No'], "No versions expected" + cli.say.hist()
-    cli_run('-c test/firelet_test.ini', 'rule', 'disable', '2', '-q')
-    cli_run('-c test/firelet_test.ini', 'save', 'test1', '-q') # save 1
-    cli_run('-c test/firelet_test.ini', 'version', 'list', '-q')
+    out = cli_run('-c test/firelet_test.ini', 'save_needed', '-q')
+    assert out == ['No'], "No save needed here" + cli.say.hist()
+    out = cli_run('-c test/firelet_test.ini', 'version', 'list', '-q') # no versions
+    assert out == [], "No versions expected" + cli.say.hist()
+    out = cli_run('-c test/firelet_test.ini', 'rule', 'disable', '2', '-q')
+    out = cli_run('-c test/firelet_test.ini', 'save', 'test1', '-q') # save 1
+    out = cli_run('-c test/firelet_test.ini', 'version', 'list', '-q')
     assert cli.say.li[:3] == ['No', 'Rule 2 disabled.',
     'Configuration saved. Message: "test1"'], "Incorrect behavior"
-    assert cli.say.li[-1].endswith('| test1 |'), cli.say.hist()
-    cli_run('-c test/firelet_test.ini', 'rule', 'enable', '2', '-q')
-    cli_run('-c test/firelet_test.ini', 'save', 'test2', '-q') # save 2
-    cli_run('-c test/firelet_test.ini', 'version', 'list', '-q')
-    assert cli.say.li[-2].endswith('| test2 |'), cli.say.hist()
-    cli_run('-c test/firelet_test.ini', 'rule', 'disable', '2', '-q')
-    cli_run('-c test/firelet_test.ini', 'save', 'test3', '-q') # save 1
-    cli_run('-c test/firelet_test.ini', 'version', 'list', '-q')
-    assert cli.say.li[-3].endswith('| test3 |'), cli.say.hist()
+    assert out[-1].endswith('| test1 |'), cli.say.hist()
+    out = cli_run('-c test/firelet_test.ini', 'rule', 'enable', '2', '-q')
+    out = cli_run('-c test/firelet_test.ini', 'save', 'test2', '-q') # save 2
+    out = cli_run('-c test/firelet_test.ini', 'version', 'list', '-q')
+    assert out[-2].endswith('| test2 |'), cli.say.hist()
+    out = cli_run('-c test/firelet_test.ini', 'rule', 'disable', '2', '-q')
+    out = cli_run('-c test/firelet_test.ini', 'save', 'test3', '-q') # save 1
+    out = cli_run('-c test/firelet_test.ini', 'version', 'list', '-q')
+    assert out[-3].endswith('| test3 |'), cli.say.hist()
     # rollback by number
     cli.say.flush()
-    cli_run('-c test/firelet_test.ini', 'version', 'rollback', '1', '-q')
-    cli_run('-c test/firelet_test.ini', 'version', 'list', '-q')
-    assert cli.say.li[0].endswith('| test2 |') and \
-        cli.say.li[1].endswith('| test1 |'), "Incorrect rollback" + cli.say.hist()
+    out = cli_run('-c test/firelet_test.ini', 'version', 'rollback', '1', '-q')
+    out = cli_run('-c test/firelet_test.ini', 'version', 'list', '-q')
+    assert out[0].endswith('| test2 |') and \
+        out[1].endswith('| test1 |'), "Incorrect rollback" + cli.say.hist()
     # rollback by ID
-    commit_id = cli.say.li[1].split()[0]
+    commit_id = out[1].split()[0]
     cli.say.flush()
-    cli_run('-c test/firelet_test.ini', 'version', 'rollback', commit_id, '-q')
-    cli_run('-c test/firelet_test.ini', 'version', 'list', '-q')
-    assert cli.say.li[0].endswith('| test1 |'),  "Incorrect rollback" + cli.say.hist()
+    out = cli_run('-c test/firelet_test.ini', 'version', 'rollback', commit_id, '-q')
+    out = cli_run('-c test/firelet_test.ini', 'version', 'list', '-q')
+    assert out[0].endswith('| test1 |'),  "Incorrect rollback" + cli.say.hist()
     # reset
-    cli_run('-c test/firelet_test.ini', 'rule', 'enable', '2', '-q')
-    cli_run('-c test/firelet_test.ini', 'save_needed', '-q')
-    assert cli.say.li[-1] == 'Yes', "Save needed here" + cli.say.hist()
-    cli_run('-c test/firelet_test.ini', 'reset', '-q')
-    cli_run('-c test/firelet_test.ini', 'save_needed', '-q')
-    assert cli.say.li[-1] == 'No', "No save needed here" + cli.say.hist()
+    out = cli_run('-c test/firelet_test.ini', 'rule', 'enable', '2', '-q')
+    out = cli_run('-c test/firelet_test.ini', 'save_needed', '-q')
+    assert out[-1] == 'Yes', "Save needed here" + cli.say.hist()
+    out = cli_run('-c test/firelet_test.ini', 'reset', '-q')
+    out = cli_run('-c test/firelet_test.ini', 'save_needed', '-q')
+    assert out[-1] == 'No', "No save needed here" + cli.say.hist()
 
 
 # CLI user management
 
 @with_setup(cli_setup)
 def test_cli_user_management():
-    cli_run('-c test/firelet_test.ini', '-q', 'user', 'list')
-    assert cli.say.li == [
+    out = cli_run('-c test/firelet_test.ini', '-q', 'user', 'list')
+    assert out == [
         u'Rob            readonly        None',
         u'Eddy           editor          None',
         u'Ada            admin           None'], "Incorrect user list" + cli.say.hist()
-    cli_run('-c test/firelet_test.ini', '-q', 'user', 'add', 'Totoro',
+    out = cli_run('-c test/firelet_test.ini', '-q', 'user', 'add', 'Totoro',
         'admin', 'totoro@nowhere.forest')
+    cli.say.flush()
+    out = cli_run('-c test/firelet_test.ini', '-q', 'user', 'list')
+#    assert out == [
+#        u'Rob            readonly        None',
+#        u'Eddy           editor          None',
+#        u'Ada            admin           None',
+#        u'Totoro         admin           totoro@nowhere.forest'], "Incorrect user list" + cli.say.hist()
 
-#    cli_run('-c test/firelet_test.ini', '-q', '', '')
-#    cli_run('-c test/firelet_test.ini', '-q', '', '')
-#    cli_run('-c test/firelet_test.ini', '-q', '', '')
+#    out = cli_run('-c test/firelet_test.ini', '-q', '', '')
+#    out = cli_run('-c test/firelet_test.ini', '-q', '', '')
+#    out = cli_run('-c test/firelet_test.ini', '-q', '', '')
 #    u = Users(d='/tmp/firelet_test')
 #    u.create('Totoro', 'admin', 'rawr', 'totoro@nowhere.forest')
 #    assert_raises(Exception,  u.create, 'Totoro', '', '', '')
