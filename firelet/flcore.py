@@ -20,7 +20,7 @@ from copy import deepcopy
 from hashlib import sha512
 from collections import defaultdict
 from netaddr import IPAddress, IPNetwork
-from os import unlink
+from os import fsync, rename, unlink
 from socket import inet_ntoa, inet_aton
 from struct import pack, unpack
 import logging
@@ -530,15 +530,24 @@ def loadcsv(n, d):
         return [] #FIXME: why?
 
 def savecsv(n, stuff, d):
+    """Save CSV file safely, preserving comments"""
+    fullname = "%s/%s.csv" % (d, n)
     log.debug('Writing "%s" in "%s"...' % (n, d))
-    f = open("%s/%s.csv" % (d, n))
-    comments = [x for x in f if x.startswith('#')]
-    f.close()
-    f = open("%s/%s.csv" % (d, n), 'wb')
+    try:
+        f = open(fullname)
+        comments = [x for x in f if x.startswith('#')]
+        f.close()
+    except IOError:
+        log.debug("%s not existing" % fullname)
+        comments = []
+    f = open(fullname +".tmp", 'wb')
     f.writelines(comments)
     writer = csv.writer(f,  delimiter=' ', lineterminator='\n')
     writer.writerows(stuff)
+    f.flush()
+    fsync(f.fileno())
     f.close()
+    rename(fullname + ".tmp", fullname)
 
 def load_hosts_csv(n, d):
     """Read the hosts csv file, group the routed networks as a list"""
