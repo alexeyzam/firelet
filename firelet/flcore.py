@@ -688,7 +688,8 @@ class FireSet(object):
         del(sx)
 
     def _check_ifaces(self):
-        """Ensure that the interfaces configured on the hosts match the contents of the host table"""
+        """Ensure that the interfaces configured on the hosts match
+            the contents of the host table"""
         log.debug("Checking interfaces...")
         confs = self._remote_confs
         assert isinstance(confs, dict)
@@ -701,10 +702,13 @@ class FireSet(object):
                 raise Alert, "Host %s not available." % h.hostname
             ip_a_s = confs[h.hostname].ip_a_s
             if not h.iface in ip_a_s:         #TODO: test this in unit testing
-                raise Alert, "Interface %s missing on host %s" % (iface, hostname)
+                raise Alert, "Interface %s missing on host %s" \
+                    % (iface, hostname)
             ip_addr_v4, ip_addr_v6 = ip_a_s[h.iface]
             if h.ip_addr not in (ip_addr_v6,  ip_addr_v4.split('/')[0] ):
-                raise Alert,"Wrong address on %s on interface %s: %s and %s(should be %s)" % (h.hostname, iface, ip_addr_v4, ip_addr_v6, h.ip_addr)
+                raise Alert,"Wrong address on %s on interface %s: \
+            %s and %s (should be %s)" % (h.hostname, iface, ip_addr_v4,
+                        ip_addr_v6, h.ip_addr)
 
         #TODO: warn if there are extra interfaces?
 
@@ -715,7 +719,8 @@ class FireSet(object):
         if not remote: return True
         remote_IPN = IPNetwork(remote)
         if remote_IPN in IPNetwork(local_addr + '/' + local_masklen) and \
-            remote_IPN != IPNetwork(local_addr + '/32'):  # that is input or output traffic, not forw.
+            remote_IPN != IPNetwork(local_addr + '/32'):
+                # that is input or output traffic, not forw.
                 return True  # remote is in a directly conn. network
         else:
             ns = [ IPNetwork(y+'/'+w) for y, w in routed_nets]
@@ -737,27 +742,6 @@ class FireSet(object):
             if src in rnet and dst not in rnet:
                 return True
         return False
-
-#    def compile_dict(self, hosts=None, rset=None):
-#        """Generate set of rules specific for each host.
-#            rd = {hostname: {iface: [rules, ] }, ... }
-#        """
-#        assert not self.save_needed(), "Configuration must be saved before deployment."
-#        if not hosts:
-#            hosts = self.hosts
-#        if not rset:
-#            rset = self.compile_rules()
-#        # r[hostname][interface] = [rule, rule, ... ]
-#        rd = defaultdict(dict)
-#        for h in hosts:
-#            myrules = [ r for r in rset if h.ip_addr in r ]   #TODO: match subnets as well
-#            if not h.iface in rd[h.hostname]:
-#                rd[h.hostname][h.iface] = []
-#            rd[h.hostname][h.iface].extend(myrules)
-#            log.debug(rd[h.hostname])
-#        log.debug("Rules compiled as dict: %s" % repr(rd))
-#        return rd
-
 
     def compile_rules(self):
         """Compile iptables rules to be deployed in a dict:
@@ -785,7 +769,8 @@ class FireSet(object):
         flat_hg = dict((hg.name, hg.flat(host_by_name_col_iface, net_by_name, hg_by_name)) for hg in self.hostgroups)
 
         def res(n):
-            """Resolve flattened hostgroups, hosts and networks by name and provides None for '*' """
+            """Resolve flattened hostgroups, hosts and networks by name
+                and provides None for '*' """
             if n in host_by_name_col_iface:
                 return [host_by_name_col_iface[n]]
             elif n in net_by_name:
@@ -804,19 +789,23 @@ class FireSet(object):
         for rule in self.rules:  # for each rule
             if rule.enabled == '0':
                 continue
-            assert rule.action in ('ACCEPT', 'DROP'),  'The Action field must be "ACCEPT" or "DROP" in rule "%s"' % rule.name
+            assert rule.action in ('ACCEPT', 'DROP'), """The Action field must
+                be "ACCEPT" or "DROP" in rule "%s"" """ % rule.name
             srcs = res(rule.src)
             dsts = res(rule.dst)    # list of Host and Network instances
 
             sproto, sports = proto_port[rule.src_serv]
             dproto, dports = proto_port[rule.dst_serv]
-            assert sproto in protocols + [None], "Unknown source protocol: %s" % sproto
-            assert dproto in protocols + [None], "Unknown dest protocol: %s" % dproto
+            assert sproto in protocols + [None], """Unknown source
+                protocol: %s""" % sproto
+            assert dproto in protocols + [None], """Unknown dest
+                protocol: %s""" % dproto
 
 
             if sproto:
                 if dproto and sproto != dproto:
-                    raise Alert, "Source and destination protocol must be the same in rule \"%s\"." % rule.name
+                    raise Alert, """Source and destination protocol
+                        must be the same in rule "%s".""" % rule.name
                 proto = sproto.lower()
             elif dproto:
                 proto = dproto.lower()
@@ -856,7 +845,8 @@ class FireSet(object):
             try:
                 log_val = int(rule.log_level)
             except ValueError:
-                raise Alert, "The logging field in rule '%s' is '%s' and must be an integer." % (rule.name, rule.log_level)
+                raise Alert, """The logging field in rule '%s' is '%s'
+                    and must be an integer.""" % (rule.name, rule.log_level)
 
             for src, dst in product(srcs, dsts):
                 assert isinstance(src, Host) or isinstance(src, Network) or src == None, repr(src)
@@ -867,7 +857,8 @@ class FireSet(object):
 
         # Creating iptables-compatible rules, using the following format:
         #
-        # -A <chain> -s <ipa/mask> -d <ipa/mask> -i <iface> -p <proto> -m <module> --sport <nn> --dport <nn> -j ACCEPT
+        # -A <chain> -s <ipa/mask> -d <ipa/mask> -i <iface> -p <proto>
+        #        -m <module> --sport <nn> --dport <nn> -j ACCEPT
         #
         # r[hostname] = [rule, rule, ... ]
         rd = {}
@@ -892,14 +883,16 @@ class FireSet(object):
                     if log_val:
                         rd[h.hostname]['INPUT'].append('%s%s -i %s %s%s%s%s -j LOG --log-prefix "%s" --log-level %d' %
                                                           (_src, _dst, h.iface, proto, modules, sports, dports, name, log_val))
-                    rd[h.hostname]['INPUT'].append("%s%s -i %s %s%s%s%s -j %s" %   (_src, _dst, h.iface, proto, modules, sports, dports, action))
+                    rd[h.hostname]['INPUT'].append("%s%s -i %s %s%s%s%s -j %s"
+                            % (_src, _dst, h.iface, proto, modules, sports, dports, action))
 
                 # Build OUTPUT rules: where the host is in the source
                 if src and h in src or not src:
                     if log_val:
                         rd[h.hostname]['OUTPUT'].append('%s%s -o %s %s%s%s%s -j LOG --log-prefix "%s" --log-level %d' %
                                                            (_src, _dst, h.iface, proto, modules, sports, dports, name, log_val))
-                    rd[h.hostname]['OUTPUT'].append("%s%s -o %s %s%s%s%s -j %s" %   (_src, _dst, h.iface, proto, modules, sports, dports, action))
+                    rd[h.hostname]['OUTPUT'].append("%s%s -o %s %s%s%s%s -j %s"
+                            % (_src, _dst, h.iface, proto, modules, sports, dports, action))
 
                 # Build FORWARD rules: where the source and destination are both in directly connected or routed networks
                 if h.network_fw in ('0', 0, False):
@@ -914,7 +907,8 @@ class FireSet(object):
                 if forw:
                     rd[h.hostname]['FORWARD'].append('%s%s%s%s%s%s -j LOG  --log-prefix "%s" --log-level %d' %
                                                      (_src, _dst, proto,  modules, sports, dports, name, log_val))
-                    rd[h.hostname]['FORWARD'].append("%s%s%s%s%s%s -j %s" %   (_src, _dst, proto, modules, sports, dports, action))
+                    rd[h.hostname]['FORWARD'].append("%s%s%s%s%s%s -j %s"
+                        %  (_src, _dst, proto, modules, sports, dports, action))
 
             # "for every host"
         # "for every rule"
@@ -949,7 +943,8 @@ class FireSet(object):
                             print eee
                         print
 
-                log.debug("Rules for %-15s old: %d new: %d added: %d removed: %d" % (hostname, len(ex_iptables), len(new), len(added_li), len(removed_li)))
+                log.debug("Rules for %-15s old: %d new: %d added: %d removed: %d"
+                    % (hostname, len(ex_iptables), len(new), len(added_li), len(removed_li)))
 #                log.debug(repr(ex_iptables[:5]))
                 if added_li or removed_li:
                     d[hostname] = (added_li, removed_li)
@@ -1150,7 +1145,8 @@ class GitFireSet(FireSet):
             raise Exception, "Table %s not existing" % table
 
     def delete(self, table, rid):
-        assert table in ('rules', 'hosts', 'hostgroups', 'services', 'networks') ,  "Wrong table name for deletion: %s" % table
+        assert table in ('rules', 'hosts', 'hostgroups', 'services', 'networks') , \
+            "Wrong table name for deletion: %s" % table
         try:
             self.__dict__[table].pop(rid)
         except IndexError, e:
@@ -1218,7 +1214,8 @@ class Users(object):
     def validate(self, username, pwd):
         assert username, "Missing username."
         assert username in self._users, "Incorrect user or password."
-        assert self._hash(username, pwd) == self._users[username][1], "Incorrect user or password."
+        assert self._hash(username, pwd) == self._users[username][1], \
+            "Incorrect user or password."
 
 
 
