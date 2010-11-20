@@ -28,7 +28,7 @@ import logging
 from flssh import SSHConnector, MockSSHConnector
 from flutils import Alert, Bunch, flag, extract_all
 
-__version__ = 0.4
+__version__ = '0.4.3'
 
 log = logging.getLogger()
 

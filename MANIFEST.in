@@ -1,0 +1,5 @@
+recursive-include views *.tpl
+recursive-exclude views *~
+recursive-include static *
+recursive-include test *
+recursive-exclude test *~

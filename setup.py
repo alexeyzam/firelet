@@ -29,9 +29,9 @@ setup(
     ],
     packages = ["firelet"],
     platforms=['Linux'],
-    package_data={'firelet': ['test/*',
-                                                'views/*',
-                                                'static/*']},
+    package_data={'': ['test/*',
+                                        'views/*',
+                                        'static/*']},
     entry_points = {
         'console_scripts': [
             'firelet_c = firelet.cli:main',

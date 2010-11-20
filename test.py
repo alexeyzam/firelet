@@ -837,14 +837,7 @@ def test_cli_rule_enable_disable():
     assert out[2].split('|')[5].strip() == '0',  "First rule should be disabled"
     cli_run('-c test/firelet_test.ini', '-q', 'rule', 'enable', '1')
     out = cli_run('-c test/firelet_test.ini', '-q', 'rule', 'list')
-    assert out == out1, "Rule enable/disable behavior is incorrect"
-
-@with_setup(cli_setup)
-def test_cli_rule_creation_deletion():
-    out1 = cli_run('-c test/firelet_test.ini', '-q', 'rule', 'list')
-    cli_run('-c test/firelet_test.ini', '-q', 'rule', 'del', '1')
-    out = cli_run('-c test/firelet_test.ini', '-q', 'rule', 'list')
-    assert len(out) == len(out1) - 1, "Rule not deleted" + cli.say.hist()
+    assert out == out1, "Rule enable/disable not idempotent"
 
 @with_setup(cli_setup)
 def test_cli_multiple_list_and_deletion():
