@@ -25,7 +25,7 @@ from socket import inet_ntoa, inet_aton
 from struct import pack, unpack
 import logging
 
-from flssh import SSHConnector, MockSSHConnector
+from fltssh import SSHConnector, MockSSHConnector
 from flutils import Alert, Bunch, flag, extract_all
 
 __version__ = '0.4.3'
@@ -696,15 +696,20 @@ class FireSet(object):
         for q in confs.values():
             assert isinstance(q, Bunch), repr(confs)
             assert len(q) == 2
-#        log.debug("Confs: %s" % repr(confs) )
+        log.debug("Confs: %s" % repr(confs) )
         for h in self.hosts:
             if not h.hostname in confs:
                 raise Alert, "Host %s not available." % h.hostname
             ip_a_s = confs[h.hostname].ip_a_s
             if not h.iface in ip_a_s:         #TODO: test this in unit testing
                 raise Alert, "Interface %s missing on host %s" \
-                    % (iface, hostname)
+                    % (iface, h.hostname)
             ip_addr_v4, ip_addr_v6 = ip_a_s[h.iface]
+            assert '/' in ip_addr_v4, """The IPv4 address extracted from
+                running 'ip addr show' on %s has no '/' in it""" % h.hostname
+            if not ip_addr_v4 or len(ip_addr_v4.split('/')) != 2:
+                raise Alert, "Unable to parse IPv4 addr from '%s' on '%s'" % \
+                    (ip_a_s, h.hostname)
             if h.ip_addr not in (ip_addr_v6,  ip_addr_v4.split('/')[0] ):
                 raise Alert,"Wrong address on %s on interface %s: \
             %s and %s (should be %s)" % (h.hostname, iface, ip_addr_v4,

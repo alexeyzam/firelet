@@ -15,30 +15,42 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from firelet.flcore import *
+from os import listdir
 import shutil
+from tempfile import mkdtemp
 
 from nose.tools import assert_raises, with_setup
 
+repodir = None
+
 def setup_dir():
-    shutil.rmtree('test/firewalltmp', True)
-    shutil.copytree('test/', 'test/firewalltmp')
+    global repodir
+    if repodir:
+        teardown_dir()
+    repodir = mkdtemp() + '/test'
+    shutil.copytree('test', repodir)
+    li = listdir(repodir)
+    assert len(li) > 5
 
 def teardown_dir():
-    shutil.rmtree('test/firewalltmp', True)
+    global repodir
+    if repodir:
+        shutil.rmtree(repodir, True)
+        repodir = None
 
 
 # #  Testing flssh module  # #
 
-@with_setup(setup_dir, teardown_dir)
-def test_deployment():
-    fs = DumbFireSet(repodir='test/firewalltmp')
-    fs.deploy()
+from firelet.fltssh import SSHConnector
+
+def test_SSHConnector_get():
+    pass
 
 
 @with_setup(setup_dir, teardown_dir)
-def test_get_confs_remote_real():
+def test_get_confs():
     return
-    fs = GitFireSet(repodir='test/firewalltmp')
+    fs = GitFireSet(repodir=repodir)
     fs._get_confs()
     assert fs._remote_confs == {
         'Bilbo': [None, '10.66.2.1', {'filter': '', 'nat': '-A POSTROUTING -o eth0 -j MASQUERADE'}, {'lo': ('127.0.0.1/8', '::1/128'), 'add': (None, None),
@@ -52,16 +64,20 @@ def test_get_confs_remote_real():
     fs._check_ifaces()
 
 
-
-
-
-# # Rule deployment testing # #
-
-@with_setup(setup_dir, teardown_dir)
-def test_deployment():
-    """Test host connectivity is required"""
-    fs = GitFireSet(repodir='test/firewalltmp')
-    fs.deploy()
-
-
+#@with_setup(setup_dir, teardown_dir)
+#def test_check():
+#    fs = GitFireSet(repodir=repodir)
+#    fs.check()
+#
+#
+#
+## # Rule deployment testing # #
+#
+#@with_setup(setup_dir, teardown_dir)
+#def test_deployment():
+#    """Test host connectivity is required"""
+#    fs = GitFireSet(repodir=repodir)
+#    fs.deploy()
+#
+#
 

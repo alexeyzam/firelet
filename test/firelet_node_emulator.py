@@ -39,6 +39,7 @@ def main():
         "10.66.2.2": "Fangorn",
         "172.16.2.223": "Gandalf",
         "10.66.1.1": "Gandalf",
+        '127.0.0.1': 'localhost'
     }
     history = []
     catting_new_iptables = False
@@ -57,7 +58,7 @@ def main():
             if prompt:
                 print prompt
             else:
-                print "%s$" % my_name,
+                print "firelet:%s~$ " % my_name
             cmd = raw_input()
             history.append(cmd)
             logging.info("%s %s" % (my_name, cmd))
@@ -82,6 +83,8 @@ def main():
         elif cmd == 'history':
             for c in history:
                 print c
+        else:
+            print cmd
 
 if __name__ == '__main__':
     main()

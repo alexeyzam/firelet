@@ -14,16 +14,178 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pxssh import pxssh
+# Firelet threaded SSH module
+
+from pxssh import pxssh, TIMEOUT
+from threading import Thread
+
 from flutils import Bunch
 
 import logging
 log = logging.getLogger()
 
-
+def _exec(c, s):
+    """Execute remote command"""
+    c.sendline(s)
+    c.prompt()
+    ret = c.before.split('\n')
+    return map(str.rstrip, ret)
 
 
 class SSHConnector(object):
+    """Manage a pool of pxssh connections to the firewalls. Get the running
+    configuation and deploy new configurations.
+    """
+    def __init__(self, targets=None, username='firelet'):
+        self._pool = {} # connections pool: {'hostname': pxssh session, ... }
+        self._targets = targets   # {hostname: [management ip address list ], ... }
+        assert isinstance(targets, dict), "targets must be a dict"
+        self._username = username
+
+    def get_conf(self, hostname, ip_addr, username, d):
+        """Connect to a firewall and get its configuration.
+            Save the output in a shared dict d"""
+        c = pxssh(timeout=5000)
+        try:
+            c.login(ip_addr, username)
+        except TIMEOUT:
+            c.close()
+            if c.isalive():
+                c.close(force=True)
+                return
+        log.debug("Connected to %s" % hostname)
+        iptables_save = _exec(c,'sudo /sbin/iptables-save')
+        ip_addr_show = _exec(c, '/bin/ip addr show')
+
+        c.close()
+        if c.isalive():
+            c.close(force=True)
+
+        iptables_p = self.parse_iptables_save(iptables_save)
+        ip_a_s_p = self.parse_ip_addr_show(ip_addr_show)
+        d = Bunch(iptables=iptables_p, ip_a_s=ip_a_s_p)
+
+
+    def get_confs(self, keep_sessions=False):
+        """Connects to the firewalls, get the configuration and return:
+            { hostname: Bunch of "session, ip_addr, iptables-save, interfaces", ... }
+        """
+        threads = {}
+        for hostname, ip_addrs in self._targets.iteritems():
+            d = {}
+            t = Thread(target=self.get_conf, args=(hostname, ip_addrs[0], 'firelet', d))
+            t.start()
+            threads[t] = (hostname, d)
+
+        confs = {}
+        for t, k in threads.iteritems():
+            t.join()
+            del(t)
+            confs[k[0]] = k[1]
+
+        return confs
+
+
+    def parse_iptables_save(self, s):
+        """Parse iptables-save output and returns a dict:
+        {'filter': [rule, rule, ... ], 'nat': [] }
+        """
+
+        def start(li, tag):
+            for n, item in enumerate(li):
+                if item == tag:
+                    return li[n:]
+            return []
+
+        def get_block(li, tag):
+            li = start(li, tag)
+            for n, item in enumerate(li):
+                if item == 'COMMIT':
+                    return li[:n]
+            return []
+
+        def good(x):
+            return x.startswith(('-A PREROUTING', '-A POSTROUTING',
+                '-A OUTPUT', '-A INPUT', '-A FORWARD'))
+
+
+        block = get_block(s, '*nat')
+        b = filter(good, block)
+        nat = '\n'.join(b)
+    #    for q in ('PREROUTING', 'POSTROUTING', 'OUTPUT'):
+    #        i['nat'][q] = '\n'.join(x for x in block if x.startswith('-A %s' % q))
+
+        block = get_block(s, '*filter')
+        b = filter(good, block)
+
+        return Bunch(nat=nat, filter=b)
+
+    #    for q in ('INPUT', 'OUTPUT', 'FORWARD'):
+    #        i['filter'][q] = '\n'.join(x for x in block if x.startswith('-A %s' % q))
+
+        return i
+
+
+    def parse_ip_addr_show(self, s):
+        """Parse the output of 'ip addr show' and returns a dict:
+        {'iface': (ip_addr_v4, ip_addr_v6)} """
+        iface = ip_addr_v4 = ip_addr_v6 = None
+        d = {}
+        for q in s[1:]:
+            if q and not q.startswith('  '):   # new interface definition
+                if iface:
+                    d[iface] = (ip_addr_v4, ip_addr_v6) # save previous iface, if existing
+                iface = q.split()[1][:-1]  # second field, without trailing column
+                ip_addr_v4 = ip_addr_v6 = None
+            elif q.startswith('    inet '):
+                ip_addr_v4 = q.split()[1]
+            elif q.startswith('    inet6 '):
+                ip_addr_v6 = q.split()[1]
+        if iface:
+            d[iface] = (ip_addr_v4, ip_addr_v6)
+        return d
+
+
+
+    def deliver_confs(self, newconfs_d):
+        """Connects to the firewall, deliver the configuration.
+            hosts_d = { host: [session, ip_addr, iptables-save, interfaces], ... }
+            newconfs_d =  {hostname: {iface: [rules, ] }, ... }
+        """
+        assert isinstance(newconfs_d, dict), "Dict expected"
+        self._connect()
+
+        for hostname, p in self._pool.iteritems():
+            p.sendline('cat > /tmp/newiptables << EOF')
+            p.sendline('# Created by Firelet for host %s' % hostname)
+            p.sendline('*filter')
+            for iface, rules in newconfs_d[hostname].iteritems():
+                [ p.sendline(str(rule)) for rule in rules ]
+            p.sendline('COMMIT')
+            p.sendline('EOF')
+            p.prompt()
+            ret = p.before
+            log.debug("Deployed ruleset file to %s, got %s" % (hostname, ret)  )
+        return
+
+
+    def apply_remote_confs(self, keep_sessions=False):
+        """Loads the deployed ruleset on the firewalls"""
+        self._connect()
+
+        for hostname, p in self._pool.iteritems():
+            ret = self._interact(p,'/sbin/iptables-restore < /tmp/newiptables')
+            log.debug("Deployed ruleset file to %s, got %s" % (hostname, ret)  )
+
+        if not keep_sessions: self._disconnect()
+        return
+
+    def _disconnect(self, *a):
+        pass
+
+
+
+class NonThreadedSSHConnector(object):
     """Manage a pool of pxssh connections to the firewalls. Get the running
     configuation and deploy new configurations.
     """
@@ -197,7 +359,7 @@ class SSHConnector(object):
 
 
 
-class MockSSHConnector(SSHConnector):
+class MockSSHConnector(NonThreadedSSHConnector):
     """Used in Demo mode and during unit testing to prevent network interactions.
     Only some methods from SSHConnector are redefined.
     """
@@ -262,7 +424,10 @@ class MockSSHConnector(SSHConnector):
         if not keep_sessions: self._disconnect()
         return
 
+class MockSSHConnector(SSHConnector):
+    """Used in Demo mode and during unit testing to prevent network interactions.
+    Only some methods from SSHConnector are redefined.
+    """
 
-
-
+    pass
 

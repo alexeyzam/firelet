@@ -19,7 +19,7 @@ import shutil
 
 from firelet import mailer
 from firelet.flcore import *
-from firelet.flssh import MockSSHConnector
+from firelet.fltssh import MockSSHConnector
 from firelet.flmap import draw_svg_map
 from firelet.flutils import flag, Bunch
 from nose.tools import assert_raises, with_setup
@@ -200,10 +200,14 @@ def test_gitfireset_long():
 @with_setup(setup_dir, teardown_dir)
 def test_gitfireset_check_ifaces():
     fs = GitFireSet(repodir=repodir)
-    d = {'Bilbo': {'filter': [], 'ip_a_s': {'eth1': ('10.66.2.1', None), 'eth0': ('10.66.1.2', None)}},
-            'Fangorn': {'filter': [], 'ip_a_s': {'eth0': ('10.66.2.2', None)}},
-            'Gandalf': {'filter': [], 'ip_a_s': {'eth1': ('10.66.1.1', None), 'eth0': ('172.16.2.223', None)}},
-            'Smeagol': {'filter': [], 'ip_a_s': {'eth0': ('10.66.1.3', None)}} }
+    d = {'Bilbo': {'filter': [], 'ip_a_s': {'eth1': ('10.66.2.1/24',
+                    None), 'eth0': ('10.66.1.2/24', None)}},
+            'Fangorn': {'filter': [], 'ip_a_s': {'eth0': ('10.66.2.2/24',
+                    None)}},
+            'Gandalf': {'filter': [], 'ip_a_s': {'eth1': ('10.66.1.1/24',
+                    None),'eth0': ('172.16.2.223/24', None)}},
+            'Smeagol': {'filter': [], 'ip_a_s': {'eth0': ('10.66.1.3/24',
+                    None)}} }
     fs._remote_confs = {}
     for n, v in d.iteritems():
         fs._remote_confs[n] = Bunch(filter=v['filter'], ip_a_s=v['ip_a_s'])
@@ -966,3 +970,6 @@ def test_flag_raise():
         assert_raises(Exception, flag, x)
 
 
+if __name__ == '__main__':
+    import nose
+    nose.run()
