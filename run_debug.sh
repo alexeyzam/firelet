@@ -1,11 +1,11 @@
 #!/bin/bash
 
-sudo rm /var/lib/firelet -rf
-sudo mkdir -p /var/lib/firelet
-sudo chmod a+rw /var/lib/firelet
+sudo rm repodir/debug -rf
+sudo mkdir -p repodir/debug
+sudo chmod a+rw repodir/debug
 while true; do
- /bin/cp test/*.csv /var/lib/firelet/
- /bin/cp test/*.json /var/lib/firelet/
- ./firelet/daemon.py -D 
+ /bin/cp test/*.csv repodir/debug/
+ /bin/cp test/*.json repodir/debug/
+ ./firelet/daemon.py -D
  sleep 1
 done

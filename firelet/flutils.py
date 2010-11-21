@@ -6,6 +6,8 @@ def cli_args(args=None):
     parser = OptionParser()
     parser.add_option("-c", "--conffile", dest="conffile",
         default='firelet.ini', help="configuration file", metavar="FILE")
+    parser.add_option("-r", "--repodir", dest="repodir",
+        help="configuration repository dir")
     parser.add_option("-D", "--debug",
         action="store_true", dest="debug", default=False,
         help="run in debug mode and print messages to stdout")

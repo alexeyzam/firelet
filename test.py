@@ -14,15 +14,17 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from firelet import mailer
-
-from firelet.flcore import *
+from os import listdir
 import shutil
+
+from firelet import mailer
+from firelet.flcore import *
 from firelet.flssh import MockSSHConnector
 from firelet.flmap import draw_svg_map
 from firelet.flutils import flag, Bunch
 from nose.tools import assert_raises, with_setup
 from pprint import pformat
+from tempfile import mkdtemp
 
 from firelet import cli
 from firelet.cli import main as cli_main
@@ -34,14 +36,22 @@ log = logging.getLogger()
 #TODO: parallel SSH
 #TODO: SSH check and deployment
 
-def setup_dir():
-    shutil.rmtree('/tmp/firelet_test', True)
-    shutil.copytree('test/', '/tmp/firelet_test')
+repodir = None
 
+def setup_dir():
+    global repodir
+    if repodir:
+        teardown_dir()
+    repodir = mkdtemp() + '/test'
+    shutil.copytree('test', repodir)
+    li = listdir(repodir)
+    assert len(li) > 5
 
 def teardown_dir():
-    shutil.rmtree('/tmp/firelet_test', True)
-
+    global repodir
+    if repodir:
+        shutil.rmtree(repodir, True)
+        repodir = None
 
 
 # #  Testing flssh module without network interaction # #
@@ -81,7 +91,7 @@ def teardown_dir():
 
 #@with_setup(setup_dummy_flssh, teardown_dir)
 #def test_get_confs3():
-#    fs = DumbFireSet(repodir='/tmp/firelet_test')
+#    fs = DumbFireSet(repodir=repodir)
 #    fs._get_confs()
 #    assert fs._remote_confs == {'Bilbo': [None, '10.66.2.1', {'filter': '-A INPUT -s 10.0.0.0/8 -p tcp -m tcp --dport 80 -j ACCEPT\n-A FORWARD -s 1.2.3.4/32 -d 5.6.7.8/32 -p tcp -m multiport --dports 22,80,443 -j ACCEPT\n-A OUTPUT -d 10.10.10.10/32 -p udp -m udp --dport 123 -j ACCEPT', 'nat': '-A POSTROUTING -o eth3 -j MASQUERADE'}, {'lo': ('127.0.0.1/8', '::1/128'), 'eth1': ('10.66.2.1/24', 'fe80::3939:3939:3939:3939/64'), 'eth0': ('10.66.1.2/24', 'fe80::3939:3939:3939:3939/64')}], 'Fangorn': [None, '10.66.2.2', {'filter': '-A INPUT -s 10.0.0.0/8 -p tcp -m tcp --dport 80 -j ACCEPT\n-A FORWARD -s 1.2.3.4/32 -d 5.6.7.8/32 -p tcp -m multiport --dports 22,80,443 -j ACCEPT\n-A OUTPUT -d 10.10.10.10/32 -p udp -m udp --dport 123 -j ACCEPT', 'nat': '-A POSTROUTING -o eth3 -j MASQUERADE'}, {'lo': ('127.0.0.1/8', '::1/128'), 'eth0': ('10.66.2.2/24', 'fe80::3939:3939:3939:3939/64')}], 'Gandalf': [None, '10.66.1.1', {'filter': '-A INPUT -s 10.0.0.0/8 -p tcp -m tcp --dport 80 -j ACCEPT\n-A FORWARD -s 1.2.3.4/32 -d 5.6.7.8/32 -p tcp -m multiport --dports 22,80,443 -j ACCEPT\n-A OUTPUT -d 10.10.10.10/32 -p udp -m udp --dport 123 -j ACCEPT', 'nat': '-A POSTROUTING -o eth3 -j MASQUERADE'}, {'lo': ('127.0.0.1/8', '::1/128'), 'eth1': ('10.66.1.1/24', 'fe80::3939:3939:3939:3939/64'), 'eth0': ('172.16.2.223/24', 'fe80::3939:3939:3939:3939/64')}], 'Smeagol': [None, '10.66.1.3', {'filter': '-A INPUT -s 10.0.0.0/8 -p tcp -m tcp --dport 80 -j ACCEPT\n-A FORWARD -s 1.2.3.4/32 -d 5.6.7.8/32 -p tcp -m multiport --dports 22,80,443 -j ACCEPT\n-A OUTPUT -d 10.10.10.10/32 -p udp -m udp --dport 123 -j ACCEPT', 'nat': '-A POSTROUTING -o eth3 -j MASQUERADE'}, {'lo': ('127.0.0.1/8', '::1/128'), 'eth0': ('10.66.1.3/24', 'fe80::3939:3939:3939:3939/64')}]}
 
@@ -89,7 +99,7 @@ def teardown_dir():
 
 #@with_setup(setup_dummy_flssh, teardown_dir)
 #def test_get_confs4():
-#    fs = DumbFireSet(repodir='/tmp/firelet_test')
+#    fs = DumbFireSet(repodir=repodir)
 #    fs._get_confs()
 #    fs._check_ifaces()
 #    rd = fs.compile_dict(hosts=fs.hosts)
@@ -108,7 +118,7 @@ def test_clean():
 
 @with_setup(setup_dir, teardown_dir)
 def test_user_management():
-    u = Users(d='/tmp/firelet_test')
+    u = Users(d=repodir)
     u.create('Totoro', 'admin', 'rawr', 'totoro@nowhere.forest')
     assert_raises(Exception,  u.create, 'Totoro', '', '', '')
     u.validate('Totoro', 'rawr')
@@ -127,24 +137,24 @@ def test_user_management():
 
 @with_setup(setup_dir, teardown_dir)
 def test_load_save_hosts():
-    lines = open('/tmp/firelet_test/hosts.csv', 'r').readlines()
+    lines = open(repodir + '/hosts.csv', 'r').readlines()
     content = [x.strip() for x in lines]
     content = filter(None, content)
-    h = Hosts(d='/tmp/firelet_test')
+    h = Hosts(d=repodir)
     h.save()
-    lines = open('/tmp/firelet_test/hosts.csv', 'r').readlines()
+    lines = open(repodir + '/hosts.csv', 'r').readlines()
     content2 = [x.strip() for x in lines]
     content2 = filter(None, content2)
-    h2 = Hosts(d='/tmp/firelet_test')
+    h2 = Hosts(d=repodir)
     assert content == content2, "load/save hosts loop failed:\n\n%s\n\n%s\n\n" \
         % (repr(content), repr(content2))
     assert repr(h) == repr(h2), "load/save hosts loop failed"
 
 @with_setup(setup_dir, teardown_dir)
 def test_load_save_csv():
-    h = loadcsv('rules', d='/tmp/firelet_test')
-    savecsv('rules', h, d='/tmp/firelet_test')
-    h2 = loadcsv('rules', d='/tmp/firelet_test')
+    h = loadcsv('rules', d=repodir)
+    savecsv('rules', h, d=repodir)
+    h2 = loadcsv('rules', d=repodir)
     assert h == h2, "load/save hosts loop failed"
 
 
@@ -152,7 +162,7 @@ def test_load_save_csv():
 
 @with_setup(setup_dir, teardown_dir)
 def test_gitfireset_simple():
-    fs = GitFireSet(repodir='/tmp/firelet_test')
+    fs = GitFireSet(repodir=repodir)
     assert fs.save_needed() == False
     fs.save('test')
     assert fs.save_needed() == False
@@ -162,7 +172,7 @@ def test_gitfireset_simple():
 
 @with_setup(setup_dir, teardown_dir)
 def test_gitfireset_long():
-    fs = GitFireSet(repodir='/tmp/firelet_test')
+    fs = GitFireSet(repodir=repodir)
     for t in ('rules', 'hosts', 'hostgroups', 'services', 'networks'):
         fs.delete(t, 1)
 #        assert fs.save_needed() == True, "save_needed non set when deleting item 1 from %s" % t
@@ -189,7 +199,7 @@ def test_gitfireset_long():
 
 @with_setup(setup_dir, teardown_dir)
 def test_gitfireset_check_ifaces():
-    fs = GitFireSet(repodir='/tmp/firelet_test')
+    fs = GitFireSet(repodir=repodir)
     d = {'Bilbo': {'filter': [], 'ip_a_s': {'eth1': ('10.66.2.1', None), 'eth0': ('10.66.1.2', None)}},
             'Fangorn': {'filter': [], 'ip_a_s': {'eth0': ('10.66.2.2', None)}},
             'Gandalf': {'filter': [], 'ip_a_s': {'eth1': ('10.66.1.1', None), 'eth0': ('172.16.2.223', None)}},
@@ -202,7 +212,7 @@ def test_gitfireset_check_ifaces():
 
 @with_setup(setup_dir, teardown_dir)
 def test_gitfireset_sibling_names():
-    fs = GitFireSet(repodir='/tmp/firelet_test')
+    fs = GitFireSet(repodir=repodir)
     names = ['AllSystems', 'Bilbo:eth0', 'Bilbo:eth1', 'Clients', 'Fangorn:eth0', 'Gandalf:eth0', \
     'Gandalf:eth1', 'SSHnodes', 'Servers', 'Smeagol:eth0', 'WebServers']
     assert fs.list_sibling_names() == names, "list_sibling_names generating incorrect output"
@@ -210,7 +220,7 @@ def test_gitfireset_sibling_names():
 
 #@with_setup(setup_dir, teardown_dir)
 #def test_dumbfireset():
-#    fs = DumbFireSet(repodir='/tmp/firelet_test')
+#    fs = DumbFireSet(repodir=repodir)
 #    assert fs.save_needed() == False
 #    fs.save('save')
 #    assert fs.save_needed() == False
@@ -246,7 +256,7 @@ def test_gitfireset_sibling_names():
 @with_setup(setup_dir, teardown_dir)
 def test_MockSSHConnector_get_confs():
     sshconn = MockSSHConnector(targets={'localhost':['127.0.0.1']})
-    sshconn.repodir = '/tmp/firelet_test'
+    sshconn.repodir = repodir
     d  = sshconn.get_confs( )
     assert 'iptables' in d['localhost'] and 'ip_a_s' in d['localhost']
     assert d['localhost'].iptables != None
@@ -260,7 +270,7 @@ def test_MockSSHConnector_get_confs():
 
 @with_setup(setup_dir, teardown_dir)
 def test_DemoGitFireSet_get_confs():
-    fs = DemoGitFireSet(repodir='/tmp/firelet_test')
+    fs = DemoGitFireSet(repodir=repodir)
     fs._get_confs(keep_sessions=False)
     for hostname, v in fs._remote_confs.iteritems():
         assert isinstance(v, Bunch)
@@ -274,7 +284,7 @@ def test_DemoGitFireSet_get_confs():
 def test_DemoGitFireSet_compile_rules_basic():
     """Compile rules and perform basic testing"""
     return #FIXME
-    fs = DemoGitFireSet(repodir='/tmp/firelet_test')
+    fs = DemoGitFireSet(repodir=repodir)
     rset = fs.compile_rules()
     for hn, d in rset.iteritems():
         for chain,  rules in d.iteritems():
@@ -284,7 +294,7 @@ def test_DemoGitFireSet_compile_rules_basic():
 @with_setup(setup_dir, teardown_dir)
 def test_DemoGitFireSet_compile_rules_full():
     return #FIXME
-    fs = GitFireSet(repodir='/tmp/firelet_test')
+    fs = GitFireSet(repodir=repodir)
     rd = fs.compile_rules()
 
     ok = {'Bilbo': {'FORWARD': ['-m state --state RELATED,ESTABLISHED -j ACCEPT',
@@ -391,7 +401,7 @@ def test_DemoGitFireSet_compile_rules_full():
 def test_DemoGitFireSet_build_ipt_restore():
     """Run diff between compiled rules and empty remote confs"""
     return #FIXME
-    fs = DemoGitFireSet(repodir='/tmp/firelet_test')
+    fs = DemoGitFireSet(repodir=repodir)
     rset = fs.compile_rules()
     m = map(fs._build_ipt_restore, rset.iteritems())
     m = dict(m)
@@ -508,7 +518,7 @@ def test_DemoGitFireSet_build_ipt_restore():
 #@with_setup(setup_dir, teardown_dir)
 #def test_DemoGitFireSet_diff_table_simple():
 #    """Run diff between compiled rules and empty remote confs"""
-#    fs = DemoGitFireSet(repodir='/tmp/firelet_test')
+#    fs = DemoGitFireSet(repodir=repodir)
 #    new_confs = fs.compile_rules()
 #    remote_confs = {}
 #    dt = fs._diff(remote_confs, new_confs)
@@ -518,7 +528,7 @@ def test_DemoGitFireSet_build_ipt_restore():
 
 @with_setup(setup_dir, teardown_dir)
 def test_DemoGitFireSet_extract_iptables_rules():
-    fs = DemoGitFireSet(repodir='/tmp/firelet_test')
+    fs = DemoGitFireSet(repodir=repodir)
     fs._get_confs(keep_sessions=False)
     rules_d = fs._extract_ipt_filter_rules(fs._remote_confs)
     for hn, rules in rules_d.iteritems():
@@ -530,20 +540,20 @@ def test_DemoGitFireSet_extract_iptables_rules():
 @with_setup(setup_dir, teardown_dir)
 def test_DemoGitFireSet_diff_table_generation_1():
     """Test diff with no changes"""
-    fs = DemoGitFireSet(repodir='/tmp/firelet_test')
+    fs = DemoGitFireSet(repodir=repodir)
     diff_dict = fs._diff({}, {})
     assert diff_dict == {}
 
 @with_setup(setup_dir, teardown_dir)
 def test_DemoGitFireSet_diff_table_generation_2():
     """Test diff with no changes"""
-    fs = DemoGitFireSet(repodir='/tmp/firelet_test')
+    fs = DemoGitFireSet(repodir=repodir)
     diff_dict = fs._diff({'Bilbo':['']}, {'Bilbo':['']})
     assert diff_dict == {}
 
 @with_setup(setup_dir, teardown_dir)
 def test_DemoGitFireSet_diff_table_generation_3():
-    fs = DemoGitFireSet(repodir='/tmp/firelet_test')
+    fs = DemoGitFireSet(repodir=repodir)
     diff_dict = fs._diff({'Bilbo':['old item', 'static item', 'old item2']},
                                    {'Bilbo':['static item', 'new item', 'new item2']})
     assert diff_dict == {'Bilbo': (['new item', 'new item2'], ['old item', 'old item2'])}
@@ -552,7 +562,7 @@ def test_DemoGitFireSet_diff_table_generation_3():
 def test_DemoGitFireSet_diff_table_generation_all_fw_removed():
     """Test diff where all the firewalls has been removed.
     An empty diff should be generated."""
-    fs = DemoGitFireSet(repodir='/tmp/firelet_test')
+    fs = DemoGitFireSet(repodir=repodir)
     fs._get_confs(keep_sessions=False)
     existing_rules = fs._extract_ipt_filter_rules(fs._remote_confs)
     diff_dict = fs._diff(existing_rules,   {})
@@ -562,7 +572,7 @@ def test_DemoGitFireSet_diff_table_generation_all_fw_removed():
 def test_DemoGitFireSet_diff_table_generation_all_fw_added():
     """Test diff right after all the firewalls has been added.
     An empty diff should be generated."""
-    fs = DemoGitFireSet(repodir='/tmp/firelet_test')
+    fs = DemoGitFireSet(repodir=repodir)
     fs.save('test') #FIXME: shouldn't be required
     comp_rules = fs.compile_rules()
     new_rules = {}
@@ -578,7 +588,7 @@ def test_DemoGitFireSet_diff_table_generation_all_fw_added():
 #
 #@with_setup(setup_dir, teardown_dir)
 #def test_DemoGitFireSet_rebuild():
-#    fs = DemoGitFireSet(repodir='/tmp/firelet_test')
+#    fs = DemoGitFireSet(repodir=repodir)
 #    comp_rules = fs.compile_rules()
 #    for hn, b in comp_rules.iteritems():
 #        li = fs._build_ipt_restore((hn, b))[1]
@@ -589,7 +599,7 @@ def test_DemoGitFireSet_diff_table_generation_all_fw_added():
 def test_DemoGitFireSet_check():
     """Run diff between complied rules and remote confs.
     Given the test files, the check should be ok and require no deployment"""
-    fs = DemoGitFireSet(repodir='/tmp/firelet_test')
+    fs = DemoGitFireSet(repodir=repodir)
     fs.save('test') #FIXME: shouldn't be required
     diff_dict = fs.check()
     assert diff_dict == {},  repr(diff_dict)[:300]
@@ -598,11 +608,11 @@ def test_DemoGitFireSet_check():
 def test_DemoGitFireSet_deploy():
     """Run diff between complied rules and remote confs.
     Given the test files, the check should be ok and require no deployment"""
-    fs = DemoGitFireSet(repodir='/tmp/firelet_test')
+    fs = DemoGitFireSet(repodir=repodir)
     fs.deploy()
     for h in fs.hosts:
-        ok = open('/tmp/firelet_test/iptables-save-%s' % h.hostname).readlines()
-        r = open('/tmp/firelet_test/iptables-save-%s-x' % h.hostname).readlines()
+        ok = open(repodir + '/iptables-save-%s' % h.hostname).readlines()
+        r = open(repodir + '/iptables-save-%s-x' % h.hostname).readlines()
 #        assert len(ok) == len(r) + 4,  repr(ok) + repr(r)
     # FIXME: the test is failing, probably the -x file needs to be kept in a different dir
 
@@ -614,11 +624,11 @@ def test_DemoGitFireSet_deploy():
 
 #@with_setup(setup_dir, teardown_dir)
 #def test_DemoGitFireSet_deploy():
-#    fs = DemoGitFireSet(repodir='/tmp/firelet_test')
+#    fs = DemoGitFireSet(repodir=repodir)
 #    dt = fs.deploy()
 #    for h in fs.hosts:
-#        r = map(str.rstrip, open('/tmp/firelet_test/iptables-save-%s' % h.hostname))
-#        ok = map(str.rstrip, open('/tmp/firelet_test/iptables-save-%s-correct' % h.hostname))
+#        r = map(str.rstrip, open(repodir + '/iptables-save-%s' % h.hostname))
+#        ok = map(str.rstrip, open(repodir + '/iptables-save-%s-correct' % h.hostname))
 #        for a, b in zip(r, ok):
 #            assert a == b, "%s differs from %s in iptables-save-%s" % (a, b, h.hostname)
 #
@@ -663,13 +673,20 @@ def test_contain_nets():
     assert Network(['', '42.42.42.42', 17]) in Network(['','42.42.42.42', 16])
 
 def test_contain_hosts():
-    assert Host(['h', 'eth0', '1.1.1.1', 24, '1', '1', '1', [] ]) in Network(['h', '1.1.1.0', 28])
-    assert Host(['h', 'eth0', '1.1.1.15',24, '1', '1', '1', [] ]) in Network(['h', '1.1.1.0', 28])
-    assert Host(['h', 'eth0', '1.1.1.16',24, '1', '1', '1', [] ]) not in Network(['h', '1.1.1.0', 28])
-    assert Host(['h', 'eth0', '1.1.1.1',24, '1', '1', '1', [] ]) in Network(['h', '1.1.1.0', 24])
-    assert Host(['h', 'eth0', '1.1.1.1',24, '1', '1', '1', [] ]) in Network(['h', '1.1.1.0', 8])
-    assert Host(['h', 'eth0', '1.1.1.1',24, '1', '1', '1', [] ]) not in Network(['h', '1.1.2.0', 24])
-    assert Host(['h', 'eth0', '1.1.1.1',24, '1', '1', '1', [] ]) not in Network(['h', '10.1.1.0', 8])
+    assert Host(['h', 'eth0', '1.1.1.1', 24, '1', '1', '1', [] ]) \
+        in Network(['h', '1.1.1.0', 28])
+    assert Host(['h', 'eth0', '1.1.1.15',24, '1', '1', '1', [] ]) \
+        in Network(['h', '1.1.1.0', 28])
+    assert Host(['h', 'eth0', '1.1.1.16',24, '1', '1', '1', [] ]) \
+        not in Network(['h', '1.1.1.0', 28])
+    assert Host(['h', 'eth0', '1.1.1.1',24, '1', '1', '1', [] ]) \
+        in Network(['h', '1.1.1.0', 24])
+    assert Host(['h', 'eth0', '1.1.1.1',24, '1', '1', '1', [] ]) \
+        in Network(['h', '1.1.1.0', 8])
+    assert Host(['h', 'eth0', '1.1.1.1',24, '1', '1', '1', [] ]) \
+        not in Network(['h', '1.1.2.0', 24])
+    assert Host(['h', 'eth0', '1.1.1.1',24, '1', '1', '1', [] ]) \
+        not in Network(['h', '10.1.1.0', 8])
 
 def test_compare():
     from netaddr import IPNetwork
@@ -694,7 +711,7 @@ def test_compare():
 
 @with_setup(setup_dir, teardown_dir)
 def test_svg_map():
-    fs = GitFireSet(repodir='/tmp/firelet_test')
+    fs = GitFireSet(repodir=repodir)
     svg = draw_svg_map(fs)
     assert 'DOCTYPE svg PUBLIC' in svg, "No SVG output?"
     assert 'rivendell' in svg, "No rivendell in the map"
@@ -725,8 +742,7 @@ def mock_getpass(s=None):
 def cli_setup():
     cli.say = MockSay()
     cli.getpass = mock_getpass
-    shutil.rmtree('/tmp/firelet_test', True)
-    shutil.copytree('test/', '/tmp/firelet_test')
+    setup_dir()
 
 def cli_run(*args):
     """Wrap CLI invocation to prevent os.exit() from breaking unit testing"""
@@ -737,7 +753,7 @@ def cli_run(*args):
 
 @with_setup(cli_setup)
 def test_cli_rule_list():
-    out = cli_run('-c test/firelet_test.ini', 'rule', 'list')
+    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, 'rule', 'list')
     assert len(cli.say.li) > 5, cli.say.hist()
 
 @with_setup(cli_setup)
@@ -755,40 +771,40 @@ def test_cli_list():
 @with_setup(cli_setup)
 def test_cli_versioning():
     """Versioning functional testing"""
-    out = cli_run('-c test/firelet_test.ini', 'save_needed', '-q')
+    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir,  '-r '+repodir, 'save_needed', '-q')
     assert out == ['No'], "No save needed here" + cli.say.hist()
-    out = cli_run('-c test/firelet_test.ini', 'version', 'list', '-q') # no versions
+    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, 'version', 'list', '-q') # no versions
     assert out == [], "No versions expected" + cli.say.hist()
-    out = cli_run('-c test/firelet_test.ini', 'rule', 'disable', '2', '-q')
-    out = cli_run('-c test/firelet_test.ini', 'save', 'test1', '-q') # save 1
-    out = cli_run('-c test/firelet_test.ini', 'version', 'list', '-q')
+    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, 'rule', 'disable', '2', '-q')
+    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, 'save', 'test1', '-q') # save 1
+    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, 'version', 'list', '-q')
     assert cli.say.li[:3] == ['No', 'Rule 2 disabled.',
     'Configuration saved. Message: "test1"'], "Incorrect behavior"
     assert out[-1].endswith('| test1 |'), cli.say.hist()
-    out = cli_run('-c test/firelet_test.ini', 'rule', 'enable', '2', '-q')
-    out = cli_run('-c test/firelet_test.ini', 'save', 'test2', '-q') # save 2
-    out = cli_run('-c test/firelet_test.ini', 'version', 'list', '-q')
+    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, 'rule', 'enable', '2', '-q')
+    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, 'save', 'test2', '-q') # save 2
+    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, 'version', 'list', '-q')
     assert out[-2].endswith('| test2 |'), cli.say.hist()
-    out = cli_run('-c test/firelet_test.ini', 'rule', 'disable', '2', '-q')
-    out = cli_run('-c test/firelet_test.ini', 'save', 'test3', '-q') # save 1
-    out = cli_run('-c test/firelet_test.ini', 'version', 'list', '-q')
+    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, 'rule', 'disable', '2', '-q')
+    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, 'save', 'test3', '-q') # save 1
+    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, 'version', 'list', '-q')
     assert out[-3].endswith('| test3 |'), cli.say.hist()
     # rollback by number
-    out = cli_run('-c test/firelet_test.ini', 'version', 'rollback', '1', '-q')
-    out = cli_run('-c test/firelet_test.ini', 'version', 'list', '-q')
+    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, 'version', 'rollback', '1', '-q')
+    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, 'version', 'list', '-q')
     assert out[0].endswith('| test2 |') and \
         out[1].endswith('| test1 |'), "Incorrect rollback" + cli.say.hist()
     # rollback by ID
     commit_id = out[1].split()[0]
-    out = cli_run('-c test/firelet_test.ini', 'version', 'rollback', commit_id, '-q')
-    out = cli_run('-c test/firelet_test.ini', 'version', 'list', '-q')
+    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, 'version', 'rollback', commit_id, '-q')
+    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, 'version', 'list', '-q')
     assert out[0].endswith('| test1 |'),  "Incorrect rollback" + cli.say.hist()
     # reset
-    out = cli_run('-c test/firelet_test.ini', 'rule', 'enable', '2', '-q')
-    out = cli_run('-c test/firelet_test.ini', 'save_needed', '-q')
+    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, 'rule', 'enable', '2', '-q')
+    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, 'save_needed', '-q')
     assert out[-1] == 'Yes', "Save needed here" + cli.say.hist()
-    out = cli_run('-c test/firelet_test.ini', 'reset', '-q')
-    out = cli_run('-c test/firelet_test.ini', 'save_needed', '-q')
+    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, 'reset', '-q')
+    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, 'save_needed', '-q')
     assert out[-1] == 'No', "No save needed here" + cli.say.hist()
 
 
@@ -796,23 +812,23 @@ def test_cli_versioning():
 
 @with_setup(cli_setup)
 def test_cli_user_management():
-    out1 = cli_run('-c test/firelet_test.ini', '-q', 'user', 'list')
+    out1 = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, '-q', 'user', 'list')
     assert out1 == [
         u'Rob            readonly        None',
         u'Eddy           editor          None',
         u'Ada            admin           None'], "Incorrect user list" + cli.say.hist()
-    out = cli_run('-c test/firelet_test.ini', '-q', 'user', 'add', 'Totoro',
+    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, '-q', 'user', 'add', 'Totoro',
         'admin', 'totoro@nowhere.forest')
-    out2 = cli_run('-c test/firelet_test.ini', '-q', 'user', 'list')
+    out2 = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, '-q', 'user', 'list')
     assert out2 == [
         u'Rob            readonly        None',
         u'Ada            admin           None',
         u'Eddy           editor          None',
         u'Totoro         admin           totoro@nowhere.forest'], \
         "Incorrect user list" + cli.say.hist()
-    cli_run('-c test/firelet_test.ini', '-q', 'user', 'validatepwd', 'Totoro')
-    cli_run('-c test/firelet_test.ini', '-q', 'user', 'del', 'Totoro')
-    out3 = cli_run('-c test/firelet_test.ini', '-q', 'user', 'list')
+    cli_run('-c test/firelet_test.ini',  '-r ' + repodir, '-q', 'user', 'validatepwd', 'Totoro')
+    cli_run('-c test/firelet_test.ini',  '-r ' + repodir, '-q', 'user', 'del', 'Totoro')
+    out3 = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, '-q', 'user', 'list')
     assert out3 == out1, "User not deleted" + cli.say.hist()
 
     #TODO: add user editing to the CLI and test it ?
@@ -821,7 +837,7 @@ def test_cli_user_management():
 
 @with_setup(cli_setup)
 def test_cli_rule_list():
-    out = cli_run('-c test/firelet_test.ini', '-q', 'rule', 'list')
+    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, '-q', 'rule', 'list')
     for line in out[1:]:
         li = line.split('|')
         li = map(str.strip, li)
@@ -830,21 +846,21 @@ def test_cli_rule_list():
 
 @with_setup(cli_setup)
 def test_cli_rule_enable_disable():
-    out1 = cli_run('-c test/firelet_test.ini', '-q', 'rule', 'list')
+    out1 = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, '-q', 'rule', 'list')
     assert out1[2].split('|')[5].strip() == '1',  "First rule should be enabled"
-    cli_run('-c test/firelet_test.ini', '-q', 'rule', 'disable', '1')
-    out = cli_run('-c test/firelet_test.ini', '-q', 'rule', 'list')
+    cli_run('-c test/firelet_test.ini',  '-r ' + repodir, '-q', 'rule', 'disable', '1')
+    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, '-q', 'rule', 'list')
     assert out[2].split('|')[5].strip() == '0',  "First rule should be disabled"
-    cli_run('-c test/firelet_test.ini', '-q', 'rule', 'enable', '1')
-    out = cli_run('-c test/firelet_test.ini', '-q', 'rule', 'list')
+    cli_run('-c test/firelet_test.ini',  '-r ' + repodir, '-q', 'rule', 'enable', '1')
+    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, '-q', 'rule', 'list')
     assert out == out1, "Rule enable/disable not idempotent"
 
 @with_setup(cli_setup)
 def test_cli_multiple_list_and_deletion():
     for name in ('rule', 'host', 'hostgroup', 'network', 'service'):
-        before = cli_run('-c test/firelet_test.ini', '-q', name, 'list')
-        cli_run('-c test/firelet_test.ini', '-q', name, 'del', '2')
-        after = cli_run('-c test/firelet_test.ini', '-q', name, 'list')
+        before = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, '-q', name, 'list')
+        cli_run('-c test/firelet_test.ini',  '-r ' + repodir, '-q', name, 'del', '2')
+        after = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, '-q', name, 'list')
         assert len(after) == len(before) - 1, "%s not deleted %s" % (name, cli.say.hist())
 
 # #  Test JSON lib  # #
@@ -875,12 +891,11 @@ def test_json5():
     d = {1:1, 2:2, 3:3}
     assert d != json_loop(d)
 
+@with_setup(setup_dir)
 def test_json_files():
-    shutil.rmtree('/tmp/firelet_test', True)
-    shutil.copytree('test/', '/tmp/firelet_test')
     d = {'d1':{'d2':{'d3':{'d4':{'d5':{'this is getting':'boring'}}}}}}
-    savejson('jfile', d, d='/tmp/firelet_test')
-    nd = loadjson('jfile', d='/tmp/firelet_test')
+    savejson('jfile', d, d=repodir)
+    nd = loadjson('jfile', d=repodir)
     assert d == nd
 
 # #  Test cartesian product  # #

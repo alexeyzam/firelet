@@ -139,7 +139,7 @@ def prettyprint(li):
 def say(s):
     print s
 
-def open_fs(fn):
+def open_fs(fn, repodir=None):
     """Read configuration and instance the required FireSet"""
     # read configuration,
     try:
@@ -148,7 +148,12 @@ def open_fs(fn):
         log.error("Exception %s while reading configuration file '%s'" % (e, fn))
         exit(1)
 
-    fs = GitFireSet(repodir=conf.data_dir)
+    if repodir:
+        repodir = repodir.strip()
+    else:
+        repodir = conf.data_dir
+
+    fs = GitFireSet(repodir=repodir)
     return (conf.data_dir, fs)
 
 
@@ -170,7 +175,7 @@ def main(mockargs=None):
     if not a1:
         help()
 
-    repodir, fs = open_fs(opts.conffile.strip())
+    repodir, fs = open_fs(opts.conffile.strip(), opts.repodir)
 
     if a1 == 'save':
         if a3 or not a2:
