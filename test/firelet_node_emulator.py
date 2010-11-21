@@ -8,7 +8,7 @@ logging.basicConfig(filename='firelet_ne.log',
     datefmt='%Y%m%d %H:%M:%S',
     level=logging.DEBUG)
 
-zz = lambda: sleep(.1)
+zz = lambda: sleep(.01)
 
 def ans(fn):
     """Answer with the contents of a file"""

@@ -38,7 +38,7 @@ def test_deployment():
 @with_setup(setup_dir, teardown_dir)
 def test_get_confs_remote_real():
     return
-    fs = DumbFireSet(repodir='test/firewalltmp')
+    fs = GitFireSet(repodir='test/firewalltmp')
     fs._get_confs()
     assert fs._remote_confs == {
         'Bilbo': [None, '10.66.2.1', {'filter': '', 'nat': '-A POSTROUTING -o eth0 -j MASQUERADE'}, {'lo': ('127.0.0.1/8', '::1/128'), 'add': (None, None),
@@ -60,7 +60,7 @@ def test_get_confs_remote_real():
 @with_setup(setup_dir, teardown_dir)
 def test_deployment():
     """Test host connectivity is required"""
-    fs = DumbFireSet(repodir='test/firewalltmp')
+    fs = GitFireSet(repodir='test/firewalltmp')
     fs.deploy()
 
 
