@@ -8,13 +8,14 @@ logging.basicConfig(filename='firelet_ne.log',
     datefmt='%Y%m%d %H:%M:%S',
     level=logging.DEBUG)
 
-zz = lambda: sleep(.01)
+zz = lambda: sleep(.001)
 
 def ans(fn):
     """Answer with the contents of a file"""
     for l in open(fn):
         print l.strip()
         zz()
+    logging.debug("< %s" % fn)
 
 def save_iptables(li, my_name):
     """"""
@@ -61,7 +62,7 @@ def main():
                 print "firelet:%s~$ " % my_name
             cmd = raw_input()
             history.append(cmd)
-            logging.info("%s %s" % (my_name, cmd))
+            logging.info("> %s %s" % (my_name, cmd))
 
         if cmd == 'exit':
             exit()
@@ -77,9 +78,10 @@ def main():
             catting_new_iptables = False
             save_iptables(new_iptables, my_name)
             new_iptables = []
-            logging.info("iptables deployed to %s" % my_name)
+            logging.info("iptables conf sent to %s" % my_name)
         elif catting_new_iptables:
             new_iptables.append(cmd)
+        elif cmd == '/sbin/iptables-restore < /etc/firelet/iptables'
         elif cmd == 'history':
             for c in history:
                 print c

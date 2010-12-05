@@ -38,15 +38,24 @@ def teardown_dir():
         shutil.rmtree(repodir, True)
         repodir = None
 
+addrmap = {
+    "10.66.1.2": "Bilbo",
+    "10.66.2.1": "Bilbo",
+    "10.66.1.3": "Smeagol",
+    "10.66.2.2": "Fangorn",
+    "172.16.2.223": "Gandalf",
+    "10.66.1.1": "Gandalf",
+    '127.0.0.1': 'localhost'
+}
 
 # #  Testing flssh module  # #
 
-from firelet.fltssh import SSHConnector
+from firelet.flssh import SSHConnector
 
 def test_SSHConnector_get():
     pass
 
-
+#TODO: test get confs
 @with_setup(setup_dir, teardown_dir)
 def test_get_confs():
     return
@@ -62,6 +71,15 @@ def test_get_confs():
         'Smeagol': [None, '10.66.1.3', {'filter': '', 'nat': ''}, {'lo': ('127.0.0.1/8', '::1/128'), 'add': (None, None),
             'eth0': ('10.66.1.3/24', 'fe80::a00:27ff:fe75:2c75/64')}]}
     fs._check_ifaces()
+
+
+@with_setup(setup_dir, teardown_dir)
+def test_get_confs():
+    from firelet.   flssh import SSHConnector
+    d = dict((h, [ip_addr]) for ip_addr, h in addrmap.iteritems())
+    sx = SSHConnector(d)
+    confs = dict((h, {'eth0':['', '']}) for h in d)
+    sx.deliver_confs(confs)
 
 
 #@with_setup(setup_dir, teardown_dir)
