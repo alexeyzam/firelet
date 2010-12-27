@@ -19,7 +19,7 @@
 import logging as log
 from beaker.middleware import SessionMiddleware
 import bottle
-from bottle import abort, route, send_file, run, view, request
+from bottle import abort, route, static_file, run, view, request
 from bottle import debug as bottle_debug
 from collections import defaultdict
 from datetime import datetime
@@ -540,17 +540,20 @@ def rollback():
 # serving static files
 
 @bottle.route('/static/:filename#[a-zA-Z0-9_\.?\/?]+#')
-def static_file(filename):
+def static(filename):
     _require()
     bottle.response.headers['Cache-Control'] = 'max-age=3600, public'
     if filename == '/jquery-ui.js':
-        send_file('/usr/share/javascript/jquery-ui/jquery-ui.js') #TODO: support other distros
+        return static_file('jquery-ui/jquery-ui.js',
+            '/usr/share/javascript/') #TODO: support other distros
     elif filename == 'jquery.min.js':
-        send_file('/usr/share/javascript/jquery/jquery.min.js', root='/')
+        return static_file('jquery/jquery.min.js', '/usr/share/javascript/')
     elif filename == 'jquery-ui.custom.css': #TODO: support version change
-        send_file('/usr/share/javascript/jquery-ui/css/smoothness/jquery-ui-1.7.2.custom.css')
+        return static_file('jquery-ui/css/smoothness/jquery-ui-1.7.2.custom.css',
+            '/usr/share/javascript/')
     else:
-        send_file(filename, root='static')  #TODO: investigate using static_file
+        return static_file(filename, 'static')
+
 
 @bottle.route('/favicon.ico')
 def favicon():
