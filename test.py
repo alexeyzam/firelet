@@ -36,6 +36,18 @@ log = logging.getLogger()
 #TODO: parallel SSH
 #TODO: SSH check and deployment
 
+# Summary of tests:
+#
+# User Management
+# File load/save
+# GitFireSet
+#
+# CLI
+# IP address manipulation
+# cartesian product
+#
+
+
 repodir = None
 
 def setup_dir():
@@ -157,7 +169,6 @@ def test_load_save_csv():
     h2 = loadcsv('rules', d=repodir)
     assert h == h2, "load/save hosts loop failed"
 
-
 # #  FireSet testing # #
 
 @with_setup(setup_dir, teardown_dir)
@@ -168,7 +179,6 @@ def test_gitfireset_simple():
     assert fs.save_needed() == False
     fs.reset()
     assert fs.save_needed() == False
-
 
 @with_setup(setup_dir, teardown_dir)
 def test_gitfireset_long():
@@ -670,7 +680,7 @@ def test_network_update():
     assert Network(['','255.255.255.255',30]).ip_addr == '255.255.255.252'
 
 
-def test_contain_nets():
+def test_contains_nets():
     assert Network(['', '255.255.255.255', 16]) in Network(['', '255.255.255.255', 8])
     assert Network(['', '255.255.255.255', 16]) in Network(['', '255.255.255.255', 16])
     assert Network(['', '255.255.255.255', 8]) not in Network(['', '255.255.255.255', 16])
@@ -935,6 +945,76 @@ def test_product_2_5():
         (3, 'a'), (3, 'b'), (3, 'c'), (3, 'd'), (3, 42), (4, 'a'), (4, 'b'), (4, 'c'), (4, 'd'), (4, 42),
         (5, 'a'), (5, 'b'), (5, 'c'), (5, 'd'), (5, 42), ('O HI', 'a'), ('O HI', 'b'), ('O HI', 'c'),
         ('O HI', 'd'), ('O HI', 42))
+
+
+# #  Bunch objects testing  # #
+
+# Service bunch
+
+def test_bunch_service1():
+    d = dict(name='s1', protocol='NotAProtocol', ports='53')
+    assert_raises(Exception, Bunch, d)
+
+def test_bunch_service1b():
+    d = dict(name='s1', protocol='TCP', ports='53')
+    s = Bunch(**d)
+    assert s.protocol == 'TCP'
+
+def test_bunch_service2():
+    d = dict(name='s1', protocol='TCP', ports='999999')
+    assert_raises(Exception, Bunch, d)
+
+def test_bunch_service3():
+    d = dict(name='s1', protocol='TCP', ports='-1')
+    assert_raises(Exception, Bunch, d)
+
+def test_bunch_service4():
+    d = dict(name='s1', protocol='TCP', ports='10:20:30')
+    assert_raises(Exception, Bunch, d)
+
+def test_bunch_service5():
+    d = dict(name='s1', protocol='TCP', ports='30:20')
+    assert_raises(Exception, Bunch, d)
+
+def test_bunch_service6():
+    d = dict(name='s1', protocol='TCP', ports='blah')
+    assert_raises(Exception, Bunch, d)
+
+def test_bunch_service7():
+    d = dict(name='s1', protocol='TCP', ports='80')
+    s = Bunch(**d)
+    d = dict(name='s1', protocol='TCP', ports='blah')
+    s.update(d) #FIXME: this should raise an Alert
+    assert s.ports == 'bla'    #bad
+#    assert_raises(Exception, s.update, d)
+
+def test_bunch_service():
+    s = Bunch(name='s1', protocol='UDP', ports='53')
+    assert s.name == 's1', 'Incorrect bunch name'
+    assert s.protocol == 'UDP', 'Incorrect bunch proto'
+    assert s.ports == '53', 'Incorrect bunch ports'
+    s.update({'name': 's2', 'protocol':'TCP', 'ports':'80'})
+    assert s.name == 's2', 'Incorrect bunch name'
+    assert s.protocol == 'TCP', 'Incorrect bunch proto'
+    assert s.ports == '80', 'Incorrect bunch ports'
+#    assert_raises(Alert, s.update,
+#        {'name': 's2', 'protocol':'TCP', 'ports':'eighty    '}
+#    )
+
+
+# HostGroup Bunch
+
+def test_bunch_hostgroup1():
+    hg = HostGroup(['Servers'])
+    assert hg.name == 'Servers'
+
+#def test_bunch_hostgroup_flatten():
+#    hg = HostGroup('Servers')
+#    print hg.flat({}, {}, {})
+#    assert False
+
+
+# Basic Bunch class
 
 def test_bunch_repr():
     b = Bunch( c=42, a=3, b='44', _a=0)

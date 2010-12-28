@@ -197,7 +197,8 @@ class HostGroup(Bunch):
             return [i]
 
     def flat(self, host_by_name, net_by_name, hg_by_name):
-        """Flatten the host groups hyerarchy and returns Host or Network instances"""
+        """Flatten the host groups hierarchy and returns Host
+        or Network instances"""
         self._hbn = hg_by_name
         li = self._flatten(self)
         del(self._hbn)
@@ -222,12 +223,15 @@ class HostGroup(Bunch):
 ##        return [n for n in self._flatten(self) if isinstance(n, Host)]
 
 class Service(Bunch):
+    """A network service using one protocol and one, many or no ports"""
     def update(self, d):
-        """Validate, then set/update the internal dictionary""" #TODO: unit testing
+        """Validate, then set/update the internal dictionary"""
         ports = d['ports']
+        print 'here'
         if d['protocol'] in ('TCP', 'UDP') and ports:
             for block in ports.split(','):
                 try:
+                    print 'ha'
                     int_li = [int(i) for i in block.split(':')]
                 except ValueError:
                     raise Alert, "Incorrect syntax in port definition '%s'" % block
@@ -243,8 +247,11 @@ class Service(Bunch):
             except ValueError:
                 raise Alert,  "Invalid ICMP Type '%s'" % ports
             assert icmp_type in icmp_types, "Invalid ICMP Type '%s'" % icmp_type
-        else: # protocols without ports
+        elif d['protocol'] in protocols:
+            # Supported protocol that has no ports
             d['ports'] = ''
+        else:
+            raise Alert, "Unsupported protocol: '%s'" % d['protocol']
         super(Service, self).update(d)
 
 
