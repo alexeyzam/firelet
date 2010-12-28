@@ -985,7 +985,7 @@ def test_bunch_service7():
     s = Bunch(**d)
     d = dict(name='s1', protocol='TCP', ports='blah')
     s.update(d) #FIXME: this should raise an Alert
-    assert s.ports == 'bla'    #bad
+    assert s.ports == 'blah'    # remove after the fix
 #    assert_raises(Exception, s.update, d)
 
 def test_bunch_service():
