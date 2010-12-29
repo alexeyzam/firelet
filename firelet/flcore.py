@@ -209,7 +209,8 @@ class HostGroup(Bunch):
             elif o in net_by_name:
                 return net_by_name[o]
             else:
-                raise Exception,  "%s is not in %s or %s" % (o, repr(host_by_name), repr(net_by_name))
+                raise Exception,  "%s is not in %s or %s" % \
+                    (o, repr(host_by_name), repr(net_by_name))
 
         return map(res, li)
 

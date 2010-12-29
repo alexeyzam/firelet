@@ -53,7 +53,7 @@ from flutils import cli_args
 #       list
 #
 
-def give_help():
+def give_help():    # pragma: no cover
     #TODO
     say("""
     Commands:

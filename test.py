@@ -826,6 +826,7 @@ def test_cli_versioning():
     out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, 'save_needed', '-q')
     assert out[-1] == 'No', "No save needed here" + cli.say.hist()
 
+# TODO: add check, compile and deploy tests
 
 # CLI user management
 
@@ -894,12 +895,14 @@ def test_json1():
 def test_json2():
     d = {'string':'string', 's2':6, 's3':7, 's4':True, 's5':False}
     assert d == json_loop(d)
-    assert json.dumps(d) == '{"s3": 7, "s2": 6, "string": "string", "s5": false, "s4": true}'
+    assert json.dumps(d) == """{"s3": 7, "s2": 6, "string": "string", \
+"s5": false, "s4": true}"""
 
 def test_json3():
     d = {'d1':{'d2':{'d3':{'d4':{'d5':{'this is getting':'boring'}}}}}}
     assert d == json_loop(d)
-    assert json.dumps(d) == '{"d1": {"d2": {"d3": {"d4": {"d5": {"this is getting": "boring"}}}}}}'
+    assert json.dumps(d) == """{"d1": {"d2": {"d3": {"d4": {"d5": \
+{"this is getting": "boring"}}}}}}"""
 
 def test_json4():
     d = [x for x in xrange(42)]
@@ -1002,16 +1005,30 @@ def test_bunch_service():
 #    )
 
 
+
+
 # HostGroup Bunch
 
 def test_bunch_hostgroup1():
     hg = HostGroup(['Servers'])
     assert hg.name == 'Servers'
 
-#def test_bunch_hostgroup_flatten():
-#    hg = HostGroup('Servers')
-#    print hg.flat({}, {}, {})
-#    assert False
+def test_bunch_hostgroup2():
+    hg = HostGroup(['Servers', 'a', 'b'])
+    assert hg.childs == ['a', 'b']
+
+#def test_bunch_hostgroup_flatten1():
+#    hg = HostGroup(['Servers'])
+#    dicts = [{}, {}, {}]
+#    assert_raises(Exception, hg.flat, *dicts)
+
+#def test_bunch_hostgroup_flatten2():
+#    hg = HostGroup(['Servers'])
+#    flat = hg.flat({'Servers':'a'}, {}, {})
+#    print flat
+
+#    dicts = [{}, {}, {}]
+#    assert_raises(Exception, hg.flat, *dicts)
 
 
 # Basic Bunch class
@@ -1058,3 +1075,4 @@ def test_flag_raise():
 if __name__ == '__main__':
     import nose
     nose.run()
+
