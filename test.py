@@ -790,40 +790,56 @@ def test_cli_list():
 @with_setup(cli_setup)
 def test_cli_versioning():
     """Versioning functional testing"""
-    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir,  '-r '+repodir, 'save_needed', '-q')
+    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir,
+        '-r '+repodir, 'save_needed', '-q')
     assert out == ['No'], "No save needed here" + cli.say.hist()
-    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, 'version', 'list', '-q') # no versions
+    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, 'version',
+        'list', '-q') # no versions
     assert out == [], "No versions expected" + cli.say.hist()
-    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, 'rule', 'disable', '2', '-q')
-    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, 'save', 'test1', '-q') # save 1
-    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, 'version', 'list', '-q')
+    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, 'rule',
+    'disable', '2', '-q')
+    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, 'save',
+    'test1', '-q') # save 1
+    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, 'version',
+                   'list', '-q')
     assert cli.say.li[:3] == ['No', 'Rule 2 disabled.',
     'Configuration saved. Message: "test1"'], "Incorrect behavior"
     assert out[-1].endswith('| test1 |'), cli.say.hist()
-    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, 'rule', 'enable', '2', '-q')
-    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, 'save', 'test2', '-q') # save 2
-    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, 'version', 'list', '-q')
+    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, 'rule',
+    'enable', '2', '-q')
+    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, 'save',
+    'test2', '-q') # save 2
+    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, 'version',
+    'list', '-q')
     assert out[-2].endswith('| test2 |'), cli.say.hist()
-    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, 'rule', 'disable', '2', '-q')
-    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, 'save', 'test3', '-q') # save 1
-    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, 'version', 'list', '-q')
+    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, 'rule',
+    'disable', '2', '-q')
+    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, 'save',
+    'test3', '-q') # save 1
+    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, 'version',
+    'list', '-q')
     assert out[-3].endswith('| test3 |'), cli.say.hist()
     # rollback by number
     out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, 'version', 'rollback', '1', '-q')
-    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, 'version', 'list', '-q')
+    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, 'version',
+    'list', '-q')
     assert out[0].endswith('| test2 |') and \
         out[1].endswith('| test1 |'), "Incorrect rollback" + cli.say.hist()
     # rollback by ID
     commit_id = out[1].split()[0]
     out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, 'version', 'rollback', commit_id, '-q')
-    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, 'version', 'list', '-q')
+    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, 'version',
+                   'list', '-q')
     assert out[0].endswith('| test1 |'),  "Incorrect rollback" + cli.say.hist()
     # reset
-    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, 'rule', 'enable', '2', '-q')
-    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, 'save_needed', '-q')
+    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, 'rule',
+                   'enable', '2', '-q')
+    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, 'save_needed',
+                   '-q')
     assert out[-1] == 'Yes', "Save needed here" + cli.say.hist()
     out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, 'reset', '-q')
-    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, 'save_needed', '-q')
+    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, 'save_needed',
+                   '-q')
     assert out[-1] == 'No', "No save needed here" + cli.say.hist()
 
 # TODO: add check, compile and deploy tests
@@ -832,23 +848,30 @@ def test_cli_versioning():
 
 @with_setup(cli_setup)
 def test_cli_user_management():
-    out1 = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, '-q', 'user', 'list')
+    out1 = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, '-q', 'user',
+                    'list')
     assert out1 == [
         u'Rob            readonly        None',
         u'Eddy           editor          None',
-        u'Ada            admin           None'], "Incorrect user list" + cli.say.hist()
-    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, '-q', 'user', 'add', 'Totoro',
+        u'Ada            admin           None'], \
+        "Incorrect user list" + cli.say.hist()
+    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, '-q', 'user',
+                   'add', 'Totoro',
         'admin', 'totoro@nowhere.forest')
-    out2 = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, '-q', 'user', 'list')
+    out2 = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, '-q', 'user',
+    'list')
     assert out2 == [
         u'Rob            readonly        None',
         u'Ada            admin           None',
         u'Eddy           editor          None',
         u'Totoro         admin           totoro@nowhere.forest'], \
         "Incorrect user list" + cli.say.hist()
-    cli_run('-c test/firelet_test.ini',  '-r ' + repodir, '-q', 'user', 'validatepwd', 'Totoro')
-    cli_run('-c test/firelet_test.ini',  '-r ' + repodir, '-q', 'user', 'del', 'Totoro')
-    out3 = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, '-q', 'user', 'list')
+    cli_run('-c test/firelet_test.ini',  '-r ' + repodir, '-q', 'user',
+             'validatepwd', 'Totoro')
+    cli_run('-c test/firelet_test.ini',  '-r ' + repodir, '-q', 'user',
+    'del', 'Totoro')
+    out3 = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, '-q',
+    'user', 'list')
     assert out3 == out1, "User not deleted" + cli.say.hist()
 
     #TODO: add user editing to the CLI and test it ?
@@ -857,7 +880,8 @@ def test_cli_user_management():
 
 @with_setup(cli_setup)
 def test_cli_rule_list():
-    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, '-q', 'rule', 'list')
+    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, '-q',
+    'rule', 'list')
     for line in out[1:]:
         li = line.split('|')
         li = map(str.strip, li)
@@ -866,22 +890,31 @@ def test_cli_rule_list():
 
 @with_setup(cli_setup)
 def test_cli_rule_enable_disable():
-    out1 = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, '-q', 'rule', 'list')
+    out1 = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, '-q',
+    'rule', 'list')
     assert out1[2].split('|')[5].strip() == '1',  "First rule should be enabled"
-    cli_run('-c test/firelet_test.ini',  '-r ' + repodir, '-q', 'rule', 'disable', '1')
-    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, '-q', 'rule', 'list')
+    cli_run('-c test/firelet_test.ini',  '-r ' + repodir, '-q', 'rule',
+    'disable', '1')
+    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, '-q',
+    'rule', 'list')
     assert out[2].split('|')[5].strip() == '0',  "First rule should be disabled"
-    cli_run('-c test/firelet_test.ini',  '-r ' + repodir, '-q', 'rule', 'enable', '1')
-    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, '-q', 'rule', 'list')
+    cli_run('-c test/firelet_test.ini',  '-r ' + repodir, '-q', 'rule',
+    'enable', '1')
+    out = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, '-q',
+    'rule', 'list')
     assert out == out1, "Rule enable/disable not idempotent"
 
 @with_setup(cli_setup)
 def test_cli_multiple_list_and_deletion():
     for name in ('rule', 'host', 'hostgroup', 'network', 'service'):
-        before = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, '-q', name, 'list')
-        cli_run('-c test/firelet_test.ini',  '-r ' + repodir, '-q', name, 'del', '2')
-        after = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, '-q', name, 'list')
-        assert len(after) == len(before) - 1, "%s not deleted %s" % (name, cli.say.hist())
+        before = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, '-q',
+                         name, 'list')
+        cli_run('-c test/firelet_test.ini',  '-r ' + repodir, '-q', name,
+        'del', '2')
+        after = cli_run('-c test/firelet_test.ini',  '-r ' + repodir, '-q',
+                        name, 'list')
+        assert len(after) == len(before) - 1, "%s not deleted %s" % \
+            (name, cli.say.hist())
 
 # #  Test JSON lib  # #
 
@@ -1003,7 +1036,6 @@ def test_bunch_service():
 #    assert_raises(Alert, s.update,
 #        {'name': 's2', 'protocol':'TCP', 'ports':'eighty    '}
 #    )
-
 
 
 

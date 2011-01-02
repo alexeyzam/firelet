@@ -4,6 +4,7 @@
 #
 # network_name network_address netmasklen
 
+Internet 0.0.0.0 0
 moria 10.66.2.0 24
 rivendell 10.66.1.0 24
 shire 172.16.2.223 24

@@ -82,6 +82,7 @@ icmp_types = {
 #input validation
 
 def validc(c):
+    """Validate character in rule name"""
     n = ord(c)
     if 31 < n < 127 and n not in (34, 39, 60, 62, 96):
         return True

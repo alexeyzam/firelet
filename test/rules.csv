@@ -6,6 +6,7 @@
 1 BG_https Bilbo:eth0 * Gandalf:eth1 HTTPS ACCEPT 0 "That's fine"
 1 NoSmeagol Smeagol:eth0 * Gandalf:eth1 * DROP 3 "No way"
 1 http_ok Bilbo:eth1 * Fangorn:eth0 HTTP ACCEPT 0 "Web server"
+1 PublicWeb Internet * Fangorn:eth0 HTTP ACCEPT 0 "Public web server"
 1 ssh_mgmt Gandalf:eth1 * moria SSH ACCEPT 2 "Ssh access from Gandalf to moria"
 1 irc Fangorn:eth0 * Smeagol:eth0 IRC ACCEPT 0 "IRC is fun"
 1 imap Smeagol:eth0 * Bilbo:eth0 EveryIMAP ACCEPT 2 "IMAP, three ports"
