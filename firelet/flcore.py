@@ -571,10 +571,13 @@ def load_hosts_csv(n, d):
     return mu
 
 def loadjson(n, d):
-    f = open("%s/%s.json" % (d, n))
-    s = f.read()
-    f.close()
-    return json.loads(s)
+    try:
+        f = open("%s/%s.json" % (d, n))
+        s = f.read()
+        f.close()
+        return json.loads(s)
+    except Exception, e:
+        raise Alert, "Unable to load users from '%s/%s.json'" % (d, n)
 
 
 def savejson(n, obj, d):
@@ -1189,10 +1192,7 @@ class Users(object):
 
     def __init__(self, d):
         self._dir = d
-        try:
-            self._users = loadjson('users', d=d)
-        except:
-            self._users = {} #TODO: raise alert?
+        self._users = loadjson('users', d=d)
 
     def list(self):
         return list(self._users)

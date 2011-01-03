@@ -139,22 +139,6 @@ def prettyprint(li):
 def say(s):
     print s
 
-def open_fs(fn, repodir=None):
-    """Read configuration and instance the required FireSet"""
-    # read configuration,
-    try:
-        conf = ConfReader(fn=fn)
-    except Exception, e:
-        log.error("Exception %s while reading configuration file '%s'" % (e, fn))
-        exit(1)
-
-    if repodir:
-        repodir = repodir.strip()
-    else:
-        repodir = conf.data_dir
-
-    fs = GitFireSet(repodir=repodir)
-    return (conf.data_dir, fs)
 
 
 def main(mockargs=None):
@@ -170,12 +154,26 @@ def main(mockargs=None):
 
     whisper( "Firelet %s CLI." % __version__)
 
+    #TODO: consider rewriting this to use argparse
     a1, a2, a3, a4, a5, a6 = args+ [None] * (6 - len(args))
 
     if not a1:
         help()
 
-    repodir, fs = open_fs(opts.conffile.strip(), opts.repodir)
+    # read configuration,
+    try:
+        conf = ConfReader(fn=opts.conffile.strip())
+    except Exception, e:
+        log.error("Exception %s while reading configuration file '%s'" % (e, fn))
+        exit(1)
+
+    # Repodir specified from command line has precedence over the conf. file
+    if opts.repodir:
+        repodir = opts.repodir.strip()
+    else:
+        repodir = conf.data_dir
+
+    fs = GitFireSet(repodir=repodir)
 
     if a1 == 'save':
         if a3 or not a2:
