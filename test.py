@@ -214,8 +214,11 @@ def test_gitfireset_check_ifaces():
                     None), 'eth0': ('10.66.1.2/24', None)}},
             'Fangorn': {'filter': [], 'ip_a_s': {'eth0': ('10.66.2.2/24',
                     None)}},
-            'Gandalf': {'filter': [], 'ip_a_s': {'eth1': ('10.66.1.1/24',
-                    None),'eth0': ('172.16.2.223/24', None)}},
+            'Gandalf': {'filter': [], 'ip_a_s': {
+                'eth1': ('10.66.1.1/24', None),
+                'eth2': ('88.88.88.88/24', None),
+                'eth0': ('172.16.2.223/24', None)
+            }},
             'Smeagol': {'filter': [], 'ip_a_s': {'eth0': ('10.66.1.3/24',
                     None)}} }
     fs._remote_confs = {}
@@ -228,7 +231,7 @@ def test_gitfireset_check_ifaces():
 def test_gitfireset_sibling_names():
     fs = GitFireSet(repodir=repodir)
     names = ['AllSystems', 'Bilbo:eth0', 'Bilbo:eth1', 'Clients', 'Fangorn:eth0', 'Gandalf:eth0', \
-    'Gandalf:eth1', 'SSHnodes', 'Servers', 'Smeagol:eth0', 'WebServers']
+    'Gandalf:eth1', 'Gandalf:eth2','SSHnodes', 'Servers', 'Smeagol:eth0', 'WebServers']
     assert fs.list_sibling_names() == names, "list_sibling_names generating incorrect output"
 
 

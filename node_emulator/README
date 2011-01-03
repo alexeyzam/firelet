@@ -1,0 +1,18 @@
+The files in this directory are used to setup a test server (called localhost)
+to simulate the firewalls managed by Firelet.
+It is supposed to be used only for testing - by running Firelet on the same host.
+
+The hosts will run an alias on its network interface for each firewall configured
+in Firelet.
+An SSH daemon will listen on all those interfaces.
+
+When Firelet sets up an SSH connection to a firewall using the "firelet" user, it
+will simply reach an IP alias on localhost.
+Having a firelet user with a special .bashrc file, localhost will emulate the
+interaction with "ip addr show" and the other commands, faking the behavior of a
+real firewall.
+
+Usage: create a "firelet" user and run setup_emulator.sh
+
+Monitor the emulator log file using:
+tail -f /home/firelet/firelet_ne.log

@@ -159,7 +159,12 @@ class Network(Bunch):
         return real_addr, masklen, real_addr == addr
 
     def __contains__(self, other):
-        """Check if a host or a network falls inside this network"""
+        """Check if a host or a network falls inside this network.
+        Special case: the "Internet" network contains no hosts """
+
+        if self.name == 'Internet':
+            return False
+
         if isinstance(other, Host):
             return net_addr(other.ip_addr, self.masklen) == self.ip_addr
 
@@ -691,9 +696,8 @@ class FireSet(object):
         for h, x in d.iteritems():
             assert len(x), "No management IP address for %s " % n
         sx = self.SSHConnector(d)
+        log.debug("Running SSH.")
         self._remote_confs = sx.get_confs()
-#        for hostname, v in self._remote_confs.iteritems():
-#            assert isinstance(v, Bunch)
         if keep_sessions:
             return sx
         sx._disconnect()
@@ -715,7 +719,7 @@ class FireSet(object):
             ip_a_s = confs[h.hostname].ip_a_s
             if not h.iface in ip_a_s:         #TODO: test this in unit testing
                 raise Alert, "Interface %s missing on host %s" \
-                    % (iface, h.hostname)
+                    % (h.iface, h.hostname)
             ip_addr_v4, ip_addr_v6 = ip_a_s[h.iface]
             assert '/' in ip_addr_v4, """The IPv4 address extracted from
                 running 'ip addr show' on %s has no '/' in it""" % h.hostname
@@ -930,8 +934,8 @@ class FireSet(object):
             # "for every host"
         # "for every rule"
 
-        log.debug("rd first 300 bytes: %s" % repr(rd)[:300])
-        return rd
+        log.debug("rd first 900 bytes: %s" % repr(rd)[:900])
+        return rd       # complile_rules()
 
     def _remove_dup_spaces(self, s):
         return ' '.join(s.split())
@@ -1010,8 +1014,11 @@ class FireSet(object):
         if self.save_needed():
             raise Alert, "Configuration must be saved before check."
         comp_rules = self.compile_rules()
+        log.debug('Rules compiled. Getting configurations.')
         sx = self._get_confs(keep_sessions=True)
+        log.debug('Getting retrieved. Checking interfaces.')
         self._check_ifaces()
+        log.debug('Interface check complete.')
         new_rules = {}
         for hn, b in comp_rules.iteritems():
             li = self._build_ipt_restore_blocks((hn, b))
@@ -1027,8 +1034,11 @@ class FireSet(object):
         if self.save_needed():
             raise Alert, "Configuration must be saved before deployment."
         comp_rules = self.compile_rules()
+        log.debug('Rules compiled. Getting configurations.')
         sx = self._get_confs(keep_sessions=True)
+        log.debug('Getting retrieved. Checking interfaces.')
         self._check_ifaces()
+        log.debug('Interface check complete.')
         m = map(self._build_ipt_restore, comp_rules.iteritems())
         c = dict(m)
         sx.deliver_confs(c)

@@ -8,8 +8,13 @@
     inet 172.16.2.223/24 brd 172.16.2.255 scope global eth0
     inet6 fe80::3939:3939:3939:3939/64 scope link 
        valid_lft forever preferred_lft forever
-2: eth1: <BROADCAST,MULTICAST,UP> mtu 1500 qdisc pfifo_fast state UNKNOWN qlen 1000
+3: eth1: <BROADCAST,MULTICAST,UP> mtu 1500 qdisc pfifo_fast state UNKNOWN qlen 1000
     link/ether 00:00:00:00:00:00 brd ff:ff:ff:ff:ff:ff
     inet 10.66.1.1/24 brd 10.66.1.255 scope global eth1
+    inet6 fe80::3939:3939:3939:3939/64 scope link 
+       valid_lft forever preferred_lft forever
+4: eth2: <BROADCAST,MULTICAST,UP> mtu 1500 qdisc pfifo_fast state UNKNOWN qlen 1000
+    link/ether 00:00:00:00:00:00 brd ff:ff:ff:ff:ff:ff
+    inet 88.88.88.88/24 brd 88.88.88.255 scope global eth2
     inet6 fe80::3939:3939:3939:3939/64 scope link 
        valid_lft forever preferred_lft forever
