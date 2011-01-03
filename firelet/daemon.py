@@ -48,8 +48,7 @@ class LoggedHTTPError(bottle.HTTPResponse):
 
 bottle.HTTPError = LoggedHTTPError
 
-#TODO: HG, H, N, Rule, Service creation
-#TODO: Rule up/down move
+#TODO: API version number
 #TODO: say() as a custom log target
 #TODO: full rule checking upon Save
 #TODO: move fireset editing in flcore
@@ -558,7 +557,7 @@ def static(filename):
 
 @bottle.route('/favicon.ico')
 def favicon():
-    send_file('favicon.ico', root='static')
+    static_file('favicon.ico', 'static')
 
 @bottle.route('/map') #FIXME: the SVG map is not shown inside the jQuery tab.
 def flmap():
