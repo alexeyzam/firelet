@@ -17,6 +17,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import logging as log
+from argparse import ArgumentParser
 from beaker.middleware import SessionMiddleware
 import bottle
 from bottle import abort, route, static_file, run, view, request
@@ -24,7 +25,7 @@ from bottle import debug as bottle_debug
 from collections import defaultdict
 from datetime import datetime
 from subprocess import Popen, PIPE
-from sys import argv, exit
+from sys import exit
 from time import time, sleep, localtime
 
 from confreader import ConfReader
@@ -579,23 +580,33 @@ def flmap_svg():
 def main():
     global conf
 
+    parser = ArgumentParser(description='Firelet daemon')
+    parser.add_argument('-d', '--debug', action='store_true', help='debug mode')
+    parser.add_argument('-c', '--cf',  nargs='?',
+        default = 'firelet.ini', help='configuration file')
+    parser.add_argument('-r', '--repodir',  nargs='?',
+        help='repository directory')
+    args = parser.parse_args()
+
     try:
-        fn = argv[1:]
-        if '-D' in fn: fn.remove('-D')
-        if not fn: fn = 'firelet.ini'
-        conf = ConfReader(fn=fn)
+        conf = ConfReader(fn=args.cf)
     except Exception, e:
-        log.error("Exception %s while reading configuration file '%s'" % (e, fn))
+        log.error("Exception %s while reading configuration file '%s'" % (e, args.cf))
         exit(1)
+
+    if args.repodir:
+        conf.data_dir = args.repodir
+
 
     # logging
 
-    if '-D' in argv:
+    if args.debug:
         debug_mode = True
         log.basicConfig(level=log.DEBUG,
                         format='%(asctime)s %(levelname)-8s %(message)s',
                         datefmt='%a, %d %b %Y %H:%M:%S')
         log.debug("Debug mode")
+        log.debug("Configuration file: '%s'" % args.cf)
         bottle.debug(True)
         say("Firelet started in debug mode.", level="success")
         bottle_debug(True)
@@ -608,24 +619,21 @@ def main():
                     filename=conf.logfile,
                     filemode='w')
         reload = False
-
-
-
         say("Firelet started.", level="success")
 
+    globals()['users'] = Users(d=conf.data_dir)
+
     if conf.demo_mode == 'False':
-        globals()['fs'] = GitFireSet()
+        globals()['fs'] = GitFireSet(conf.data_dir)
         say("Configuration loaded.")
-        say("%d hosts, %d rules, %d networks loaded." % (len(fs.hosts), len(fs.rules), len(fs.networks)))
-        globals()['users'] = Users(d='firewall')
+        say("%d hosts, %d rules, %d networks loaded." % (len(fs.hosts), len(fs.rules),
+            len(fs.networks)))
     elif conf.demo_mode == 'True':
-        globals()['fs'] = DemoGitFireSet()
+        globals()['fs'] = DemoGitFireSet(conf.data_dir)
         say("Demo mode.")
-        say("%d hosts, %d rules, %d networks loaded." % (len(fs.hosts), len(fs.rules), len(fs.networks)))
-        globals()['users'] = Users(d='firewall')
+        say("%d hosts, %d rules, %d networks loaded." % (len(fs.hosts), len(fs.rules),
+            len(fs.networks)))
 #        reload = True
-
-
 
     session_opts = {
         'session.type': 'cookie',

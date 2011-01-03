@@ -18,13 +18,13 @@
 
 # Firelet Command Line Interface
 
+from argparse import ArgumentParser
 from getpass import getpass
 import logging as log
 from sys import argv, exit
 
 from confreader import ConfReader
 from flcore import GitFireSet, DemoGitFireSet, Users,  __version__
-from flutils import cli_args
 
 #   commands
 #
@@ -52,6 +52,34 @@ from flutils import cli_args
 #       del <num>
 #       list
 #
+
+def cli_args(mockargs=None):
+    """Parse command line arguments"""
+    parser = ArgumentParser(description='Firelet daemon')
+
+    parser.add_argument("-c", "--conffile", nargs='?',
+        default='firelet.ini', help="configuration file", metavar="FILE")
+    parser.add_argument("-r", "--repodir", nargs='?',
+        help="configuration repository dir")
+    parser.add_argument("-D", "--debug",
+        action="store_true", dest="debug", default=False,
+        help="run in debug mode and print messages to stdout")
+    parser.add_argument("-q", "--quiet",
+        action="store_true", dest="quiet", default=False,
+        help="print less messages to stdout")
+
+    # catch all other arguments
+    parser.add_argument('commands', nargs='+',
+        help='an integer for the accumulator')
+
+    if mockargs:
+        opts = parser.parse_args(mockargs)
+    else:
+        opts = parser.parse_args()
+
+    # temporary hack before rewriting the entire file using argparse
+    six_commands = opts.commands + [None] * (6 - len(opts.commands))
+    return opts, six_commands
 
 def give_help():    # pragma: no cover
     #TODO
@@ -140,22 +168,15 @@ def say(s):
     print s
 
 
-
 def main(mockargs=None):
 
-    if mockargs:
-        opts, args = cli_args(args=mockargs)
-    else:
-        opts, args = cli_args(args=mockargs)
+    opts, (a1, a2, a3, a4, a5, a6) = cli_args(mockargs=mockargs)
 
     whisper = say
     if opts.quiet:
         whisper = lambda x: None
 
     whisper( "Firelet %s CLI." % __version__)
-
-    #TODO: consider rewriting this to use argparse
-    a1, a2, a3, a4, a5, a6 = args+ [None] * (6 - len(args))
 
     if not a1:
         help()

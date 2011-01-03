@@ -1039,10 +1039,9 @@ class FireSet(object):
 
 
 
-
 class GitFireSet(FireSet):
     """FireSet implementing Git to manage the configuration repository"""
-    def __init__(self, repodir='/var/lib/firelet'):
+    def __init__(self, repodir):
         self.SSHConnector = SSHConnector
         self.rules = Rules(repodir)
         self.hosts = Hosts(repodir)
@@ -1175,7 +1174,7 @@ class DemoGitFireSet(GitFireSet):
     """Based on GitFireSet. Provide a demo version without real network interaction.
     The status of the simulated remote hosts is kept on files.
     """
-    def __init__(self, repodir='/tmp/firelet_demo'):
+    def __init__(self, repodir):
         GitFireSet.__init__(self, repodir=repodir)
         self.SSHConnector = MockSSHConnector
         self.SSHConnector.repodir = repodir
