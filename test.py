@@ -21,7 +21,7 @@ from firelet import mailer
 from firelet.flcore import *
 from firelet.flssh import MockSSHConnector
 from firelet.flmap import draw_svg_map
-from firelet.flutils import flag, Bunch
+from firelet.flutils import flag, Bunch, get_rss_channels
 from nose.tools import assert_raises, with_setup
 from pprint import pformat
 from tempfile import mkdtemp
@@ -1106,8 +1106,36 @@ def test_flag_raise():
     for x in ('true', 'false'):
         assert_raises(Exception, flag, x)
 
+# RSS generation
+def test_get_rss_messages():
+    msg = [
+        ['success', '0001', 'Blah'],
+        ['success', '0002', 'Configuation saved: line'],
+        ['success', '0003', 'Configuration deployed.'],
+    ]
+    d = get_rss_channels('messages', 'url', msg_list=msg)
+    assert 'items' in d
+    items = d['items']
+    assert len(items) == 3
 
-if __name__ == '__main__':
-    import nose
-    nose.run()
+def test_get_rss_confsaves():
+    msg = [
+        ['success', '0001', 'Blah'],
+        ['success', '0002', 'Configuation saved: line'],
+        ['success', '0003', 'Configuration deployed.'],
+    ]
+    d = get_rss_channels('confsaves', 'url', msg_list=msg)
+    assert 'items' in d
+    items = d['items']
+    assert len(items) == 1
 
+def test_get_rss_deployments():
+    msg = [
+        ['success', '0001', 'Blah'],
+        ['success', '0002', 'Configuation saved: line'],
+        ['success', '0003', 'Configuration deployed.'],
+    ]
+    d = get_rss_channels('deployments', 'url', msg_list=msg)
+    assert 'items' in d
+    items = d['items']
+    assert len(items) == 1

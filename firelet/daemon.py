@@ -60,6 +60,10 @@ bottle.HTTPError = LoggedHTTPError
 
 #TODO: new rule creation
 
+#FIXME: first rule cannot be disabled
+#TODO: insert  change description in save message
+
+
 msg_list = []
 
 
@@ -475,7 +479,7 @@ def savebtn():
         ret_warn('Save not needed.')
     say("Commit msg: \"%s\". Saving configuration..." % msg)
     saved = fs.save(msg)
-    ack('Configuration saved.')
+    ack("Configuration saved: \"%s\"" % msg)
 
 @bottle.route('/reset', method='POST')
 def resetbtn():

@@ -83,7 +83,7 @@ def extract_all(d, keys):
     return dict((k, d[k]) for k in keys)
 
 # RSS feeds generation
-
+#TODO: add dates and guid
 def get_rss_channels(channel, url, msg_list=[]):
     """Generate RSS feeds for different channels"""
     if channel not in ('messages', 'confsaves', 'deployments'):
@@ -101,6 +101,34 @@ def get_rss_channels(channel, url, msg_list=[]):
 
     if channel == 'messages':
         for level, ts, msg in msg_list:
+            i = Bunch(
+                title = "Firelet %s: %s" % (level, msg),
+                desc = ts,
+                link = url,
+                build_date = '',
+                pub_date = '',
+                guid = ts
+            )
+            items.append(i)
+
+    elif channel == 'confsaves':
+        for level, ts, msg in msg_list:
+            if 'saved:' not in msg:
+                continue
+            i = Bunch(
+                title = "Firelet %s: %s" % (level, msg),
+                desc = msg,
+                link = url,
+                build_date = '',
+                pub_date = '',
+                guid = ts
+            )
+            items.append(i)
+
+    elif channel == 'deployments':
+        for level, ts, msg in msg_list:
+            if 'saved:' not in msg:
+                continue
             i = Bunch(
                 title = "Firelet %s: %s" % (level, msg),
                 desc = msg,
