@@ -29,6 +29,7 @@ class ConfReader(object):
             'smtp_server_addr': '',
             'email_source': 'firelet@localhost.local',
             'email_dests': 'root@localhost',
+            'public_url': None
         }
         #TODO: validate strings from the .ini file  ---> fmt = "-ofmt:%" +
             # conf.ip_list_netflow_address

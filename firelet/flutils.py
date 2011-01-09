@@ -82,3 +82,38 @@ def extract_all(d, keys):
     """Returns a new dict with only the chosen keys"""
     return dict((k, d[k]) for k in keys)
 
+# RSS feeds generation
+
+def get_rss_channels(channel, url, msg_list=[]):
+    """Generate RSS feeds for different channels"""
+    if channel not in ('messages', 'confsaves', 'deployments'):
+        raise Exception, "RSS channel not existing"
+
+    c = Bunch(
+        title = 'Firelet %s RSS' % channel,
+        desc = "%s feed" % channel,
+        link = url,
+        build_date = '',
+        pub_date = ''
+    )
+
+    items = []
+
+    if channel == 'messages':
+        for level, ts, msg in msg_list:
+            i = Bunch(
+                title = "Firelet %s: %s" % (level, msg),
+                desc = msg,
+                link = url,
+                build_date = '',
+                pub_date = '',
+                guid = ts
+            )
+            items.append(i)
+
+    return dict(c=c, items=items)
+
+
+
+
+

@@ -32,7 +32,7 @@ from confreader import ConfReader
 import mailer
 from flcore import Alert, GitFireSet, DemoGitFireSet, Users, clean
 from flmap import draw_png_map, draw_svg_map
-from flutils import flag, extract_all
+from flutils import flag, extract_all, get_rss_channels
 
 from bottle import HTTPResponse, HTTPError
 
@@ -575,6 +575,31 @@ def flmap_svg():
 
 #TODO: provide PNG fallback for browser without SVG support?
 #TODO: html links in the SVG map
+
+# RSS feeds
+
+@bottle.route('/rss')
+@view('rss_index')
+def rss_index():
+    """Return RSS index page"""
+    # FIXME: available to non-authenticated users
+    return dict()
+
+
+@bottle.route('/rss/:channel')
+@view('rss')
+def rss_channels(channel=None):
+    """Generate RSS feeds for different channels"""
+    # FIXME: available to non-authenticated users
+    if conf.public_url:
+        url = conf.public_url.rstrip('/') + '/rss'
+    else:
+        url = "https://%s:%s/rss" % (conf.listen_address, conf.listen_port)
+
+    return get_rss_channels(channel, url, msg_list=msg_list)
+
+
+
 
 def main():
     global conf
