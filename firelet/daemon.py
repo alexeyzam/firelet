@@ -72,7 +72,7 @@ def say(s, level='info'):
     if level == 'error':
         level = 'alert'
     log.debug(s)
-    ts = datetime.now().strftime("%H:%M:%S")
+    ts = datetime.now()
     msg_list.append((level, ts, s))
     if len(msg_list) > 10:
         msg_list.pop(0)
@@ -190,7 +190,8 @@ def logout():
 @bottle.route('/messages')
 @view('messages')
 def messages():
-    return dict(messages=msg_list)
+    messages = [ (lvl, ts.strftime("%H:%M:%S"), msg) for lvl, ts, msg in msg_list]
+    return dict(messages=messages)
 
 @bottle.route('/')
 @view('index')

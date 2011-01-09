@@ -1107,35 +1107,33 @@ def test_flag_raise():
         assert_raises(Exception, flag, x)
 
 # RSS generation
-def test_get_rss_messages():
-    msg = [
-        ['success', '0001', 'Blah'],
-        ['success', '0002', 'Configuation saved: line'],
-        ['success', '0003', 'Configuration deployed.'],
+rss_msg = []
+def setup_rss():
+    from datetime import datetime
+    global rss_msg
+    rss_msg = [
+        ['success', datetime(2011,01,01,10,10,10), 'Blah'],
+        ['success', datetime(2011,01,01,10,10,20), 'Configuation saved: line'],
+        ['success', datetime(2011,01,01,10,10,30), 'Configuration deployed.'],
     ]
-    d = get_rss_channels('messages', 'url', msg_list=msg)
+
+@with_setup(setup_rss)
+def test_get_rss_messages():
+    d = get_rss_channels('messages', 'url', msg_list=rss_msg)
     assert 'items' in d
     items = d['items']
     assert len(items) == 3
 
+@with_setup(setup_rss)
 def test_get_rss_confsaves():
-    msg = [
-        ['success', '0001', 'Blah'],
-        ['success', '0002', 'Configuation saved: line'],
-        ['success', '0003', 'Configuration deployed.'],
-    ]
-    d = get_rss_channels('confsaves', 'url', msg_list=msg)
+    d = get_rss_channels('confsaves', 'url', msg_list=rss_msg)
     assert 'items' in d
     items = d['items']
     assert len(items) == 1
 
+@with_setup(setup_rss)
 def test_get_rss_deployments():
-    msg = [
-        ['success', '0001', 'Blah'],
-        ['success', '0002', 'Configuation saved: line'],
-        ['success', '0003', 'Configuration deployed.'],
-    ]
-    d = get_rss_channels('deployments', 'url', msg_list=msg)
+    d = get_rss_channels('deployments', 'url', msg_list=rss_msg)
     assert 'items' in d
     items = d['items']
-    assert len(items) == 1
+    assert len(items) == 2

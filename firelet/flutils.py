@@ -83,7 +83,19 @@ def extract_all(d, keys):
     return dict((k, d[k]) for k in keys)
 
 # RSS feeds generation
-#TODO: add dates and guid
+
+def append_rss_item(channel, url, level, msg, ts, items):
+    """Append a new RSS item to items"""
+    i = Bunch(
+        title = "Firelet %s: %s" % (level, msg),
+        desc = msg,
+        link = url,
+        build_date = '',
+        pub_date = ts.isoformat(),
+        guid = ts.isoformat()
+    )
+    items.append(i)
+
 def get_rss_channels(channel, url, msg_list=[]):
     """Generate RSS feeds for different channels"""
     if channel not in ('messages', 'confsaves', 'deployments'):
@@ -101,43 +113,17 @@ def get_rss_channels(channel, url, msg_list=[]):
 
     if channel == 'messages':
         for level, ts, msg in msg_list:
-            i = Bunch(
-                title = "Firelet %s: %s" % (level, msg),
-                desc = ts,
-                link = url,
-                build_date = '',
-                pub_date = '',
-                guid = ts
-            )
-            items.append(i)
+            append_rss_item(channel, url, level, msg, ts, items)
 
     elif channel == 'confsaves':
         for level, ts, msg in msg_list:
-            if 'saved:' not in msg:
-                continue
-            i = Bunch(
-                title = "Firelet %s: %s" % (level, msg),
-                desc = msg,
-                link = url,
-                build_date = '',
-                pub_date = '',
-                guid = ts
-            )
-            items.append(i)
+            if 'saved:' in msg:
+                append_rss_item(channel, url, level, msg, ts, items)
 
     elif channel == 'deployments':
         for level, ts, msg in msg_list:
-            if 'saved:' not in msg:
-                continue
-            i = Bunch(
-                title = "Firelet %s: %s" % (level, msg),
-                desc = msg,
-                link = url,
-                build_date = '',
-                pub_date = '',
-                guid = ts
-            )
-            items.append(i)
+            if 'deployed' in msg:
+                append_rss_item(channel, url, level, msg, ts, items)
 
     return dict(c=c, items=items)
 
