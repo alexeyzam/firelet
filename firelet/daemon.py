@@ -136,7 +136,9 @@ def _require(role='readonly'):
         say("User needs to be authenticated.", level="warning")
         #TODO: not really explanatory in a multiuser session.
         raise Alert, "User needs to be authenticated."
-    myrole = s.get('role', '')
+    myrole = s.get('role', None)
+    if not myrole:
+        raise Alert, "User needs to be authenticated."
     if m[myrole] >= m[role]:
         return
     say("An account with '%s' level or higher is required." % repr(role))
@@ -582,7 +584,8 @@ def flmap_svg():
 @view('rss_index')
 def rss_index():
     """Return RSS index page"""
-    # FIXME: available to non-authenticated users
+    # FIXME: available to non-authenticated users - also, trying to fetch the
+    # rss.png icon generates an auth Alert.
     return dict()
 
 
