@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Run Firelet in Demo mode (without the Debug flag)
+# Run Firelet in Demo mode (with Debug mode enabled as well)
 # in a temporary directory. The iptables-save-* and
 # ip-addr-show-* are used to simulate the firewalls
 
@@ -12,7 +12,7 @@ while true; do
     /bin/cp test/iptables-save-* "$D"
     /bin/cp test/ip-addr-show-* "$D"
     /bin/cp firelet_demo.ini "$D"/
-    ./firelet/daemon.py --cf "$D"/firelet_demo.ini --repodir "$D"
+    ./firelet/daemon.py -d --cf "$D"/firelet_demo.ini --repodir "$D"
     rm -rf "$D"
     sleep 1
 done
