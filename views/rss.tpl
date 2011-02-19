@@ -14,7 +14,7 @@
         % if i.link:
         <link>{{i.link}}</link>
         %end
-        <guid>{{i.guid}}</guid>
+        <guid isPermaLink="false">{{i.guid}}</guid>
         <pubDate>{{i.pub_date}}</pubDate>
     </item>
 % end

@@ -92,7 +92,7 @@ def append_rss_item(channel, url, level, msg, ts, items):
         desc = msg,
         link = url,
         build_date = '',
-        pub_date = ts.isoformat(),
+        pub_date = ts.strftime("%a, %d %b %Y %H:%M:%S GMT"),
         guid = ts.isoformat()
     )
     items.append(i)
