@@ -109,7 +109,8 @@ def get_rss_channels(channel, url, msg_list=[]):
         desc = "%s feed" % channel,
         link = url,
         build_date = utc_rfc822,
-        pub_date = utc_rfc822
+        pub_date = utc_rfc822,
+        channel = channel
     )
 
     items = []
