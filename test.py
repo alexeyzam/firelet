@@ -1136,4 +1136,7 @@ def test_get_rss_deployments():
     d = get_rss_channels('deployments', 'url', msg_list=rss_msg)
     assert 'items' in d
     items = d['items']
-    assert len(items) == 2
+    assert len(items)
+    assert 'title' in items[-1]
+    assert 'Firelet success: Configuration deployed.' in items[-1]['title']
+
