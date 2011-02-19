@@ -102,14 +102,14 @@ def get_rss_channels(channel, url, msg_list=[]):
     if channel not in ('messages', 'confsaves', 'deployments'):
         raise Exception, "unexistent RSS channel"
 
-    now_rfc822 = datetime.now().strftime("%a, %d %b %Y %H:%M:%S %Z")
+    utc_rfc822 = datetime.utcnow().strftime("%a, %d %b %Y %H:%M:%S GMT")
 
     c = Bunch(
         title = 'Firelet %s RSS' % channel,
         desc = "%s feed" % channel,
         link = url,
-        build_date = now_rfc822,
-        pub_date = now_rfc822
+        build_date = utc_rfc822,
+        pub_date = utc_rfc822
     )
 
     items = []
