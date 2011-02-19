@@ -1,4 +1,5 @@
 from copy import deepcopy
+from datetime import datetime
 from optparse import OptionParser
 
 def cli_args(args=None):
@@ -99,14 +100,16 @@ def append_rss_item(channel, url, level, msg, ts, items):
 def get_rss_channels(channel, url, msg_list=[]):
     """Generate RSS feeds for different channels"""
     if channel not in ('messages', 'confsaves', 'deployments'):
-        raise Exception, "RSS channel not existing"
+        raise Exception, "unexistent RSS channel"
+
+    now_rfc822 = datetime.now().strftime("%a, %d %b %Y %H:%M:%S %Z")
 
     c = Bunch(
         title = 'Firelet %s RSS' % channel,
         desc = "%s feed" % channel,
         link = url,
-        build_date = '',
-        pub_date = ''
+        build_date = now_rfc822,
+        pub_date = now_rfc822
     )
 
     items = []
