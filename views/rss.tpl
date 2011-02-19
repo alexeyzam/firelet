@@ -4,7 +4,7 @@
     <title>{{c.title}}</title>
     <description>{{c.desc}}</description>
     <link>{{c.link}}</link>
-    <atom:link href="" rel="self" type="application/rss+xml" />
+    <atom:link href="{{c.link}}" rel="self" type="application/rss+xml" />
     <lastBuildDate>{{c.build_date}}</lastBuildDate>
     <pubDate>{{c.pub_date}}</pubDate>
 
