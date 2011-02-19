@@ -8,6 +8,16 @@
     <p>Press ESC to close this window</p>
 </div>
 
+<img id="rss" src="static/rss.png" rel="div#rss_ovr" title="RSS feeds">
+<div id="rss_ovr">
+    <h4>RSS Feeds</h4>
+    <a href="rss/messages" class="feed">Messages</a> <br/>
+    <a href="rss/confsaves" class="feed">Configuration save</a> <br/>
+    <a href="rss/deployments" class="feed">Deployments</a> <br/>
+    <a href="rss/deployments/" class="feed">Deployments on a host or hostgroup</a>
+    <p>Press ESC to close this window</p>
+</div>
+
 
 <button id="save" rel="#prompt"><img src="static/save.png"  title="Save"> Save</button>
 <br/>
@@ -52,6 +62,34 @@ div#help_ovr {
     -moz-box-shadow: 0 0 50px #ccc;
     -webkit-box-shadow: 0 0 50px #ccc;
 }
+
+img#rss {
+    float: right;
+    padding: 4px;
+}
+div#rss_ovr {
+    background-color:#fff;
+    display:none;
+    width: 30em;
+    padding:15px;
+    text-align:left;
+    border:2px solid #333;
+    opacity:0.98;
+    -moz-border-radius:6px;
+    -webkit-border-radius:6px;
+    -moz-box-shadow: 0 0 50px #ccc;
+    -webkit-box-shadow: 0 0 50px #ccc;
+}
+
+/* TODO: fix padding  */
+div#rss_ovr .feed {
+  margin-left: 3px;
+  padding-left: 19px;
+  background: url("static/rss.png") no-repeat 0 50%;
+  text-decoration: none;
+  color: black;
+}
+
 
 div.tabpane div button {
     width: 6em;
@@ -190,6 +228,9 @@ $(function() {
 
     // Help overlay
     $("img#help[rel]").overlay({ mask: {loadSpeed: 200, opacity: 0.9, }, });
+
+    // RSS overlay
+    $("img#rss[rel]").overlay({ mask: {loadSpeed: 200, opacity: 0.9, }, });
 });
 </script>
 

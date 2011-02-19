@@ -21,6 +21,5 @@ a {
     <a href="rss/confsaves" class="feed">Configuration save</a> <br/>
     <a href="rss/deployments" class="feed">Deployments</a> <br/>
     <a href="rss/deployments/" class="feed">Deployments on a host or hostgroup</a>
-
 </body>
 </html>

@@ -600,6 +600,8 @@ def rss_channels(channel=None):
     """Generate RSS feeds for different channels"""
     # FIXME: available to non-authenticated users
     bottle.response.content_type = 'application/rss+xml'
+    if channel.endswith('.xml') or channel.endswith('.rss'):
+        channel = channel[:-4]
     if conf.public_url:
         url = conf.public_url.rstrip('/') + '/rss'
     else:
