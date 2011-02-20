@@ -43,6 +43,14 @@ def send_iptables(my_name):
     try:
         fn = "live-iptables-save-%s" % my_name
         ans(fn)
+        logging.info("live iptables fetched from %s" % my_name)
+       #logging.debug(open(fn).readlines())
+        example = """# Created by Firelet for host localhost
+            *filter
+            # this is an iptables conf test
+            # for localhost
+            COMMIT
+        """
     except:
         pass
 #        fn = "test/iptables-save-%s" % my_name
@@ -51,6 +59,10 @@ def send_iptables(my_name):
 def reset():
     for filename in glob.glob('new-iptables-save-') :
         os.remove( filename )
+
+def bye(my_name):
+    logging.debug("Disconnected from %s" % my_name)
+    exit()
 
 def main():
     """"""
@@ -88,7 +100,7 @@ def main():
         try:
             cmd = raw_input()
         except EOFError:
-            exit()
+            bye(my_name)
 
         if not catting_new_iptables:
             history.append(cmd)
@@ -97,7 +109,7 @@ def main():
         # process cmd
         try:
             if cmd == 'exit':
-                exit()
+                bye(my_name)
             elif cmd == "PS1='[PEXPECT]\$ '":
                 prompt = "[PEXPECT]$ "
 

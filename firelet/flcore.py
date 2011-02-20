@@ -685,7 +685,9 @@ class FireSet(object):
         return map(flatten1, items)
 
     def _get_confs(self, keep_sessions=False):
-        """Connect to the firewalls and get the existing configuration"""
+        """Connect to the firewalls and fetch the existing configuration
+        Return the SSHConnector instance if keep_sessions is True
+        """
         self._remote_confs = None
         d = {}      # {hostname: [management ip address list ], ... }    If the IP addr list is empty firelet cannot reach that host.
         for h in self.hosts:
@@ -1008,6 +1010,22 @@ class FireSet(object):
             rules[hn] = li
         return rules
 
+    #TODO: unit test this
+    def _diff_compiled_and_remote_rules(self, comp_rules):
+        """Compare remote and compiled rules and return a diff
+        self._remote_confs needs to be populated in advance
+        """
+        assert self._remote_confs, "self._remote_confs not set \
+        before calling _diff_compiled_and_remote_rules"
+
+        new_rules = {}
+        for hn, b in comp_rules.iteritems():
+            li = self._build_ipt_restore_blocks((hn, b))
+            new_rules[hn] = li
+
+        existing_rules = self._extract_ipt_filter_rules(self._remote_confs)
+        return self._diff(existing_rules, new_rules)
+
     def check(self):
         """Check the configuration on the firewalls.
         """
@@ -1019,13 +1037,13 @@ class FireSet(object):
         log.debug('Getting retrieved. Checking interfaces.')
         self._check_ifaces()
         log.debug('Interface check complete.')
-        new_rules = {}
-        for hn, b in comp_rules.iteritems():
-            li = self._build_ipt_restore_blocks((hn, b))
-            new_rules[hn] = li
+        return self._diff_compiled_and_remote_rules(comp_rules)
 
-        existing_rules = self._extract_ipt_filter_rules(self._remote_confs)
-        return self._diff(existing_rules, new_rules)
+    def saverepr(self, o, fn):
+        f = open(fn, 'w')
+        f.write(repr(o))
+        f.close()
+
 
     def deploy(self, ignore_unreachables=False, replace_ruleset=False):
         """Check and then deploy the configuration to the firewalls.
@@ -1034,15 +1052,35 @@ class FireSet(object):
         if self.save_needed():
             raise Alert, "Configuration must be saved before deployment."
         comp_rules = self.compile_rules()
-        log.debug('Rules compiled. Getting configurations.')
+        log.debug('Rules compiled. Fetching configurations.')
         sx = self._get_confs(keep_sessions=True)
-        log.debug('Getting retrieved. Checking interfaces.')
+        log.debug('Checking interfaces.')
         self._check_ifaces()
         log.debug('Interface check complete.')
+        self._remote_confs = None
         m = map(self._build_ipt_restore, comp_rules.iteritems())
         c = dict(m)
+
+        log.debug('Delivering configurations...')
         sx.deliver_confs(c)
+
+        #TODO: setup timers to restore the remote confs automatically
+        log.debug('Applying configurations...')
         sx.apply_remote_confs()
+
+        log.debug('Fetching live configurations...')
+        self._get_confs(keep_sessions=False)
+        diff = self._diff_compiled_and_remote_rules(comp_rules)
+        self.saverepr(comp_rules, '/tmp/comp')
+        self.saverepr(self._remote_confs, '/tmp/rem')
+        log.debug('--diff--')
+        log.debug(repr(diff))
+        log.debug('--end--')
+
+        if diff:
+            log.error('Deployment failed!')
+        else:
+            log.debug('Deployment completed.')
 
     def _check_remote_confs(self):
         pass
@@ -1110,7 +1148,7 @@ class GitFireSet(FireSet):
 
     def _git(self, cmd):
         from subprocess import Popen, PIPE
-        log.debug('Executing "/usr/bin/git %s" in "%s"' % (cmd, self._git_repodir))
+#        log.debug('Executing "/usr/bin/git %s" in "%s"' % (cmd, self._git_repodir))
         p = Popen('/usr/bin/git %s' % cmd, shell=True, cwd=self._git_repodir, stdout=PIPE, stderr=PIPE)
         p.wait()
         return p.communicate()
@@ -1145,7 +1183,7 @@ class GitFireSet(FireSet):
     def save_needed(self):
         """True if commit is required: files has been changed"""
         o, e = self._git('status')
-        log.debug("Git status output: '%s' error: '%s'" % (o, e))
+#        log.debug("Git status output: '%s' error: '%s'" % (o, e))
         if 'nothing to commit ' in o:
             return False
         elif '# On branch master' in o:

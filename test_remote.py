@@ -21,15 +21,22 @@
 # WARNING: the tests are disruptive - don't run the in production.
 #
 
-
-from firelet.flcore import *
+from json import dumps
+import logging as log
+from nose.tools import assert_raises, with_setup
 from os import listdir
 import shutil
 from tempfile import mkdtemp
 
-from nose.tools import assert_raises, with_setup
+from firelet.flcore import *
 
 repodir = None
+
+def debug(s, o):
+    try:
+        logging.debug("%s: %s" % (s, dumps(o, indent=2)))
+    except:
+        logging.debug("%s: %s" % (s, repr(o)))
 
 def setup_dir():
     global repodir
@@ -84,7 +91,8 @@ def test_SSHConnector_get():
 @with_setup(setup_dir, teardown_dir)
 def test_get_confs():
     """Get confs from firewalls
-    Ignore the iptables confs, but check for ip addr show
+    Check for ip addr show
+    Ignore the iptables confs: the current state on the hosts (or emulator) is not known
     """
     d = dict((h, [ip_addr]) for ip_addr, h in addrmap.iteritems())
     sx = SSHConnector(d)
@@ -93,12 +101,18 @@ def test_get_confs():
         assert hostname in confs, "%s missing from the results" % hostname
 
     for h, conf in confs.iteritems():
-        assert repr(conf['iptables']) == "{'filter': [], 'nat': ''}", "%s %s" % (h, repr(conf['iptables']))
+        assert 'iptables' in conf
+        assert 'ip_a_s' in conf
+        assert 'nat' in conf['iptables']
+        assert 'filter' in conf['iptables']
         assert 'lo' in conf['ip_a_s']
 
-    assert repr(confs) == "{'Bilbo': {'iptables': {'filter': [], 'nat': ''}, 'ip_a_s': {'lo': ('127.0.0.1/8', '::1/128'), 'eth1': ('10.66.2.1/24', 'fe80::3939:3939:3939:3939/64'), 'eth0': ('10.66.1.2/24', 'fe80::3939:3939:3939:3939/64')}}, 'Fangorn': {'iptables': {'filter': [], 'nat': ''}, 'ip_a_s': {'lo': ('127.0.0.1/8', '::1/128'), 'eth0': ('10.66.2.2/24', 'fe80::3939:3939:3939:3939/64')}}, 'Gandalf': {'iptables': {'filter': [], 'nat': ''}, 'ip_a_s': {'lo': ('127.0.0.1/8', '::1/128'), 'eth2': ('88.88.88.88/24', 'fe80::3939:3939:3939:3939/64'), 'eth1': ('10.66.1.1/24', 'fe80::3939:3939:3939:3939/64'), 'eth0': ('172.16.2.223/24', 'fe80::3939:3939:3939:3939/64')}}, 'localhost': {'iptables': {'filter': [], 'nat': ''}, 'ip_a_s': {'lo': ('127.0.0.1/8', '::1/128'), 'wlan0': ('192.168.1.1/24', 'fe80::219:d2ff:fe26:fb8e/64'), 'eth0': (None, None)}}, 'Smeagol': {'iptables': {'filter': [], 'nat': ''}, 'ip_a_s': {'lo': ('127.0.0.1/8', '::1/128'), 'eth0': ('10.66.1.3/24', 'fe80::3939:3939:3939:3939/64')}}}"
-    #TODO: review this
+    for h in ('Bilbo', 'Fangorn', 'Gandalf', 'Smeagol'):
+        assert 'eth0' in confs[h]['ip_a_s'], h + " has no eth0"
 
+    assert 'eth1' in confs['Gandalf']['ip_a_s']
+    assert 'eth1' in confs['Bilbo']['ip_a_s']
+    assert 'eth2' in confs['Gandalf']['ip_a_s']
 
 
 @with_setup(setup_dir, teardown_dir)
@@ -117,30 +131,35 @@ def test_deliver_apply_and_get_confs():
 
     d = dict((h, [ip_addr]) for ip_addr, h in addrmap.iteritems())
     # confs =  {hostname: {iface: [rules, ] }, ... }
-    confs = dict((h, ['# this is an iptables conf test','# for %s' % h] ) for h in d)
+    confs = dict((h, ['# this is an iptables conf test',
+                                '# for %s' % h,
+                                '-A INPUT -s 3.3.3.3/32 -j ACCEPT',
+                            ] ) for h in d)
 
     # deliver
+    log.debug("Delivery...")
     sx = SSHConnector(d)
     status = sx.deliver_confs(confs)
     assert status == {'Bilbo': 'ok', 'Fangorn': 'ok', 'Gandalf': 'ok', 'localhost': 'ok', 'Smeagol': 'ok'}, repr(status)
 
     # apply
-    print "Applying..."
+    log.debug("Applying...")
     sx.apply_remote_confs()
 
-    # get
-    print "Getting confs..."
+    # get and compare
+    log.debug("Getting confs...")
     rconfs = sx.get_confs()
 
-    # compare
     for h, conf in confs.iteritems():
-        print repr(conf)
-    assert False
-
-#        assert repr(conf['iptables']) == "{'filter': [], 'nat': ''}", "%s %s" % (h, repr(conf['iptables']))
-#        for iface in conf['ip_a_s']:
-#            print h, iface
-
+        assert h in rconfs, "%s missing from received confs" % h
+        r = rconfs[h]
+        assert 'iptables' in r
+        assert 'ip_a_s' in r
+        assert 'nat' in r['iptables']
+        assert 'filter' in r['iptables']
+        assert r['iptables']['nat'] == []
+        assert r['iptables']['filter'] == ['-A INPUT -s 3.3.3.3/32 -j ACCEPT'], "Rconf: %s" % repr(r)
+        assert 'lo' in r['ip_a_s']
 
 
 
