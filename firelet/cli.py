@@ -20,11 +20,13 @@
 
 from argparse import ArgumentParser
 from getpass import getpass
-import logging as log
 from sys import argv, exit
 
 from confreader import ConfReader
 from flcore import GitFireSet, DemoGitFireSet, Users,  __version__
+
+import logging
+log = logging.getLogger(__name__)
 
 #   commands
 #

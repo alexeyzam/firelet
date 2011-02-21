@@ -30,7 +30,7 @@ from flutils import Alert, Bunch, flag, extract_all
 
 __version__ = '0.4.3'
 
-log = logging.getLogger()
+log = logging.getLogger(__name__)
 
 # Logging levels:
 #
@@ -714,7 +714,6 @@ class FireSet(object):
         for q in confs.itervalues():
             assert isinstance(q, Bunch), repr(confs)
             assert len(q) == 2
-        log.debug("Confs: %s" % repr(confs) )
         for h in self.hosts:
             if not h.hostname in confs:
                 raise Alert, "Host %s not available." % h.hostname
@@ -732,6 +731,7 @@ class FireSet(object):
                 raise Alert,"Wrong address on %s on interface %s: \
             %s and %s (should be %s)" % (h.hostname, iface, ip_addr_v4,
                         ip_addr_v6, h.ip_addr)
+        log.debug("self._check_ifaces successful")
 
         #TODO: warn if there are extra interfaces?
 

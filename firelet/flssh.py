@@ -21,7 +21,7 @@ from threading import Thread
 from flutils import Bunch
 
 import logging
-log = logging.getLogger()
+log = logging.getLogger(__name__)
 
 def _exec(c, s):
     """Execute remote command"""

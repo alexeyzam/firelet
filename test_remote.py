@@ -22,7 +22,6 @@
 #
 
 from json import dumps
-import logging as log
 from nose.tools import assert_raises, with_setup
 from os import listdir
 import shutil
@@ -30,28 +29,33 @@ from tempfile import mkdtemp
 
 from firelet.flcore import *
 
-repodir = None
+# import testing utility functions from test.py
+from test import debug, string_in_list, assert_equal_line_by_line
 
-def debug(s, o):
-    try:
-        logging.debug("%s: %s" % (s, dumps(o, indent=2)))
-    except:
-        logging.debug("%s: %s" % (s, repr(o)))
+import logging
+log = logging.getLogger(__name__)
+
+# setup and teardown
 
 def setup_dir():
     global repodir
     if repodir:
         teardown_dir()
-    repodir = mkdtemp() + '/test'
+    repodir = mkdtemp(prefix='tmp_fltest') + '/temp'
+    # copytree cannot copy to existing directories, hence the /temp
     shutil.copytree('test', repodir)
     li = listdir(repodir)
     assert len(li) > 5
+    log.debug("temp dir %s created" % repodir)
 
 def teardown_dir():
     global repodir
     if repodir:
-        shutil.rmtree(repodir, True)
+        repodir = repodir[:-5]
+        shutil.rmtree(repodir)
         repodir = None
+
+repodir = None
 
 addrmap = {
     "10.66.1.2": "Bilbo",
@@ -115,6 +119,8 @@ def test_get_confs():
     assert 'eth2' in confs['Gandalf']['ip_a_s']
 
 
+## # Rule deployment testing # #
+
 @with_setup(setup_dir, teardown_dir)
 def test_deliver_confs():
     d = dict((h, [ip_addr]) for ip_addr, h in addrmap.iteritems())
@@ -162,22 +168,21 @@ def test_deliver_apply_and_get_confs():
         assert 'lo' in r['ip_a_s']
 
 
+## # End-to-end Fireset testing # #
 
 
-#@with_setup(setup_dir, teardown_dir)
-#def test_check():
-#    fs = GitFireSet(repodir=repodir)
-#    fs.check()
-#
-#
-#
-## # Rule deployment testing # #
-#
-#@with_setup(setup_dir, teardown_dir)
-#def test_deployment():
-#    """Test host connectivity is required"""
-#    fs = GitFireSet(repodir=repodir)
-#    fs.deploy()
-#
-#
+@with_setup(setup_dir, teardown_dir)
+def test_GitFireSet_check():
+    """Run diff between complied rules and remote confs using GitFireSet
+    Given the test files, the check should be ok and require no deployment"""
+    fs = GitFireSet(repodir=repodir)
+    diff = fs.check()
+    assert diff == {}
+
+@with_setup(setup_dir, teardown_dir)
+def test_GitFireSet_deployment():
+    fs = GitFireSet(repodir=repodir)
+    fs.deploy()
+
+
 

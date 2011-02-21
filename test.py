@@ -31,7 +31,7 @@ from firelet import cli
 from firelet.cli import main as cli_main
 
 import logging
-log = logging.getLogger()
+log = logging.getLogger(__name__)
 
 #TODO: migration to network objects
 #TODO: parallel SSH
@@ -57,15 +57,18 @@ def setup_dir():
     global repodir
     if repodir:
         teardown_dir()
-    repodir = mkdtemp() + '/test'
+    repodir = mkdtemp(prefix='tmp_fltest') + '/temp'
+    # copytree cannot copy to existing directories, hence the /temp
     shutil.copytree('test', repodir)
     li = listdir(repodir)
     assert len(li) > 5
+    log.debug("temp dir %s created" % repodir)
 
 def teardown_dir():
     global repodir
     if repodir:
-        shutil.rmtree(repodir, True)
+        repodir = repodir[:-5]
+        shutil.rmtree(repodir)
         repodir = None
 
 # utility functions
@@ -82,11 +85,24 @@ def test_string_in_list():
     li = ['apple', 'p', '', None, 123, '   ']
     assert string_in_list('p', li) == 2
 
-def debug(s, o):
+def assert_equal_line_by_line(li1, li2):
+    for x, y in zip(li1, li2):
+        assert x == y, "'%s' differs from '%s' in:\n%s\n%s\n" % (repr(li1), repr(li2))
+
+def debug(s, o=None):
+    """Log an object representation"""
     try:
-        log.debug("%s: %s" % (s, dumps(o, indent=2)))
+        d = dumps(o, indent=2)
     except:
+        d = repr(o)
+    li = d.split('\n')
+    if len(li) < 3:
         log.debug("%s: %s" % (s, repr(o)))
+    else:
+        indented = "\n    ".join(li)
+        log.debug("-------- [%s] ---------\n    %s" % (s, indented))
+        log.debug("----- [end of %s] -----" % s)
+
 
 # #  Testing flssh module without network interaction # #
 
@@ -813,7 +829,7 @@ def test_DemoGitFireSet_diff_table_generation_all_fw_added():
 
 @with_setup(setup_dir, teardown_dir)
 def test_DemoGitFireSet_check():
-    """Run diff between complied rules and remote confs.
+    """Run diff between complied rules and remote confs using DemoGitFireSet
     Given the test files, the check should be ok and require no deployment"""
     fs = DemoGitFireSet(repodir=repodir)
     fs.save('test') #FIXME: shouldn't be required
@@ -825,23 +841,21 @@ def test_DemoGitFireSet_check():
 
 
 
+
+
 @with_setup(setup_dir, teardown_dir)
 def test_DemoGitFireSet_deploy():
     """Run diff between complied rules and remote confs.
     Given the test files, the check should be ok and require no deployment"""
     fs = DemoGitFireSet(repodir=repodir)
+    log.debug("Test deployment in %s" % repodir)
     fs.deploy()
     for h in fs.hosts:
         ok = open(repodir + '/iptables-save-%s' % h.hostname).readlines()
         r = open(repodir + '/iptables-save-%s-x' % h.hostname).readlines()
-#        assert len(ok) == len(r) + 4,  repr(ok) + repr(r)
-    # FIXME: the test is failing, probably the -x file needs to be kept in a different dir
-
-#        for a, b in zip(ok, r):
-#            assert a == b
-
-
-
+        assert ok == r
+        #debug('r', r)
+        #debug('ok', ok)
 
 #@with_setup(setup_dir, teardown_dir)
 #def test_DemoGitFireSet_deploy():

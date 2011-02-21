@@ -16,7 +16,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import logging as log
 from argparse import ArgumentParser
 from beaker.middleware import SessionMiddleware
 import bottle
@@ -36,6 +35,8 @@ from flutils import flag, extract_all, get_rss_channels
 
 from bottle import HTTPResponse, HTTPError
 
+import logging
+log = logging.getLogger(__name__)
 
 class LoggedHTTPError(bottle.HTTPResponse):
     """ Used to generate an error page """
