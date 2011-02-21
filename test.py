@@ -267,24 +267,92 @@ def test_gitfireset_long():
     assert zip(*vl)[2] == (['networks: n.1 deleted'], ['services: n.1 deleted'], ['hostgroups: n.1 deleted'],
                             ['hosts: n.1 deleted'], ['rules: n.1 deleted'])
 
+
 @with_setup(setup_dir, teardown_dir)
-def test_gitfireset_check_ifaces():
+def test_gitfireset_check_ifaces_1():
     fs = GitFireSet(repodir=repodir)
-    d = {'Bilbo': {'filter': [], 'ip_a_s': {'eth1': ('10.66.2.1/24',
-                    None), 'eth0': ('10.66.1.2/24', None)}},
-            'Fangorn': {'filter': [], 'ip_a_s': {'eth0': ('10.66.2.2/24',
-                    None)}},
+    fs._remote_confs = None
+    assert_raises(AssertionError, fs._check_ifaces)
+
+@with_setup(setup_dir, teardown_dir)
+def test_gitfireset_check_ifaces_20():
+    fs = GitFireSet(repodir=repodir)
+    d = {'Bilbo': {'filter': [], 'ip_a_s': {'eth1': ('10.66.2.1/24',None),
+                'eth0': ('10.66.1.2/24', None)}},
+            'Fangorn': {'filter': [], 'ip_a_s': {'eth0': ('10.66.2.2/24', None)}},
             'Gandalf': {'filter': [], 'ip_a_s': {
                 'eth1': ('10.66.1.1/24', None),
                 'eth2': ('88.88.88.88/24', None),
-                'eth0': ('172.16.2.223/24', None)
-            }},
-            'Smeagol': {'filter': [], 'ip_a_s': {'eth0': ('10.66.1.3/24',
-                    None)}} }
+                'eth0': ('172.16.2.223/24', None)}},
+            'Smeagol': {'filter': [], 'ip_a_s': {'eth0': ('10.66.1.3/24', None)}} }
     fs._remote_confs = {}
     for n, v in d.iteritems():
         fs._remote_confs[n] = Bunch(filter=v['filter'], ip_a_s=v['ip_a_s'])
     fs._check_ifaces()
+
+@with_setup(setup_dir, teardown_dir)
+def test_gitfireset_check_ifaces_wrong_value():
+    fs = GitFireSet(repodir=repodir)
+    fs._remote_confs = {'bogus': 'not a bunch'} # value should be a Bunch
+    assert_raises(AssertionError, fs._check_ifaces)
+
+@with_setup(setup_dir, teardown_dir)
+def test_gitfireset_check_ifaces_wrong_bunch_size():
+    fs = GitFireSet(repodir=repodir)
+    fs._remote_confs = {'bogus': Bunch()} # len(Bunch(...)) should be 2 (ip_addr_v4, ip_addr_v6)
+    assert_raises(AssertionError, fs._check_ifaces)
+
+@with_setup(setup_dir, teardown_dir)
+def test_gitfireset_check_ifaces_missing_iface():
+    fs = GitFireSet(repodir=repodir)
+    fs.hosts = [
+        Bunch(hostname='host1', iface='lo'),
+        Bunch(hostname='host2', iface='lo')
+    ]
+    fs._remote_confs = {
+        'host1': Bunch(ip_a_s = {'lo': ()}),
+        'host2': Bunch(ip_a_s = {}) # missing iface
+    }
+    assert_raises(AssertionError, fs._check_ifaces)
+
+@with_setup(setup_dir, teardown_dir)
+def test_gitfireset_check_ifaces_wrong_ipaddr_string():
+    """_check_ifaces should raise AssertionError on incorrect IPaddr strings"""
+    fs = GitFireSet(repodir=repodir)
+    fs.hosts = [
+        Bunch(hostname='host1', iface='lo'),
+        Bunch(hostname='host2', iface='lo')
+    ]
+    fs._remote_confs = {
+        'host1': Bunch(ip_a_s = {'lo': ('bogus', 'bogus')}),
+        'host2': Bunch(ip_a_s = {'lo': ('bogus', 'bogus') })
+    }
+    assert_raises(AssertionError, fs._check_ifaces)
+
+@with_setup(setup_dir, teardown_dir)
+def test_gitfireset_check_ifaces_wrong_ipaddr():
+    """_check_ifaces should raise AssertionError on incorrect IPaddr"""
+    fs = GitFireSet(repodir=repodir)
+    fs.hosts = [
+        Bunch(hostname='host1', iface='lo', ip_addr='1.2.3.4'),
+    ]
+    fs._remote_confs = {
+        'host1': Bunch(ip_a_s = {'lo': ('1.2.3.5/32', None)}),
+    }
+    assert_raises(AssertionError, fs._check_ifaces)
+
+@with_setup(setup_dir, teardown_dir)
+def test_gitfireset_check_ifaces_correct():
+    """_check_ifaces should not raise AssertionError here"""
+    fs = GitFireSet(repodir=repodir)
+    fs.hosts = [
+        Bunch(hostname='host1', iface='lo', ip_addr='1.2.3.4'),
+    ]
+    fs._remote_confs = {
+        'host1': Bunch(ip_a_s = {'lo': ('1.2.3.4/32', None)}),
+    }
+    assert_raises(AssertionError, fs._check_ifaces)
+
 
 
 @with_setup(setup_dir, teardown_dir)

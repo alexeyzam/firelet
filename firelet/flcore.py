@@ -710,8 +710,8 @@ class FireSet(object):
             the contents of the host table"""
         log.debug("Checking interfaces...")
         confs = self._remote_confs
-        assert isinstance(confs, dict)
-        for q in confs.values():
+        assert isinstance(confs, dict), "_remote_confs not populated before calling _check_ifaces"
+        for q in confs.itervalues():
             assert isinstance(q, Bunch), repr(confs)
             assert len(q) == 2
         log.debug("Confs: %s" % repr(confs) )
@@ -719,7 +719,7 @@ class FireSet(object):
             if not h.hostname in confs:
                 raise Alert, "Host %s not available." % h.hostname
             ip_a_s = confs[h.hostname].ip_a_s
-            if not h.iface in ip_a_s:         #TODO: test this in unit testing
+            if not h.iface in ip_a_s:
                 raise Alert, "Interface %s missing on host %s" \
                     % (h.iface, h.hostname)
             ip_addr_v4, ip_addr_v6 = ip_a_s[h.iface]
