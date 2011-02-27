@@ -320,7 +320,6 @@ def hostgroups():
         say("Unable to %s hostgroup n. %s - %s" % (action, rid, e), level="alert")
         abort(500)
 
-
 @bottle.route('/hosts')
 @view('hosts')
 def hosts():
@@ -638,9 +637,9 @@ def main():
 
     if args.debug:
         debug_mode = True
-        log.basicConfig(level=log.DEBUG,
-                        format='%(asctime)s %(levelname)-8s %(message)s',
-                        datefmt='%a, %d %b %Y %H:%M:%S')
+#        log.basicConfig(level=log.DEBUG,
+#                        format='%(asctime)s %(levelname)-8s %(message)s',
+#                        datefmt='%a, %d %b %Y %H:%M:%S')
         log.debug("Debug mode")
         log.debug("Configuration file: '%s'" % args.cf)
         bottle.debug(True)
@@ -649,11 +648,11 @@ def main():
         reload = False
     else:
         debug_mode = False
-        log.basicConfig(level=log.INFO,
-                    format='%(asctime)s %(levelname)-8s %(message)s',
-                    datefmt='%a, %d %b %Y %H:%M:%S',
-                    filename=conf.logfile,
-                    filemode='w')
+#        log.basicConfig(level=log.INFO,
+#                    format='%(asctime)s %(levelname)-8s %(message)s',
+#                    datefmt='%a, %d %b %Y %H:%M:%S',
+#                    filename=conf.logfile,
+#                    filemode='w')
         reload = False
         say("Firelet started.", level="success")
 
