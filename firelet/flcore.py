@@ -234,11 +234,9 @@ class Service(Bunch):
     def update(self, d):
         """Validate, then set/update the internal dictionary"""
         ports = d['ports']
-        print 'here'
         if d['protocol'] in ('TCP', 'UDP') and ports:
             for block in ports.split(','):
                 try:
-                    print 'ha'
                     int_li = [int(i) for i in block.split(':')]
                 except ValueError:
                     raise Alert, "Incorrect syntax in port definition '%s'" % block
@@ -944,9 +942,9 @@ class FireSet(object):
 
     def _diff(self, remote_confs, new_confs):
         """Generate a dict containing the changes between the existing and
-        the compiled iptables ruleset *on each host* """
-        # TODO: this is a hack - rewrite it with two-step comparison:
-        # existing VS old (stored locally), existing VS new and then perform rule injection.
+        the compiled iptables ruleset on every host"""
+        # TODO: this is a hack - rewrite it using two-step comparison:
+        # existing VS old (stored locally), existing VS new
         # d = {hostname: ( [ added item, ... ], [ removed item, ... ] ), ... }
         d = {}
         for hostname, ex_iptables in remote_confs.iteritems():
@@ -958,13 +956,8 @@ class FireSet(object):
                 added_li = [x for x in new if x not in ex_iptables]
                 removed_li = [x for x in ex_iptables if x not in new]
 
-                for x in new:
-                    if x not in ex_iptables:
-                        bi = ex_iptables + [x + ' ' + '#' * 20]
-                        bi.sort()
-                        for eee in bi:
-                            print eee
-                        print
+                log.debug("added: %s" % repr(added_li))
+                log.debug("removed: %s" % repr(removed_li))
 
                 log.debug("Rules for %-15s old: %d new: %d added: %d removed: %d"
                     % (hostname, len(ex_iptables), len(new), len(added_li), len(removed_li)))

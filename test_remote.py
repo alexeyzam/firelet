@@ -101,10 +101,13 @@ def test_get_confs():
     d = dict((h, [ip_addr]) for ip_addr, h in addrmap.iteritems())
     sx = SSHConnector(d)
     confs = sx.get_confs()
+    assert isinstance(confs, dict)
     for hostname in d:
         assert hostname in confs, "%s missing from the results" % hostname
 
     for h, conf in confs.iteritems():
+#        assert isinstance(conf, dict), "%s's conf is not a dict: %s" \
+#            % (h, repr(conf))
         assert 'iptables' in conf
         assert 'ip_a_s' in conf
         assert 'nat' in conf['iptables']

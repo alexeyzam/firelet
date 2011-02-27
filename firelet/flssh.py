@@ -60,12 +60,10 @@ class SSHConnector(object):
         c.close()
         if c.isalive():
             c.close(force=True)
-        #logging.debug("iptables_save:" + repr(iptables_save))
-        iptables_p = self.parse_iptables_save(iptables_save)
-        #log.debug("iptables_p %s" % repr(iptables_p))
-        ip_a_s_p = self.parse_ip_addr_show(ip_addr_show)
-        d = Bunch(iptables=iptables_p, ip_a_s=ip_a_s_p)
-        confs[hostname] = d
+
+        confs[hostname] = (iptables_save, ip_addr_show)
+
+        log.debug(hostname)
 
     def get_confs(self, keep_sessions=False):
         """Connects to the firewalls, get the configuration and return:
@@ -73,6 +71,7 @@ class SSHConnector(object):
         """
         confs = {} # used by the threads to return the confs
         threads = []
+        # Fork the threads, collect the configurations
         for hostname, ip_addrs in self._targets.iteritems():
             confs[hostname] = None
             t = Thread(target=self.get_conf, args=(confs, hostname,
@@ -80,7 +79,19 @@ class SSHConnector(object):
             threads.append(t)
             t.start()
 
-        map(Thread.join, threads)
+        map(Thread.join, threads) # Wait the threads to terminate
+
+        # parse the configurations
+        for hostname in self._targets:
+            if not confs[hostname]:
+                raise Exception, "No configuration received from %s" % hostname
+            iptables_save, ip_addr_show = confs[hostname]
+            #logging.debug("iptables_save:" + repr(iptables_save))
+            iptables_p = self.parse_iptables_save(iptables_save)
+            #log.debug("iptables_p %s" % repr(iptables_p))
+            ip_a_s_p = self.parse_ip_addr_show(ip_addr_show)
+            d = Bunch(iptables=iptables_p, ip_a_s=ip_a_s_p)
+            confs[hostname] = d
 
         return confs
 

@@ -834,7 +834,7 @@ def test_DemoGitFireSet_check():
     fs = DemoGitFireSet(repodir=repodir)
     fs.save('test') #FIXME: shouldn't be required
     diff_dict = fs.check()
-#    assert diff_dict == {},  repr(diff_dict)[:300]
+    assert diff_dict == {},  repr(diff_dict)[:300]
 
     #FIXME: enable the test again
 
@@ -856,6 +856,26 @@ def test_DemoGitFireSet_deploy():
         assert ok == r
         #debug('r', r)
         #debug('ok', ok)
+
+@with_setup(setup_dir, teardown_dir)
+def test_DemoGitFireSet_deploy_then_check():
+    """Deploy conf then run check again"""
+    fs = DemoGitFireSet(repodir=repodir)
+    log.debug("Running deployment using repository in %s" % repodir)
+    fs.save('test') #FIXME: shouldn't be required
+    fs.deploy()
+    log.debug("Running check...")
+
+    fs.save('test') #FIXME: shouldn't be required
+    diff_dict = fs.check()
+    assert diff_dict == {},  repr(diff_dict)[:300]
+
+
+
+#@with_setup(setup_dir, teardown_dir)
+#def test_GitFireSet_deployment():
+#    fs = GitFireSet(repodir=repodir)
+#    fs.deploy()
 
 #@with_setup(setup_dir, teardown_dir)
 #def test_DemoGitFireSet_deploy():

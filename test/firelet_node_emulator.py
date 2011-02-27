@@ -13,7 +13,14 @@ logging.basicConfig(filename='firelet_ne.log',
     datefmt='%Y%m%d %H:%M:%S',
     level=logging.DEBUG)
 
+
+fwname = ''
 zz = lambda: sleep(.001)
+
+def debug(s, back=False):
+    global fwname
+    d = "->" if back else "<-"
+    logging.debug("%s %s %s" % (d, fwname, s))
 
 def ans(fn):
     """Answer with the contents of a file"""
@@ -21,53 +28,55 @@ def ans(fn):
     for line in open(fn):
         print line.rstrip()
         cnt += 1
+#        debug( "%s %s" % (fn, line.rstrip()) )
     logging.debug("Sending %s... %d lines" % (fn, cnt))
 
-def save_iptables(li, my_name):
+def save_iptables(li, fwname):
     """Save a new iptables conf locally"""
-    fn = "new-iptables-save-%s" % my_name
+    fn = "new-iptables-save-%s" % fwname
     open(fn, 'w').writelines(li)
 
-def apply_iptables(my_name):
+def apply_iptables(fwname):
     """Apply iptables
     Copy a file instead of running iptables-restore
     """
-    src = "new-iptables-save-%s" % my_name
-    dst = "live-iptables-save-%s" % my_name
+    src = "new-iptables-save-%s" % fwname
+    dst = "live-iptables-save-%s" % fwname
     try:
         copyfile(src, dst)
     except:
         pass
-    logging.info("Applied conf on %s" % my_name)
+    logging.info("Applied conf on %s" % fwname)
 
-def send_iptables(my_name):
+def send_iptables(fwname):
     """Deliver an iptables conf"""
     try:
-        fn = "live-iptables-save-%s" % my_name
+        fn = "live-iptables-save-%s" % fwname
         ans(fn)
-        logging.info("live iptables fetched from %s" % my_name)
-       #logging.debug(open(fn).readlines())
+        debug("sent live iptables")
         example = """# Created by Firelet for host localhost
             *filter
             # this is an iptables conf test
             # for localhost
             COMMIT
         """
-    except:
-        pass
-#        fn = "test/iptables-save-%s" % my_name
-#        ans(fn)
+    except Exception, e:
+        fn = "test/iptables-save-%s" % fwname
+        ans(fn)
+        debug("sent iptables from test/")
 
 def reset():
     for filename in glob.glob('new-iptables-save-') :
         os.remove( filename )
 
-def bye(my_name):
-    logging.debug("Disconnected from %s" % my_name)
+def bye(fwname):
+    logging.debug("Disconnected from %s" % fwname)
     exit()
 
 def main():
     """"""
+    global fwname
+
     addrmap = {
         "10.66.1.2": "Bilbo",
         "10.66.2.1": "Bilbo",
@@ -82,12 +91,12 @@ def main():
     new_iptables = []
     try:
         my_ipaddr = environ['SSH_CONNECTION'].split()[2]
-        my_name = addrmap[my_ipaddr]
+        fwname = addrmap[my_ipaddr]
     except:
-        my_name = ''
+        fwname = ''
     prompt = ''
 
-    logging.info("Connection to %s" % my_name)
+    debug("connection established")
 
     while 1:
 
@@ -96,46 +105,46 @@ def main():
             if prompt:
                 print prompt
             else:
-                print "firelet:%s~$" % my_name,
+                print "firelet:%s~$" % fwname,
 
         # try getting input (newline is stripped)
         try:
             cmd = raw_input()
         except EOFError:
-            bye(my_name)
+            bye(fwname)
 
         if not catting_new_iptables:
             history.append(cmd)
-#            logging.info("> %s '%s'" % (my_name, cmd))
+            logging.info("-> %s '%s'" % (fwname, cmd))
 
         # process cmd
         try:
             if cmd == 'exit':
-                bye(my_name)
+                bye(fwname)
             elif cmd == "PS1='[PEXPECT]\$ '":
                 prompt = "[PEXPECT]$ "
 
             # get iptables
             elif cmd == 'sudo /sbin/iptables-save':
-                send_iptables(my_name)
+                send_iptables(fwname)
             elif cmd == '/bin/ip addr show':
-                ans("test/ip-addr-show-%s" % my_name)
+                ans("test/ip-addr-show-%s" % fwname)
 
             # iptables delivery
             elif cmd.startswith('cat >') and cmd.endswith('<< EOF') and 'iptables' in cmd:
-                logging.info("Receiving iptables conf for %s" % my_name)
+                logging.info("Receiving iptables conf for %s" % fwname)
                 catting_new_iptables = True
             elif catting_new_iptables and cmd == 'EOF':
                 catting_new_iptables = False
-                save_iptables(new_iptables, my_name)
-                logging.info("Saving iptables conf for %s" % my_name)
+                save_iptables(new_iptables, fwname)
+                logging.info("Saving iptables conf for %s" % fwname)
                 new_iptables = []
             elif catting_new_iptables:
                 new_iptables.append(cmd + '\n')
 
             # apply
             elif cmd == '/sbin/iptables-restore < /etc/firelet/iptables':
-                apply_iptables(my_name)
+                apply_iptables(fwname)
 
             elif cmd == 'history':
                 for c in history:
@@ -145,7 +154,7 @@ def main():
             elif cmd == '##reset':
                 reset()
             elif cmd.startswith('###'):
-                my_name = cmd[3:]
+                fwname = cmd[3:]
 
             else:
                 from subprocess import Popen
@@ -154,7 +163,7 @@ def main():
 
         except Exception, e:
             logging.error("Emulator exception")
-            traceback.print_exc(file=open("/tmp/%s.trace" % my_name, "a"))
+            traceback.print_exc(file=open("/tmp/%s.trace" % fwname, "a"))
             logging.error("%s", e)
 
 if __name__ == '__main__':
