@@ -544,7 +544,7 @@ def loadcsv(n, d):
 def savecsv(n, stuff, d):
     """Save CSV file safely, preserving comments"""
     fullname = "%s/%s.csv" % (d, n)
-    log.debug('Writing "%s" in "%s"...' % (n, d))
+    log.debug('Saving "%s" in "%s"...' % (n, d))
     try:
         f = open(fullname)
         comments = [x for x in f if x.startswith('#')]
@@ -1093,8 +1093,8 @@ class GitFireSet(FireSet):
         if 'fatal: Not a git repository' in self._git('status')[1]:
             log.debug('Creating Git repo...')
             self._git('init .')
-            self._git('add *')
-            self._git('commit -m "First commit."')
+            self._git('add *.csv *.json')
+            self._git('commit -m "Configuration database created."')
 
     def version_list(self):
         """Parse git log --date=iso and returns a list of lists:
@@ -1175,8 +1175,8 @@ class GitFireSet(FireSet):
 
     def save_needed(self):
         """True if commit is required: files has been changed"""
-        o, e = self._git('status')
-#        log.debug("Git status output: '%s' error: '%s'" % (o, e))
+        o, e = self._git('status -uno')
+        #log.debug("Git status: '%s'" % (o))
         if 'nothing to commit ' in o:
             return False
         elif '# On branch master' in o:
