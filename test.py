@@ -810,7 +810,6 @@ def test_DemoGitFireSet_diff_table_generation_all_fw_added():
     """Test diff right after all the firewalls has been added.
     An empty diff should be generated."""
     fs = DemoGitFireSet(repodir=repodir)
-    fs.save('test') #FIXME: shouldn't be required
     comp_rules = fs.compile_rules()
     new_rules = {}
     for hn, b in comp_rules.iteritems():
@@ -837,7 +836,6 @@ def test_DemoGitFireSet_check():
     """Run diff between complied rules and remote confs using DemoGitFireSet
     Given the test files, the check should be ok and require no deployment"""
     fs = DemoGitFireSet(repodir=repodir)
-    fs.save('test') #FIXME: shouldn't be required
     diff_dict = fs.check()
 #    assert diff_dict == {},  repr(diff_dict)[:300]
 
@@ -858,10 +856,12 @@ def test_DemoGitFireSet_deploy():
     for h in fs.hosts:
         ok = open(repodir + '/iptables-save-%s' % h.hostname).readlines()
         r = open(repodir + '/iptables-save-%s-x' % h.hostname).readlines()
-#       assert ok == r          FIXME
-        #debug('r', r)
-        #debug('ok', ok)
+        assert ok == r
 
+    assert not fs.save_needed()
+    diff_dict = fs.check()
+    assert diff_dict == {}, "Check should be giving empty result instead of: %s" \
+        % repr(diff_dict)[:300]
 
 
 @with_setup(setup_dir, teardown_dir)
@@ -875,9 +875,10 @@ def test_DemoGitFireSet_deploy_then_check():
     assert not fs.save_needed()
     log.debug("Running check...")
 
-#    fs.save('test') #FIXME: shouldn't be required
     diff_dict = fs.check()
-    assert diff_dict == {},  repr(diff_dict)[:300]
+    assert diff_dict == {}, "Check should be giving empty result instead of: %s" \
+        % repr(diff_dict)[:300]
+    assert not fs.save_needed()
 
 
 
