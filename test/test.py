@@ -179,7 +179,7 @@ def test_MockSSHConnector_get_confs():
 #def test_get_confs3():
 #    fs = DumbFireSet(repodir=testingutils.repodir)
 #    fs._get_confs()
-#    assert fs._remote_confs == {'Bilbo': [None, '10.66.2.1', {'filter': '-A INPUT -s 10.0.0.0/8 -p tcp -m tcp --dport 80 -j ACCEPT\n-A FORWARD -s 1.2.3.4/32 -d 5.6.7.8/32 -p tcp -m multiport --dports 22,80,443 -j ACCEPT\n-A OUTPUT -d 10.10.10.10/32 -p udp -m udp --dport 123 -j ACCEPT', 'nat': '-A POSTROUTING -o eth3 -j MASQUERADE'}, {'lo': ('127.0.0.1/8', '::1/128'), 'eth1': ('10.66.2.1/24', 'fe80::3939:3939:3939:3939/64'), 'eth0': ('10.66.1.2/24', 'fe80::3939:3939:3939:3939/64')}], 'Fangorn': [None, '10.66.2.2', {'filter': '-A INPUT -s 10.0.0.0/8 -p tcp -m tcp --dport 80 -j ACCEPT\n-A FORWARD -s 1.2.3.4/32 -d 5.6.7.8/32 -p tcp -m multiport --dports 22,80,443 -j ACCEPT\n-A OUTPUT -d 10.10.10.10/32 -p udp -m udp --dport 123 -j ACCEPT', 'nat': '-A POSTROUTING -o eth3 -j MASQUERADE'}, {'lo': ('127.0.0.1/8', '::1/128'), 'eth0': ('10.66.2.2/24', 'fe80::3939:3939:3939:3939/64')}], 'Gandalf': [None, '10.66.1.1', {'filter': '-A INPUT -s 10.0.0.0/8 -p tcp -m tcp --dport 80 -j ACCEPT\n-A FORWARD -s 1.2.3.4/32 -d 5.6.7.8/32 -p tcp -m multiport --dports 22,80,443 -j ACCEPT\n-A OUTPUT -d 10.10.10.10/32 -p udp -m udp --dport 123 -j ACCEPT', 'nat': '-A POSTROUTING -o eth3 -j MASQUERADE'}, {'lo': ('127.0.0.1/8', '::1/128'), 'eth1': ('10.66.1.1/24', 'fe80::3939:3939:3939:3939/64'), 'eth0': ('172.16.2.223/24', 'fe80::3939:3939:3939:3939/64')}], 'Smeagol': [None, '10.66.1.3', {'filter': '-A INPUT -s 10.0.0.0/8 -p tcp -m tcp --dport 80 -j ACCEPT\n-A FORWARD -s 1.2.3.4/32 -d 5.6.7.8/32 -p tcp -m multiport --dports 22,80,443 -j ACCEPT\n-A OUTPUT -d 10.10.10.10/32 -p udp -m udp --dport 123 -j ACCEPT', 'nat': '-A POSTROUTING -o eth3 -j MASQUERADE'}, {'lo': ('127.0.0.1/8', '::1/128'), 'eth0': ('10.66.1.3/24', 'fe80::3939:3939:3939:3939/64')}]}
+#    assert fs._remote_confs == {'InternalFW': [None, '10.66.2.1', {'filter': '-A INPUT -s 10.0.0.0/8 -p tcp -m tcp --dport 80 -j ACCEPT\n-A FORWARD -s 1.2.3.4/32 -d 5.6.7.8/32 -p tcp -m multiport --dports 22,80,443 -j ACCEPT\n-A OUTPUT -d 10.10.10.10/32 -p udp -m udp --dport 123 -j ACCEPT', 'nat': '-A POSTROUTING -o eth3 -j MASQUERADE'}, {'lo': ('127.0.0.1/8', '::1/128'), 'eth1': ('10.66.2.1/24', 'fe80::3939:3939:3939:3939/64'), 'eth0': ('10.66.1.2/24', 'fe80::3939:3939:3939:3939/64')}], 'Server001': [None, '10.66.2.2', {'filter': '-A INPUT -s 10.0.0.0/8 -p tcp -m tcp --dport 80 -j ACCEPT\n-A FORWARD -s 1.2.3.4/32 -d 5.6.7.8/32 -p tcp -m multiport --dports 22,80,443 -j ACCEPT\n-A OUTPUT -d 10.10.10.10/32 -p udp -m udp --dport 123 -j ACCEPT', 'nat': '-A POSTROUTING -o eth3 -j MASQUERADE'}, {'lo': ('127.0.0.1/8', '::1/128'), 'eth0': ('10.66.2.2/24', 'fe80::3939:3939:3939:3939/64')}], 'BorderFW': [None, '10.66.1.1', {'filter': '-A INPUT -s 10.0.0.0/8 -p tcp -m tcp --dport 80 -j ACCEPT\n-A FORWARD -s 1.2.3.4/32 -d 5.6.7.8/32 -p tcp -m multiport --dports 22,80,443 -j ACCEPT\n-A OUTPUT -d 10.10.10.10/32 -p udp -m udp --dport 123 -j ACCEPT', 'nat': '-A POSTROUTING -o eth3 -j MASQUERADE'}, {'lo': ('127.0.0.1/8', '::1/128'), 'eth1': ('10.66.1.1/24', 'fe80::3939:3939:3939:3939/64'), 'eth0': ('172.16.2.223/24', 'fe80::3939:3939:3939:3939/64')}], 'Smeagol': [None, '10.66.1.3', {'filter': '-A INPUT -s 10.0.0.0/8 -p tcp -m tcp --dport 80 -j ACCEPT\n-A FORWARD -s 1.2.3.4/32 -d 5.6.7.8/32 -p tcp -m multiport --dports 22,80,443 -j ACCEPT\n-A OUTPUT -d 10.10.10.10/32 -p udp -m udp --dport 123 -j ACCEPT', 'nat': '-A POSTROUTING -o eth3 -j MASQUERADE'}, {'lo': ('127.0.0.1/8', '::1/128'), 'eth0': ('10.66.1.3/24', 'fe80::3939:3939:3939:3939/64')}]}
 
 
 
@@ -291,10 +291,10 @@ def test_gitfireset_check_ifaces_1():
 @with_setup(setup_dir, teardown_dir)
 def test_gitfireset_check_ifaces_20():
     fs = GitFireSet(repodir=testingutils.repodir)
-    d = {'Bilbo': {'filter': [], 'ip_a_s': {'eth1': ('10.66.2.1/24',None),
+    d = {'InternalFW': {'filter': [], 'ip_a_s': {'eth1': ('10.66.2.1/24',None),
                 'eth0': ('10.66.1.2/24', None)}},
-            'Fangorn': {'filter': [], 'ip_a_s': {'eth0': ('10.66.2.2/24', None)}},
-            'Gandalf': {'filter': [], 'ip_a_s': {
+            'Server001': {'filter': [], 'ip_a_s': {'eth0': ('10.66.2.2/24', None)}},
+            'BorderFW': {'filter': [], 'ip_a_s': {
                 'eth1': ('10.66.1.1/24', None),
                 'eth2': ('88.88.88.88/24', None),
                 'eth0': ('172.16.2.223/24', None)}},
@@ -372,9 +372,10 @@ def test_gitfireset_check_ifaces_correct():
 @with_setup(setup_dir, teardown_dir)
 def test_gitfireset_sibling_names():
     fs = GitFireSet(repodir=testingutils.repodir)
-    names = ['AllSystems', 'Bilbo:eth0', 'Bilbo:eth1', 'Clients', 'Fangorn:eth0', 'Gandalf:eth0', \
-    'Gandalf:eth1', 'Gandalf:eth2','SSHnodes', 'Servers', 'Smeagol:eth0', 'WebServers']
-    assert fs.list_sibling_names() == names, "list_sibling_names generating incorrect output"
+    names = ['AllSystems', 'InternalFW:eth0', 'InternalFW:eth1', 'Clients', 'Server001:eth0', 'BorderFW:eth0', \
+    'BorderFW:eth1', 'BorderFW:eth2','SSHnodes', 'Servers', 'Smeagol:eth0', 'WebServers']
+    sn = fs.list_sibling_names()
+    assert sorted(sn) == sorted(names), "list_sibling_names generating incorrect output: %s" % repr(sorted(sn))
 
 
 #@with_setup(setup_dir, teardown_dir)
@@ -441,7 +442,7 @@ def test_DemoGitFireSet_compile_rules_full():
     fs = GitFireSet(repodir=testingutils.repodir)
     rd = fs.compile_rules()
     ok = {
-      "Bilbo": {
+      "InternalFW": {
         "FORWARD": [
           "-m state --state RELATED,ESTABLISHED -j ACCEPT",
           "-s 10.66.1.1/32 -d 10.66.2.0/24 -p tcp  -m tcp  --dport 22 -j LOG  --log-prefix \"ssh_mgmt\" --log-level 2",
@@ -482,7 +483,7 @@ def test_DemoGitFireSet_compile_rules_full():
           " -o eth1  -j DROP"
         ]
       },
-      "Fangorn": {
+      "Server001": {
         "FORWARD": [
           "-j DROP"
         ],
@@ -506,7 +507,7 @@ def test_DemoGitFireSet_compile_rules_full():
           " -o eth0  -j DROP"
         ]
       },
-      "Gandalf": {
+      "BorderFW": {
         "FORWARD": [
           "-m state --state RELATED,ESTABLISHED -j ACCEPT",
           "-s 10.66.1.3/32 -d 172.16.2.223/32 -p udp  -m udp  --dport 123 -j LOG  --log-prefix \"ntp\" --log-level 0",
@@ -593,8 +594,8 @@ def test_DemoGitFireSet_build_ipt_restore():
     m = map(fs._build_ipt_restore, rset.iteritems())
     m = dict(m)
     ok = {
-      "Bilbo": [
-        "# Created by Firelet for host Bilbo",
+      "InternalFW": [
+        "# Created by Firelet for host InternalFW",
         "*filter",
         "-A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT",
         "-A INPUT -i lo -j ACCEPT",
@@ -631,8 +632,8 @@ def test_DemoGitFireSet_build_ipt_restore():
         "-A OUTPUT  -o eth1  -j DROP",
         "COMMIT"
       ],
-      "Fangorn": [
-        "# Created by Firelet for host Fangorn",
+      "Server001": [
+        "# Created by Firelet for host Server001",
         "*filter",
         "-A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT",
         "-A INPUT -i lo -j ACCEPT",
@@ -652,8 +653,8 @@ def test_DemoGitFireSet_build_ipt_restore():
         "-A OUTPUT  -o eth0  -j DROP",
         "COMMIT"
       ],
-      "Gandalf": [
-        "# Created by Firelet for host Gandalf",
+      "BorderFW": [
+        "# Created by Firelet for host BorderFW",
         "*filter",
         "-A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT",
         "-A INPUT -i lo -j ACCEPT",
@@ -756,15 +757,15 @@ def test_DemoGitFireSet_diff_table_generation_1():
 def test_DemoGitFireSet_diff_table_generation_2():
     """Test diff with no changes"""
     fs = DemoGitFireSet(repodir=testingutils.repodir)
-    diff_dict = fs._diff({'Bilbo':['']}, {'Bilbo':['']})
+    diff_dict = fs._diff({'InternalFW':['']}, {'InternalFW':['']})
     assert diff_dict == {}
 
 @with_setup(setup_dir, teardown_dir)
 def test_DemoGitFireSet_diff_table_generation_3():
     fs = DemoGitFireSet(repodir=testingutils.repodir)
-    diff_dict = fs._diff({'Bilbo':['old item', 'static item', 'old item2']},
-                                   {'Bilbo':['static item', 'new item', 'new item2']})
-    assert diff_dict == {'Bilbo': (['new item', 'new item2'], ['old item', 'old item2'])}
+    diff_dict = fs._diff({'InternalFW':['old item', 'static item', 'old item2']},
+                                   {'InternalFW':['static item', 'new item', 'new item2']})
+    assert diff_dict == {'InternalFW': (['new item', 'new item2'], ['old item', 'old item2'])}
 
 @with_setup(setup_dir, teardown_dir)
 def test_DemoGitFireSet_diff_table_generation_all_fw_removed():

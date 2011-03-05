@@ -1,7 +1,7 @@
 # Use monospaced font
 
      2.223          1.1                1.2         2.1           2.2
-shire--eth0-Gandalf-eth1---rivendell---eth0-Bilbo-eth1---moria---eth0-Fangorn
+shire--eth0-BorderFW-eth1---rivendell---eth0-InternalFW-eth1---production_net---eth0-Server001
                                      |
                                      +-eth0-Smeagol
                                        1.3

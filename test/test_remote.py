@@ -43,12 +43,12 @@ from testingutils import *
 import testingutils
 
 addrmap = {
-    "10.66.1.2": "Bilbo",
-    "10.66.2.1": "Bilbo",
+    "10.66.1.2": "InternalFW",
+    "10.66.2.1": "InternalFW",
     "10.66.1.3": "Smeagol",
-    "10.66.2.2": "Fangorn",
-    "172.16.2.223": "Gandalf",
-    "10.66.1.1": "Gandalf",
+    "10.66.2.2": "Server001",
+    "172.16.2.223": "BorderFW",
+    "10.66.1.1": "BorderFW",
     '127.0.0.1': 'localhost'
 }
 
@@ -66,11 +66,11 @@ def test_SSHConnector_get():
 #    fs = GitFireSet(repodir=repodir)
 #    fs._get_confs()
 #    assert fs._remote_confs == {
-#        'Bilbo': [None, '10.66.2.1', {'filter': '', 'nat': '-A POSTROUTING -o eth0 -j MASQUERADE'}, {'lo': ('127.0.0.1/8', '::1/128'), 'add': (None, None),
+#        'InternalFW': [None, '10.66.2.1', {'filter': '', 'nat': '-A POSTROUTING -o eth0 -j MASQUERADE'}, {'lo': ('127.0.0.1/8', '::1/128'), 'add': (None, None),
 #            'eth1': ('10.66.2.1/24', 'fe80::a00:27ff:fe52:a8b2/64'), 'eth0': ('10.66.1.2/24', 'fe80::a00:27ff:fe81:1366/64')}],
-#        'Fangorn': [None, '10.66.2.2', {'filter': '', 'nat': ''}, {'lo': ('127.0.0.1/8', '::1/128'), 'add': (None, None),
+#        'Server001': [None, '10.66.2.2', {'filter': '', 'nat': ''}, {'lo': ('127.0.0.1/8', '::1/128'), 'add': (None, None),
 #            'eth0': ('10.66.2.2/24', 'fe80::a00:27ff:fe77:6d19/64')}],
-#        'Gandalf': [None, '10.66.1.1', {'filter': '', 'nat': '-A POSTROUTING -o eth0 -j MASQUERADE'}, {'lo': ('127.0.0.1/8', '::1/128'), 'add': (None, None),
+#        'BorderFW': [None, '10.66.1.1', {'filter': '', 'nat': '-A POSTROUTING -o eth0 -j MASQUERADE'}, {'lo': ('127.0.0.1/8', '::1/128'), 'add': (None, None),
 #            'eth1': ('10.66.1.1/24', 'fe80::a00:27ff:fee6:4b3e/64'), 'eth0': ('172.16.2.223/17', 'fe80::a00:27ff:fe03:d05e/64')}],
 #        'Smeagol': [None, '10.66.1.3', {'filter': '', 'nat': ''}, {'lo': ('127.0.0.1/8', '::1/128'), 'add': (None, None),
 #            'eth0': ('10.66.1.3/24', 'fe80::a00:27ff:fe75:2c75/64')}]}
@@ -99,12 +99,12 @@ def test_get_confs():
         assert 'filter' in conf['iptables']
         assert 'lo' in conf['ip_a_s']
 
-    for h in ('Bilbo', 'Fangorn', 'Gandalf', 'Smeagol'):
+    for h in ('InternalFW', 'Server001', 'BorderFW', 'Smeagol'):
         assert 'eth0' in confs[h]['ip_a_s'], h + " has no eth0"
 
-    assert 'eth1' in confs['Gandalf']['ip_a_s']
-    assert 'eth1' in confs['Bilbo']['ip_a_s']
-    assert 'eth2' in confs['Gandalf']['ip_a_s']
+    assert 'eth1' in confs['BorderFW']['ip_a_s']
+    assert 'eth1' in confs['InternalFW']['ip_a_s']
+    assert 'eth2' in confs['BorderFW']['ip_a_s']
 
 
 ## # Rule deployment testing # #
@@ -115,7 +115,7 @@ def test_deliver_confs():
     sx = SSHConnector(d)
     confs = dict((h, []) for h in d)
     status = sx.deliver_confs(confs)
-    assert status == {'Bilbo': 'ok', 'Fangorn': 'ok', 'Gandalf': 'ok', 'localhost': 'ok', 'Smeagol': 'ok'}, repr(status)
+    assert status == {'InternalFW': 'ok', 'Server001': 'ok', 'BorderFW': 'ok', 'localhost': 'ok', 'Smeagol': 'ok'}, repr(status)
 
 
 @with_setup(setup_dir, teardown_dir)
@@ -134,7 +134,7 @@ def test_deliver_apply_and_get_confs():
     log.debug("Delivery...")
     sx = SSHConnector(d)
     status = sx.deliver_confs(confs)
-    assert status == {'Bilbo': 'ok', 'Fangorn': 'ok', 'Gandalf': 'ok', 'localhost': 'ok', 'Smeagol': 'ok'}, repr(status)
+    assert status == {'InternalFW': 'ok', 'Server001': 'ok', 'BorderFW': 'ok', 'localhost': 'ok', 'Smeagol': 'ok'}, repr(status)
 
     # apply
     log.debug("Applying...")

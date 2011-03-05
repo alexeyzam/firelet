@@ -67,12 +67,12 @@ def bye(my_name):
 def main():
     """"""
     addrmap = {
-        "10.66.1.2": "Bilbo",
-        "10.66.2.1": "Bilbo",
+        "10.66.1.2": "InternalFW",
+        "10.66.2.1": "InternalFW",
         "10.66.1.3": "Smeagol",
-        "10.66.2.2": "Fangorn",
-        "172.16.2.223": "Gandalf",
-        "10.66.1.1": "Gandalf",
+        "10.66.2.2": "Server001",
+        "172.16.2.223": "BorderFW",
+        "10.66.1.1": "BorderFW",
         '127.0.0.1': 'localhost'
     }
     history = []
