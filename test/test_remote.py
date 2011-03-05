@@ -35,27 +35,12 @@ from test import debug, string_in_list, assert_equal_line_by_line
 import logging
 log = logging.getLogger(__name__)
 
-# setup and teardown
+from logging import getLogger
+log = logging.getLogger(__name__)
+deb = log.debug
 
-def setup_dir():
-    global repodir
-    if repodir:
-        teardown_dir()
-    repodir = mkdtemp(prefix='tmp_fltest') + '/temp'
-    # copytree cannot copy to existing directories, hence the /temp
-    shutil.copytree('test', repodir)
-    li = listdir(repodir)
-    assert len(li) > 5
-    log.debug("temp dir %s created" % repodir)
-
-def teardown_dir():
-    global repodir
-    if repodir:
-        repodir = repodir[:-5]
-        shutil.rmtree(repodir)
-        repodir = None
-
-repodir = None
+from testingutils import *
+import testingutils
 
 addrmap = {
     "10.66.1.2": "Bilbo",
@@ -178,13 +163,13 @@ def test_deliver_apply_and_get_confs():
 def test_GitFireSet_check():
     """Run diff between complied rules and remote confs using GitFireSet
     Given the test files, the check should be ok and require no deployment"""
-    fs = GitFireSet(repodir=repodir)
+    fs = GitFireSet(repodir=testingutils.repodir)
     diff = fs.check()
     assert diff == {}
 
 @with_setup(setup_dir, teardown_dir)
 def test_GitFireSet_deployment():
-    fs = GitFireSet(repodir=repodir)
+    fs = GitFireSet(repodir=testingutils.repodir)
     fs.deploy()
 
 

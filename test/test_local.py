@@ -19,15 +19,6 @@ import shutil
 
 from nose.tools import assert_raises, with_setup
 
-try:
-    import json
-except ImportError:
-    import simplejson as json
-
-
-def dd(d):
-    """Debug dict"""
-    print json.dumps(d, indent=' ')
 
 # #  Testing flssh module locally # #
 

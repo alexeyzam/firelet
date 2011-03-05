@@ -14,29 +14,20 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import glob
-from os import listdir
-from json import dumps
-import shutil
-
 from nose.tools import assert_raises, with_setup
-from pprint import pformat
-from tempfile import mkdtemp
 
 from firelet.flcore import DemoGitFireSet
-
 from firelet import cli
 from firelet.cli import main as cli_main
 
 from logging import getLogger
 from testingutils import show
-from firelet import cli
-from firelet.cli import main as cli_main
-
-repodir = None
 
 log = getLogger(__name__)
 deb = log.debug
+
+from testingutils import *
+import testingutils
 
 # setup and teardown
 

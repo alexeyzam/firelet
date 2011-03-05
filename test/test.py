@@ -14,25 +14,19 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import glob
-from os import listdir
-from json import dumps
-import shutil
-
 from firelet import mailer
 from firelet.flcore import *
 from firelet.flssh import SSHConnector, MockSSHConnector
 from firelet.flmap import draw_svg_map
 from firelet.flutils import flag, Bunch, get_rss_channels
 from nose.tools import assert_raises, with_setup
-from pprint import pformat
-from tempfile import mkdtemp
 
 from firelet import cli
 from firelet.cli import main as cli_main
 
-import logging
+from logging import getLogger
 log = logging.getLogger(__name__)
+deb = log.debug
 
 #TODO: migration to network objects
 #TODO: parallel SSH
