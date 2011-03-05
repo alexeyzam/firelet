@@ -578,9 +578,13 @@ def loadjson(n, d):
         f = open("%s/%s.json" % (d, n))
         s = f.read()
         f.close()
+    except Exception, e:
+        raise Alert, "Unable read json file: %s" % e
+    try:
         return json.loads(s)
     except Exception, e:
-        raise Alert, "Unable to load users from '%s/%s.json'" % (d, n)
+        raise Alert, "Unable to load users from '%s/%s.json': %s" % (d, n, e)
+
 
 
 def savejson(n, obj, d):

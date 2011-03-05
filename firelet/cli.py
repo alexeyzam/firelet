@@ -169,6 +169,8 @@ def prettyprint(li):
 def say(s):
     print s
 
+def open_fs(repodir):
+    return GitFireSet(repodir=repodir)
 
 def main(mockargs=None):
 
@@ -196,7 +198,7 @@ def main(mockargs=None):
     else:
         repodir = conf.data_dir
 
-    fs = GitFireSet(repodir=repodir)
+    fs = open_fs(repodir)
 
     if a1 == 'save':
         if a3 or not a2:
