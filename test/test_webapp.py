@@ -15,19 +15,27 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from nose.tools import assert_raises, with_setup
-from firelet.daemon import *
 
+from logging import getLogger
+from testingutils import show
 
+log = getLogger(__name__)
+deb = log.debug
 
-@with_setup(setup_dir, teardown_dir)
-def test_not_auth():
-#    debug_mode = True
-#    bottle.debug(True)
-#    globals()['users'] = Users(d=repodir)
-    app = bottle.default_app()
-#    app = SessionMiddleware(app, session_opts)
-    result = app.handle('/', 'GET')
-    assert 'Please insert your credentials' in result
+from testingutils import *
+import testingutils
+
+import bottle
+
+#@with_setup(setup_dir, teardown_dir)
+#def test_not_auth():
+##    debug_mode = True
+##    bottle.debug(True)
+##    globals()['users'] = Users(d=repodir)
+#    app = bottle.default_app()
+##    app = SessionMiddleware(app, session_opts)
+#    result = app.handle('/', 'GET')
+#    assert 'Please insert your credentials' in result
 
 #TODO: implement webapp testing
 

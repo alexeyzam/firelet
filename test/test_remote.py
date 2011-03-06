@@ -125,10 +125,12 @@ def test_deliver_apply_and_get_confs():
 
     d = dict((h, [ip_addr]) for ip_addr, h in addrmap.iteritems())
     # confs =  {hostname: {iface: [rules, ] }, ... }
-    confs = dict((h, ['# this is an iptables conf test',
-                                '# for %s' % h,
-                                '-A INPUT -s 3.3.3.3/32 -j ACCEPT',
-                            ] ) for h in d)
+    confs = dict(
+        (h, ['# this is an iptables conf test',
+                '# for %s' % h,
+                '-A INPUT -s 3.3.3.3/32 -j ACCEPT',
+            ] ) for h in d
+    )
 
     # deliver
     log.debug("Delivery...")

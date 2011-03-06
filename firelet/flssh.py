@@ -47,11 +47,14 @@ class SSHConnector(object):
         """
         c = pxssh(timeout=5000)
         try:
+            log.debug("connecting to %s" % ip_addr)
+            #FIXME: failed on a host with empty /etc/motd
             c.login(ip_addr, username)
         except (TIMEOUT, EOF):
             c.close()
             if c.isalive():
                 c.close(force=True)
+            log.debug("Unable to connect to %s" % ip_addr)
             return
         log.debug("Connected to %s" % hostname)
         iptables_save = _exec(c,'sudo /sbin/iptables-save')
@@ -63,7 +66,9 @@ class SSHConnector(object):
 
         confs[hostname] = (iptables_save, ip_addr_show)
 
-        log.debug(hostname)
+        #FIXME: if a host returns unexpected output i.e. missing sudo it should be logged
+        if hostname == 'BorderFW':
+            log.debug(confs[hostname])
 
     def get_confs(self, keep_sessions=False):
         """Connects to the firewalls, get the configuration and return:
@@ -87,7 +92,8 @@ class SSHConnector(object):
                 raise Exception, "No configuration received from %s" % hostname
             iptables_save, ip_addr_show = confs[hostname]
             #logging.debug("iptables_save:" + repr(iptables_save))
-            iptables_p = self.parse_iptables_save(iptables_save)
+            iptables_p = self.parse_iptables_save(iptables_save, hostname=hostname)
+            #FIXME: iptables-save can be very slow when a firewall cannot resolve localhost
             #log.debug("iptables_p %s" % repr(iptables_p))
             ip_a_s_p = self.parse_ip_addr_show(ip_addr_show)
             d = Bunch(iptables=iptables_p, ip_a_s=ip_a_s_p)
@@ -100,7 +106,7 @@ class SSHConnector(object):
         for line in li:
             pass
 
-    def parse_iptables_save(self, li):
+    def parse_iptables_save(self, li, hostname=None):
         """Parse iptables-save output and returns a dict:
         {'filter': [rule, rule, ... ], 'nat': [] }
 
@@ -134,7 +140,6 @@ class SSHConnector(object):
 
         if isinstance(li, str):
             li = li.split('\n')
-
         try:
             block = li[li.index('*nat'):li.index('COMMIT')]
             nat = filter(_rules, block)
@@ -146,7 +151,7 @@ class SSHConnector(object):
             block = filter_li[:filter_li.index('COMMIT')] # up to COMMIT
             f = filter(_rules, block)
         except ValueError:
-            log.error("Unable to parse iptables-save output: missing '*filter' and/or 'COMMIT'")
+            log.error("Unable to parse iptables-save output: missing '*filter' and/or 'COMMIT' on %s" % hostname)
             raise Exception, "Unable to parse iptables-save output: missing '*filter' and/or 'COMMIT' in %s" % repr(li)
 
         return Bunch(nat=nat, filter=f)
@@ -209,12 +214,35 @@ class SSHConnector(object):
         c.prompt()
         ret = c.before
         log.debug('Deployed ruleset file to %s, got """%s"""' % (hostname, ret)  )
+        ret = _exec(c, 'sync')
+#        ret = _exec(c, "[ -f iptables_current ] && /bin/cp -f iptables_current iptables_previous")
+#        log.debug('Copied ruleset file to %s, got """%s"""' % (hostname, ret)  )
+        ret = _exec(c, "/bin/ln -fs .iptables-%s iptables_current" % tstamp)
+        log.debug('Linked ruleset file to %s, got """%s"""' % (hostname, ret)  )
 
         c.close()
         if c.isalive():
             c.close(force=True)
 
         status[hostname] = 'ok'
+
+
+    # TODO: unit testing
+    def _gen_iptables_restore(self, hostname, rules):
+        """Generate an iptable-restore-compatible configuration block
+        Return a list
+        """
+        block = ["# Created by Firelet for host %s" % hostname]
+        block.append('*filter')
+        block.append(':INPUT ACCEPT') #FIXME: consider using DROP
+        #FIXME: forwarding should depend on the host
+        # being a network firewall or not
+        block.append(':FORWARD ACCEPT')
+        block.append(':OUTPUT ACCEPT')
+        for rule in rules:
+            block.append(str(rule))
+        block.append('COMMIT')
+        return block
 
 
     def deliver_confs(self, newconfs_d):
@@ -229,12 +257,7 @@ class SSHConnector(object):
         threads = []
         for hostname, ip_addrs in self._targets.iteritems():
             status[hostname] = None
-            block = ["# Created by Firelet for host %s" % hostname,
-                '*filter']
-            for rule in newconfs_d[hostname]:
-                block.append(str(rule))
-            block.append('COMMIT')
-            block.append('EOF')
+            block = self._gen_iptables_restore(hostname, newconfs_d[hostname])
             t = Thread(target=self.deliver_conf, args=(status, hostname,
                 ip_addrs[0], 'firelet', block ))
             threads.append(t)
@@ -257,8 +280,10 @@ class SSHConnector(object):
                 c.close(force=True)
             return
 
-        iptables_save = _exec(c,'/sbin/iptables-restore < /etc/firelet/iptables')
-
+        log.debug("Applying conf on %s..." % hostname)
+        iptables_save = _exec(c,'/sbin/iptables-restore < iptables_current')
+        log.debug("iptables-restore output on %s %s" % (hostname, iptables_save))
+        #TODO: check for successful restore
         c.close()
         if c.isalive():
             c.close(force=True)
