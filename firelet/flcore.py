@@ -23,14 +23,14 @@ from netaddr import IPAddress, IPNetwork
 from os import fsync, rename, unlink
 from socket import inet_ntoa, inet_aton
 from struct import pack, unpack
-import logging
 
 from flssh import SSHConnector, MockSSHConnector
 from flutils import Alert, Bunch, flag, extract_all
 
 __version__ = '0.4.3'
 
-log = logging.getLogger(__name__)
+from logging import getLogger
+log = getLogger(__name__)
 
 # Logging levels:
 #

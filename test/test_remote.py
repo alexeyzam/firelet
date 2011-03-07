@@ -107,6 +107,19 @@ def test_get_confs():
     assert 'eth2' in confs['BorderFW']['ip_a_s']
 
 
+@with_setup(setup_dir, teardown_dir)
+def test_get_conf_BorderFW():
+    d = {'BorderFW': ['172.16.2.223']}
+    for x in xrange(20):
+        deb(show("%d run" % x))
+        sx = SSHConnector(d)
+        confs = sx.get_confs()
+        assert isinstance(confs, dict)
+        assert 'BorderFW' in confs, "BorderFW missing from the results"
+        assert 'iptables' in confs['BorderFW']
+        del(sx)
+        deb(show("Completed run %d" % x))
+
 ## # Rule deployment testing # #
 
 @with_setup(setup_dir, teardown_dir)

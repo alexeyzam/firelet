@@ -25,7 +25,7 @@ from firelet import cli
 from firelet.cli import main as cli_main
 
 from logging import getLogger
-log = logging.getLogger(__name__)
+log = getLogger(__name__)
 deb = log.debug
 
 #TODO: migration to network objects

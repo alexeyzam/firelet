@@ -30,6 +30,7 @@ def _exec(c, s):
     ret = c.before.split('\n')
     return map(str.rstrip, ret)
 
+from StringIO import StringIO
 
 class SSHConnector(object):
     """Manage a pool of pxssh connections to the firewalls. Get the running
@@ -45,16 +46,18 @@ class SSHConnector(object):
         """Connect to a firewall and get its configuration.
             Save the output in a dict inside the shared dict "confs"
         """
-        c = pxssh(timeout=5000)
+        logfile = StringIO()
+        c = pxssh(timeout=5000, logfile=logfile)
         try:
             log.debug("connecting to %s" % ip_addr)
             #FIXME: failed on a host with empty /etc/motd
             c.login(ip_addr, username)
         except (TIMEOUT, EOF):
+            log.debug("Unable to connect to %s" % ip_addr)
             c.close()
             if c.isalive():
                 c.close(force=True)
-            log.debug("Unable to connect to %s" % ip_addr)
+            log.debug("SSH connection failed: %s" % repr(logfile.getvalue()))
             return
         log.debug("Connected to %s" % hostname)
         iptables_save = _exec(c,'sudo /sbin/iptables-save')
@@ -70,6 +73,7 @@ class SSHConnector(object):
         if hostname == 'BorderFW':
             log.debug(confs[hostname])
 
+
     def get_confs(self, keep_sessions=False):
         """Connects to the firewalls, get the configuration and return:
             { hostname: Bunch of "session, ip_addr, iptables-save, interfaces", ... }
@@ -83,9 +87,9 @@ class SSHConnector(object):
                 ip_addrs[0], 'firelet'))
             threads.append(t)
             t.start()
-
+        log.debug("Waiting")
         map(Thread.join, threads) # Wait the threads to terminate
-
+        log.debug("Threads stopped")
         # parse the configurations
         for hostname in self._targets:
             if not confs[hostname]:
