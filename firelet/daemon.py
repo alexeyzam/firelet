@@ -23,7 +23,6 @@ from bottle import abort, route, static_file, run, view, request
 from bottle import debug as bottle_debug
 from collections import defaultdict
 from datetime import datetime
-from subprocess import Popen, PIPE
 from sys import exit
 from time import time, sleep, localtime
 
