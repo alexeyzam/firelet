@@ -1068,11 +1068,11 @@ class FireSet(object):
         log.debug('Fetching live configurations...')
         self._get_confs(keep_sessions=False)
         diff = self._diff_compiled_and_remote_rules(comp_rules)
-        self.saverepr(comp_rules, '/tmp/comp')
-        self.saverepr(self._remote_confs, '/tmp/rem')
-        log.debug('--diff--')
-        log.debug(repr(diff))
-        log.debug('--end--')
+#        self.saverepr(comp_rules, '/tmp/comp')
+#        self.saverepr(self._remote_confs, '/tmp/rem')
+#        log.debug('--diff--')
+#        log.debug(repr(diff))
+#        log.debug('--end--')
 
         if diff:
             log.error('Deployment failed!')

@@ -15,7 +15,10 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from datetime import datetime
-from pxssh import pxssh, TIMEOUT, EOF
+
+import paramiko
+import socket
+
 from threading import Thread
 
 from flutils import Bunch
@@ -23,72 +26,141 @@ from flutils import Bunch
 import logging
 log = logging.getLogger(__name__)
 
-def _exec(c, s):
-    """Execute remote command"""
-    c.sendline(s)
-    c.prompt()
-    ret = c.before.split('\n')
-    return map(str.rstrip, ret)
+from time import time
 
-from StringIO import StringIO
+def timeit(method):
+    def timed(*args, **kw):
+        t = time()
+        log.debug("starting %s <" % method.__name__)
+        result = method(*args, **kw)
+        log.debug("> end %s %2.3fs" %
+            (method.__name__, time() - t)
+        )
+        return result
+    return timed
+
+
+
+class Forker(object):
+    """Fork a set of threads and wait for their completion"""
+    def __init__(self, target, args_list):
+        # Set up exception handling
+        self.exception = None
+        def wrapper(*args, **kwargs):
+            try:
+                callable(*args, **kwargs)
+            except BaseException:
+                pass
+#                self.exception = sys.exc_info()
+        # Kick off thread
+        threads = []
+        for args in args_list:
+            thread = Thread(None, target, '', args)
+            threads.append(thread)
+            thread.setDaemon(True)
+            thread.start()
+        map(Thread.join, threads)
+
+
+
+
 
 class SSHConnector(object):
     """Manage a pool of pxssh connections to the firewalls. Get the running
     configuation and deploy new configurations.
     """
+
     def __init__(self, targets=None, username='firelet'):
         self._pool = {} # connections pool: {'hostname': pxssh session, ... }
         self._targets = targets   # {hostname: [management ip address list ], ... }
         assert isinstance(targets, dict), "targets must be a dict"
         self._username = username
 
-    def get_conf(self, confs, hostname, ip_addr, username):
+
+    @timeit
+    def _connect(self):
+        """Connects to the firewalls on a per-need basis.
+        Returns a list of unreachable hosts.
+        """
+        unreachables = []
+
+        for hostname, addrs in self._targets.iteritems():
+
+            if hostname in self._pool:
+                continue # already connected
+
+            assert len(addrs), "No management IP address for %s, " % hostname
+            ip_addr = addrs[0]      #TODO: cycle through different addrs
+
+            c = paramiko.SSHClient()
+            c.load_system_host_keys()
+            c.set_missing_host_key_policy(paramiko.AutoAddPolicy()) #TODO: configurable
+
+            try:
+                c.connect(
+                    hostname=ip_addr,
+                    port=22,
+                    username=self._username,
+    #                password=password, Q
+    #                key_filename=env.key_filename,
+                    timeout=10,
+    #                allow_agent=not env.no_agent,
+    #                look_for_keys=not env.no_keys
+                )
+                log.debug("Connected to %s" % hostname)
+                # add the new connection to the connection pool
+                self._pool[hostname] = c
+            except Exception, e:
+                log.debug("Unable to connect to %s: e" % (hostname, e))
+                c.close()
+                unreachables.append(hostname)
+                #TODO: add proper exception handling
+
+        return unreachables
+
+
+    @timeit
+    def __del__(self):
+        """When destroyed, close existing SSH connections"""
+        for c in self._pool.itervalues():
+            try:
+                c.close()
+            except Exception, e:
+                print e
+
+    def _execute(self, hostname, cmd):
+        """Execute remote command"""
+        c = self._pool[hostname]
+        try:
+            stdin, stdout, stderr = c.exec_command(str(cmd))
+            out = stdout.readlines()
+        except:
+            pass #TODO: handle errors
+        return map(str.rstrip, out)
+
+
+    def _get_conf(self, confs, hostname, username):
         """Connect to a firewall and get its configuration.
             Save the output in a dict inside the shared dict "confs"
         """
-        logfile = StringIO()
-        c = pxssh(timeout=5000, logfile=logfile)
-        try:
-            log.debug("connecting to %s" % ip_addr)
-            #FIXME: failed on a host with empty /etc/motd
-            c.login(ip_addr, username)
-        except (TIMEOUT, EOF):
-            log.debug("Unable to connect to %s" % ip_addr)
-            c.close()
-            if c.isalive():
-                c.close(force=True)
-            log.debug("SSH connection failed: %s" % repr(logfile.getvalue()))
-            return
-        log.debug("Connected to %s" % hostname)
-        iptables_save = _exec(c,'sudo /sbin/iptables-save')
-        ip_addr_show = _exec(c, '/bin/ip addr show')
-
-        c.close()
-        if c.isalive():
-            c.close(force=True)
-
+        iptables_save = self._execute(hostname, 'sudo /sbin/iptables-save')
+        ip_addr_show = self._execute(hostname, '/bin/ip addr show')
         confs[hostname] = (iptables_save, ip_addr_show)
-
         #FIXME: if a host returns unexpected output i.e. missing sudo it should be logged
-        if hostname == 'BorderFW':
-            log.debug(confs[hostname])
 
 
+    @timeit
     def get_confs(self, keep_sessions=False):
         """Connects to the firewalls, get the configuration and return:
             { hostname: Bunch of "session, ip_addr, iptables-save, interfaces", ... }
         """
+        self._connect()
         confs = {} # used by the threads to return the confs
         threads = []
-        # Fork the threads, collect the configurations
-        for hostname, ip_addrs in self._targets.iteritems():
-            confs[hostname] = None
-            t = Thread(target=self.get_conf, args=(confs, hostname,
-                ip_addrs[0], 'firelet'))
-            threads.append(t)
-            t.start()
-        log.debug("Waiting")
-        map(Thread.join, threads) # Wait the threads to terminate
+
+        args = [(confs, hn, 'firelet') for hn in self._targets ]
+        Forker(self._get_conf, args)
+
         log.debug("Threads stopped")
         # parse the configurations
         for hostname in self._targets:
@@ -109,6 +181,7 @@ class SSHConnector(object):
     def _extract_iptables_save_nat(self, li):
         for line in li:
             pass
+
 
     def parse_iptables_save(self, li, hostname=None):
         """Parse iptables-save output and returns a dict:
@@ -155,8 +228,10 @@ class SSHConnector(object):
             block = filter_li[:filter_li.index('COMMIT')] # up to COMMIT
             f = filter(_rules, block)
         except ValueError:
-            log.error("Unable to parse iptables-save output: missing '*filter' and/or 'COMMIT' on %s" % hostname)
-            raise Exception, "Unable to parse iptables-save output: missing '*filter' and/or 'COMMIT' in %s" % repr(li)
+            log.error("Unable to parse iptables-save output: missing '*filter' and/or 'COMMIT' on %s" \
+                % hostname)
+            raise Exception, "Unable to parse iptables-save output: missing '*filter' and/or 'COMMIT' in %s" \
+                % repr(li)
 
         return Bunch(nat=nat, filter=f)
 
@@ -196,39 +271,26 @@ class SSHConnector(object):
         return d
 
 
-    def deliver_conf(self, status, hostname, ip_addr, username, block):
+    def _deliver_conf(self, status, hostname, username, block):
         """Connect to a firewall and deliver iptables configuration.
         """
-        c = pxssh(timeout=5000)
-        try:
-            c.login(ip_addr, username)
-        except (TIMEOUT, EOF):
-            c.close()
-            if c.isalive():
-                c.close(force=True)
-            return
-
-        log.debug("Connected to %s" % hostname)
-
         tstamp = datetime.utcnow().isoformat()[:19]
-        c.sendline("cat > .iptables-%s << EOF" % tstamp)
-        for x in block:
-            c.sendline(x)
-        c.sendline('EOF')
-        c.prompt()
-        ret = c.before
-        log.debug('Deployed ruleset file to %s, got """%s"""' % (hostname, ret)  )
-        ret = _exec(c, 'sync')
-#        ret = _exec(c, "[ -f iptables_current ] && /bin/cp -f iptables_current iptables_previous")
+        # deliver iptables conf file
+        delivery = ["cat > .iptables-%s << EOF" % tstamp]
+        delivery.extend(block)
+        delivery.append('EOF')
+        delivery = '\n'.join(delivery)
+        ret = self._execute(hostname, delivery)
+        log.debug('Deployed ruleset file to %s, got """%s"""' % (hostname, ret))
+
+        ret = self._execute(hostname, 'sync')
+#        ret = self._execute(hostname, "[ -f iptables_current ] && /bin/cp -f iptables_current iptables_previous")
 #        log.debug('Copied ruleset file to %s, got """%s"""' % (hostname, ret)  )
-        ret = _exec(c, "/bin/ln -fs .iptables-%s iptables_current" % tstamp)
+        # setup symlink
+        ret = self._execute(hostname, "/bin/ln -fs .iptables-%s iptables_current" % tstamp)
         log.debug('Linked ruleset file to %s, got """%s"""' % (hostname, ret)  )
-
-        c.close()
-        if c.isalive():
-            c.close(force=True)
-
         status[hostname] = 'ok'
+        return
 
 
     # TODO: unit testing
@@ -249,6 +311,7 @@ class SSHConnector(object):
         return block
 
 
+    @timeit
     def deliver_confs(self, newconfs_d):
         """Connects to firewalls and deliver the configuration
             using multiple threads.
@@ -256,72 +319,39 @@ class SSHConnector(object):
             newconfs_d =  {hostname: [rule, ... ], ... }
         """
         assert isinstance(newconfs_d, dict), "Dict expected"
-
+        self._connect()
         status = {}
-        threads = []
-        for hostname, ip_addrs in self._targets.iteritems():
-            status[hostname] = None
-            block = self._gen_iptables_restore(hostname, newconfs_d[hostname])
-            t = Thread(target=self.deliver_conf, args=(status, hostname,
-                ip_addrs[0], 'firelet', block ))
-            threads.append(t)
-            t.start()
+        args = []
+        for hn in self._targets:
+            block = self._gen_iptables_restore(hn, newconfs_d[hn])
+            args.append((status, hn, 'firelet', block))
 
-        map(Thread.join, threads)
+        Forker(self._deliver_conf, args)
         return status
 
 
-    def _apply_remote_conf(self, status, hostname, ip_addr, username):
+    def _apply_remote_conf(self, status, hostname, username):
         """Run iptables-restore on a firewall
         """
-
-        c = pxssh(timeout=5000)
-        try:
-            c.login(ip_addr, username)
-        except (TIMEOUT, EOF):
-            c.close()
-            if c.isalive():
-                c.close(force=True)
-            return
-
         log.debug("Applying conf on %s..." % hostname)
-        iptables_save = _exec(c,'/sbin/iptables-restore < iptables_current')
+        iptables_save = self._execute(hostname,'sudo /sbin/iptables-restore < iptables_current')
         log.debug("iptables-restore output on %s %s" % (hostname, iptables_save))
-        #TODO: check for successful restore
-        c.close()
-        if c.isalive():
-            c.close(force=True)
-
         status[hostname] = 'ok'
 
 
+    @timeit
     def apply_remote_confs(self, keep_sessions=False):
         """Load the deployed ruleset on the firewalls"""
-
         status = {}
-        threads = []
-        for hostname, ip_addrs in self._targets.iteritems():
-            t = Thread(target=self._apply_remote_conf,
-                    args=(status, hostname, ip_addrs[0], 'firelet'))
-            threads.append(t)
-            t.start()
-
-        map(Thread.join, threads)
+        args = [(status, hn, 'firelet') for hn in self._targets ]
+        Forker(self._apply_remote_conf, args)
         return status
 
-#        self._connect()
-#
-#        for hostname, p in self._pool.iteritems():
-#            ret = self._interact(p,'/sbin/iptables-restore < /tmp/newiptables')
-#            log.debug("Deployed ruleset file to %s, got %s" % (hostname, ret)  )
-#
-#        if not keep_sessions: self._disconnect()
-#        return
-
-    def _disconnect(self, *a):
-        pass
+    #FIXME: reimplement _disconnect here
 
 
+
+#TODO: fix MockSSHConnector
 
 class MockSSHConnector(SSHConnector):
     """Used in Demo mode and during unit testing to prevent network interactions.
@@ -412,8 +442,6 @@ class MockSSHConnector(SSHConnector):
         # No way to test the iptables-restore.
         if not keep_sessions: self._disconnect()
         return
-
-
 
 
 
