@@ -706,6 +706,7 @@ class FireSet(object):
             return sx
         sx._disconnect()
         del(sx)
+        log.debug("_get_confs ended")
 
     def _check_ifaces(self):
         """Ensure that the interfaces configured on the hosts match
@@ -960,8 +961,8 @@ class FireSet(object):
                 added_li = [x for x in new if x not in ex_iptables]
                 removed_li = [x for x in ex_iptables if x not in new]
 
-                log.debug("added: %s" % repr(added_li))
-                log.debug("removed: %s" % repr(removed_li))
+#                log.debug("added: %s" % repr(added_li))
+#                log.debug("removed: %s" % repr(removed_li))
 
                 log.debug("Rules for %-15s old: %d new: %d added: %d removed: %d"
                     % (hostname, len(ex_iptables), len(new), len(added_li), len(removed_li)))
@@ -971,7 +972,6 @@ class FireSet(object):
             else:
                 log.debug('%s removed?' % hostname) #TODO: review this, manage *new* hosts as well
         return d
-
 
     def _build_ipt_restore_blocks(self, (hostname, b)):
         """Build a list of strings for each chain compatible with iptables-restore"""
@@ -1061,9 +1061,16 @@ class FireSet(object):
         log.debug('Delivering configurations...')
         sx.deliver_confs(c)
 
-        #TODO: setup timers to restore the remote confs automatically
+        log.debug('Saving existing configurations...')
+        sx.save_existing_confs()
+
+        log.debug('Setting up automatic rollback...')
+        sx.setup_auto_rollbacks()
         log.debug('Applying configurations...')
         sx.apply_remote_confs()
+        return
+        log.debug('Cancelling automatic rollback...')
+        sx.cancel_auto_rollbacks()
 
         log.debug('Fetching live configurations...')
         self._get_confs(keep_sessions=False)
@@ -1076,6 +1083,8 @@ class FireSet(object):
 
         if diff:
             log.error('Deployment failed!')
+            raise Alert('Deployment failed!')
+            #TODO: more context
         else:
             log.debug('Deployment completed.')
 

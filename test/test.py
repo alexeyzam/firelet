@@ -82,6 +82,8 @@ def debug(s, o=None):
 
 # #  Testing flssh module without network interaction # #
 
+#TODO: test SSHConnector instead of MockSSHConnector where possible
+
 def test_parse_iptables_save_1():
     sx = MockSSHConnector(targets={'localhost':['127.0.0.1']})
     assert_raises(Exception, sx.parse_iptables_save, '')
@@ -118,6 +120,19 @@ COMMIT
 COMMIT""")
     assert repr(ret) == """{'filter': ['-A INPUT -d 3.3.3.3/32 -p tcp -m tcp --dport 44 -j ACCEPT'], 'nat': ['-A PREROUTING -d 1.2.3.4/32 -p tcp -m tcp --dport 44 -j ACCEPT']}""", \
         "Returned: %s" % repr(ret)
+
+
+#def test_gen_iptables_restore_1():
+#    sx = SSHConnector(targets={'localhost':['127.0.0.1']})
+#    block = sx._gen_iptables_restore('localhost', [])
+#    assert block == [
+#        '# Created by Firelet for host localhost',
+#        '*filter',
+#        ':INPUT ACCEPT',
+#        ':FORWARD ACCEPT',
+#        ':OUTPUT ACCEPT',
+#        'COMMIT'
+#    ], "Incorrect empty iptables-restore block created: %s" % repr(block)
 
 
 

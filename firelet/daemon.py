@@ -635,23 +635,27 @@ def main():
     # logging
 
     if args.debug:
-        debug_mode = True
 #        log.basicConfig(level=log.DEBUG,
 #                        format='%(asctime)s %(levelname)-8s %(message)s',
 #                        datefmt='%a, %d %b %Y %H:%M:%S')
+        logging.basicConfig(
+            level=logging.DEBUG,
+#            format='%(asctime)s [%(process)d] %(levelname)s %(name)s %(message)s',
+            format='%(asctime)s [%(process)d] %(levelname)s %(name)s (%(funcName)s) %(message)s',
+            datefmt = '%Y-%m-%d %H:%M:%S' # %z for timezone
+        )
         log.debug("Debug mode")
         log.debug("Configuration file: '%s'" % args.cf)
-        bottle.debug(True)
         say("Firelet started in debug mode.", level="success")
         bottle_debug(True)
-        reload = False
+        reload = True
     else:
-        debug_mode = False
-#        log.basicConfig(level=log.INFO,
-#                    format='%(asctime)s %(levelname)-8s %(message)s',
-#                    datefmt='%a, %d %b %Y %H:%M:%S',
-#                    filename=conf.logfile,
-#                    filemode='w')
+        logging.basicConfig(
+            level=logging.DEBUG,
+            format='%(asctime)s [%(process)d] %(levelname)s %(name)s %(message)s',
+            datefmt = '%Y-%m-%d %H:%M:%S' # %z for timezone
+            #TODO: add filename=conf.logfile
+        )
         reload = False
         say("Firelet started.", level="success")
 
