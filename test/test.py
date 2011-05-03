@@ -382,15 +382,23 @@ def test_gitfireset_check_ifaces_correct():
     }
     assert_raises(AssertionError, fs._check_ifaces)
 
-
-
 @with_setup(setup_dir, teardown_dir)
 def test_gitfireset_sibling_names():
     fs = GitFireSet(repodir=testingutils.repodir)
-    names = ['AllSystems', 'InternalFW:eth0', 'InternalFW:eth1', 'Clients', 'Server001:eth0', 'BorderFW:eth0', \
-    'BorderFW:eth1', 'BorderFW:eth2','SSHnodes', 'Servers', 'Smeagol:eth0', 'WebServers']
+    names = ['AllSystems', 'BorderFW:eth0', 'BorderFW:eth1', 'BorderFW:eth2', 'Clients', 'InternalFW:eth0', \
+        'InternalFW:eth1', 'SSHnodes', 'Server001:eth0', 'Servers', 'Smeagol:eth0', 'Tester:eth1', 'WebServers']
+
     sn = fs.list_sibling_names()
     assert sorted(sn) == sorted(names), "list_sibling_names generating incorrect output: %s" % repr(sorted(sn))
+
+@with_setup(setup_dir, teardown_dir)
+def test_gitfireset_get_firewalls():
+    fs = GitFireSet(repodir=testingutils.repodir)
+    hosts = fs._get_firewalls()
+    hostnames = sorted((h.hostname, h.iface) for h in hosts)
+    ok = [('BorderFW', 'eth0'), ('BorderFW', 'eth1'), ('BorderFW', 'eth2'), ('InternalFW', 'eth0'),
+        ('InternalFW', 'eth1'), ('Server001', 'eth0'), ('Smeagol', 'eth0')]
+    assert hostnames == ok, "Wrong hosts selected as firewalls: %s" % repr(hostnames)
 
 
 #@with_setup(setup_dir, teardown_dir)
@@ -436,7 +444,7 @@ def test_DemoGitFireSet_get_confs():
     fs._get_confs(keep_sessions=False)
     for hostname, v in fs._remote_confs.iteritems():
         assert isinstance(v, Bunch)
-    for h in fs.hosts:
+    for h in fs._get_firewalls():
         assert h.hostname in fs._remote_confs, "Missing host %s" % h.hostname
 
 
@@ -457,7 +465,7 @@ def test_DemoGitFireSet_compile_rules_full():
     fs = GitFireSet(repodir=testingutils.repodir)
     rd = fs.compile_rules()
     ok = {
-      "InternalFW": {
+        "InternalFW": {
         "FORWARD": [
           "-m state --state RELATED,ESTABLISHED -j ACCEPT",
           "-s 10.66.1.1/32 -d 10.66.2.0/24 -p tcp  -m tcp  --dport 22 -j LOG  --log-prefix \"ssh_mgmt\" --log-level 2",
@@ -498,33 +506,15 @@ def test_DemoGitFireSet_compile_rules_full():
           " -o eth1  -j DROP"
         ]
       },
-      "Server001": {
-        "FORWARD": [
-          "-j DROP"
-        ],
-        "INPUT": [
-          "-m state --state RELATED,ESTABLISHED -j ACCEPT",
-          "-i lo -j ACCEPT",
-          "-s 10.66.2.1/32 -d 10.66.2.2/32 -i eth0  -p tcp  -m tcp  --dport 80 -j ACCEPT",
-          "-s 0.0.0.0/0 -d 10.66.2.2/32 -i eth0  -p tcp  -m tcp  --dport 80 -j ACCEPT",
-          "-s 10.66.1.1/32 -d 10.66.2.0/24 -i eth0  -p tcp  -m tcp  --dport 22 -j LOG --log-prefix \"ssh_mgmt\" --log-level 2",
-          "-s 10.66.1.1/32 -d 10.66.2.0/24 -i eth0  -p tcp  -m tcp  --dport 22 -j ACCEPT",
-          " -i eth0  -j LOG --log-prefix \"default\" --log-level 1",
-          " -i eth0  -j DROP"
-        ],
-        "OUTPUT": [
-          "-m state --state RELATED,ESTABLISHED -j ACCEPT",
-          "-o lo -j ACCEPT",
-          "-s 10.66.2.2/32 -d 10.66.1.3/32 -o eth0  -p tcp  -m tcp  --dport 6660:6669 -j ACCEPT",
-          "-s 10.66.2.2/32 -d 172.16.2.223/32 -o eth0  -p udp  -m udp  --dport 123 -j ACCEPT",
-          "-s 10.66.2.2/32 -d 10.66.1.3/32 -o eth0  -p udp  -m udp  --dport 123 -j ACCEPT",
-          " -o eth0  -j LOG --log-prefix \"default\" --log-level 1",
-          " -o eth0  -j DROP"
-        ]
-      },
       "BorderFW": {
         "FORWARD": [
           "-m state --state RELATED,ESTABLISHED -j ACCEPT",
+          "-s 88.88.88.1/32 -d 172.16.2.223/32 -p tcp  -m tcp  --dport 22 -j LOG  --log-prefix \"ssh_all\" --log-level 0",
+          "-s 88.88.88.1/32 -d 172.16.2.223/32 -p tcp  -m tcp  --dport 22 -j ACCEPT",
+          "-s 88.88.88.1/32 -d 10.66.1.3/32 -p tcp  -m tcp  --dport 22 -j LOG  --log-prefix \"ssh_all\" --log-level 0",
+          "-s 88.88.88.1/32 -d 10.66.1.3/32 -p tcp  -m tcp  --dport 22 -j ACCEPT",
+          "-s 88.88.88.1/32 -d 10.66.2.2/32 -p tcp  -m tcp  --dport 22 -j LOG  --log-prefix \"ssh_all\" --log-level 0",
+          "-s 88.88.88.1/32 -d 10.66.2.2/32 -p tcp  -m tcp  --dport 22 -j ACCEPT",
           "-s 10.66.1.3/32 -d 172.16.2.223/32 -p udp  -m udp  --dport 123 -j LOG  --log-prefix \"ntp\" --log-level 0",
           "-s 10.66.1.3/32 -d 172.16.2.223/32 -p udp  -m udp  --dport 123 -j ACCEPT",
           " -j LOG  --log-prefix \"default\" --log-level 1",
@@ -537,6 +527,7 @@ def test_DemoGitFireSet_compile_rules_full():
         "INPUT": [
           "-m state --state RELATED,ESTABLISHED -j ACCEPT",
           "-i lo -j ACCEPT",
+          "-s 88.88.88.1/32 -d 172.16.2.223/32 -i eth0  -p tcp  -m tcp  --dport 22 -j ACCEPT",
           "-s 10.66.1.2/32 -d 10.66.1.1/32 -i eth1  -p tcp  -m tcp  --dport 443 -j ACCEPT",
           "-s 10.66.1.3/32 -d 10.66.1.1/32 -i eth1  -j LOG --log-prefix \"NoSmeagol\" --log-level 3",
           "-s 10.66.1.3/32 -d 10.66.1.1/32 -i eth1  -j DROP",
@@ -563,6 +554,51 @@ def test_DemoGitFireSet_compile_rules_full():
           " -o eth2  -j DROP"
         ]
       },
+      "Server001": {
+        "FORWARD": [
+          "-j DROP"
+        ],
+        "INPUT": [
+          "-m state --state RELATED,ESTABLISHED -j ACCEPT",
+          "-i lo -j ACCEPT",
+          "-s 88.88.88.1/32 -d 10.66.2.2/32 -i eth0  -p tcp  -m tcp  --dport 22 -j ACCEPT",
+          "-s 10.66.2.1/32 -d 10.66.2.2/32 -i eth0  -p tcp  -m tcp  --dport 80 -j ACCEPT",
+          "-s 0.0.0.0/0 -d 10.66.2.2/32 -i eth0  -p tcp  -m tcp  --dport 80 -j ACCEPT",
+          "-s 10.66.1.1/32 -d 10.66.2.0/24 -i eth0  -p tcp  -m tcp  --dport 22 -j LOG --log-prefix \"ssh_mgmt\" --log-level 2",
+          "-s 10.66.1.1/32 -d 10.66.2.0/24 -i eth0  -p tcp  -m tcp  --dport 22 -j ACCEPT",
+          " -i eth0  -j LOG --log-prefix \"default\" --log-level 1",
+          " -i eth0  -j DROP"
+        ],
+        "OUTPUT": [
+          "-m state --state RELATED,ESTABLISHED -j ACCEPT",
+          "-o lo -j ACCEPT",
+          "-s 10.66.2.2/32 -d 10.66.1.3/32 -o eth0  -p tcp  -m tcp  --dport 6660:6669 -j ACCEPT",
+          "-s 10.66.2.2/32 -d 172.16.2.223/32 -o eth0  -p udp  -m udp  --dport 123 -j ACCEPT",
+          "-s 10.66.2.2/32 -d 10.66.1.3/32 -o eth0  -p udp  -m udp  --dport 123 -j ACCEPT",
+          " -o eth0  -j LOG --log-prefix \"default\" --log-level 1",
+          " -o eth0  -j DROP"
+        ]
+      },
+      "Tester": {
+        "FORWARD": [
+          "-j DROP"
+        ],
+        "INPUT": [
+          "-m state --state RELATED,ESTABLISHED -j ACCEPT",
+          "-i lo -j ACCEPT",
+          " -i eth1  -j LOG --log-prefix \"default\" --log-level 1",
+          " -i eth1  -j DROP"
+        ],
+        "OUTPUT": [
+          "-m state --state RELATED,ESTABLISHED -j ACCEPT",
+          "-o lo -j ACCEPT",
+          "-s 88.88.88.1/32 -d 172.16.2.223/32 -o eth1  -p tcp  -m tcp  --dport 22 -j ACCEPT",
+          "-s 88.88.88.1/32 -d 10.66.1.3/32 -o eth1  -p tcp  -m tcp  --dport 22 -j ACCEPT",
+          "-s 88.88.88.1/32 -d 10.66.2.2/32 -o eth1  -p tcp  -m tcp  --dport 22 -j ACCEPT",
+          " -o eth1  -j LOG --log-prefix \"default\" --log-level 1",
+          " -o eth1  -j DROP"
+        ]
+      },
       "Smeagol": {
         "FORWARD": [
           "-j DROP"
@@ -570,6 +606,7 @@ def test_DemoGitFireSet_compile_rules_full():
         "INPUT": [
           "-m state --state RELATED,ESTABLISHED -j ACCEPT",
           "-i lo -j ACCEPT",
+          "-s 88.88.88.1/32 -d 10.66.1.3/32 -i eth0  -p tcp  -m tcp  --dport 22 -j ACCEPT",
           "-s 10.66.2.2/32 -d 10.66.1.3/32 -i eth0  -p tcp  -m tcp  --dport 6660:6669 -j ACCEPT",
           "-s 172.16.2.223/32 -d 10.66.1.3/32 -i eth0  -p udp  -m udp  --dport 123 -j ACCEPT",
           "-s 10.66.2.2/32 -d 10.66.1.3/32 -i eth0  -p udp  -m udp  --dport 123 -j ACCEPT",
@@ -652,6 +689,7 @@ def test_DemoGitFireSet_build_ipt_restore():
         "*filter",
         "-A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT",
         "-A INPUT -i lo -j ACCEPT",
+        "-A INPUT -s 88.88.88.1/32 -d 10.66.2.2/32 -i eth0  -p tcp  -m tcp  --dport 22 -j ACCEPT",
         "-A INPUT -s 10.66.2.1/32 -d 10.66.2.2/32 -i eth0  -p tcp  -m tcp  --dport 80 -j ACCEPT",
         "-A INPUT -s 0.0.0.0/0 -d 10.66.2.2/32 -i eth0  -p tcp  -m tcp  --dport 80 -j ACCEPT",
         "-A INPUT -s 10.66.1.1/32 -d 10.66.2.0/24 -i eth0  -p tcp  -m tcp  --dport 22 -j LOG --log-prefix \"ssh_mgmt\" --log-level 2",
@@ -668,11 +706,52 @@ def test_DemoGitFireSet_build_ipt_restore():
         "-A OUTPUT  -o eth0  -j DROP",
         "COMMIT"
       ],
+      "Smeagol": [
+        "# Created by Firelet for host Smeagol",
+        "*filter",
+        "-A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT",
+        "-A INPUT -i lo -j ACCEPT",
+        "-A INPUT -s 88.88.88.1/32 -d 10.66.1.3/32 -i eth0  -p tcp  -m tcp  --dport 22 -j ACCEPT",
+        "-A INPUT -s 10.66.2.2/32 -d 10.66.1.3/32 -i eth0  -p tcp  -m tcp  --dport 6660:6669 -j ACCEPT",
+        "-A INPUT -s 172.16.2.223/32 -d 10.66.1.3/32 -i eth0  -p udp  -m udp  --dport 123 -j ACCEPT",
+        "-A INPUT -s 10.66.2.2/32 -d 10.66.1.3/32 -i eth0  -p udp  -m udp  --dport 123 -j ACCEPT",
+        "-A INPUT  -i eth0  -j LOG --log-prefix \"default\" --log-level 1",
+        "-A INPUT  -i eth0  -j DROP",
+        "-A FORWARD -j DROP",
+        "-A OUTPUT -m state --state RELATED,ESTABLISHED -j ACCEPT",
+        "-A OUTPUT -o lo -j ACCEPT",
+        "-A OUTPUT -s 10.66.1.3/32 -d 10.66.1.1/32 -o eth0  -j LOG --log-prefix \"NoSmeagol\" --log-level 3",
+        "-A OUTPUT -s 10.66.1.3/32 -d 10.66.1.1/32 -o eth0  -j DROP",
+        "-A OUTPUT -s 10.66.1.3/32 -d 10.66.1.2/32 -o eth0  -p tcp  -m multiport --dports 143,585,993 -j LOG --log-prefix \"imap\" --log-level 2",
+        "-A OUTPUT -s 10.66.1.3/32 -d 10.66.1.2/32 -o eth0  -p tcp  -m multiport --dports 143,585,993 -j ACCEPT",
+        "-A OUTPUT -s 10.66.1.3/32 -d 172.16.2.223/32 -o eth0  -p udp  -m udp  --dport 123 -j ACCEPT",
+        "-A OUTPUT  -o eth0  -j LOG --log-prefix \"default\" --log-level 1",
+        "-A OUTPUT  -o eth0  -j DROP",
+        "COMMIT"
+      ],
+      "Tester": [
+        "# Created by Firelet for host Tester",
+        "*filter",
+        "-A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT",
+        "-A INPUT -i lo -j ACCEPT",
+        "-A INPUT  -i eth1  -j LOG --log-prefix \"default\" --log-level 1",
+        "-A INPUT  -i eth1  -j DROP",
+        "-A FORWARD -j DROP",
+        "-A OUTPUT -m state --state RELATED,ESTABLISHED -j ACCEPT",
+        "-A OUTPUT -o lo -j ACCEPT",
+        "-A OUTPUT -s 88.88.88.1/32 -d 172.16.2.223/32 -o eth1  -p tcp  -m tcp  --dport 22 -j ACCEPT",
+        "-A OUTPUT -s 88.88.88.1/32 -d 10.66.1.3/32 -o eth1  -p tcp  -m tcp  --dport 22 -j ACCEPT",
+        "-A OUTPUT -s 88.88.88.1/32 -d 10.66.2.2/32 -o eth1  -p tcp  -m tcp  --dport 22 -j ACCEPT",
+        "-A OUTPUT  -o eth1  -j LOG --log-prefix \"default\" --log-level 1",
+        "-A OUTPUT  -o eth1  -j DROP",
+        "COMMIT"
+      ],
       "BorderFW": [
         "# Created by Firelet for host BorderFW",
         "*filter",
         "-A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT",
         "-A INPUT -i lo -j ACCEPT",
+        "-A INPUT -s 88.88.88.1/32 -d 172.16.2.223/32 -i eth0  -p tcp  -m tcp  --dport 22 -j ACCEPT",
         "-A INPUT -s 10.66.1.2/32 -d 10.66.1.1/32 -i eth1  -p tcp  -m tcp  --dport 443 -j ACCEPT",
         "-A INPUT -s 10.66.1.3/32 -d 10.66.1.1/32 -i eth1  -j LOG --log-prefix \"NoSmeagol\" --log-level 3",
         "-A INPUT -s 10.66.1.3/32 -d 10.66.1.1/32 -i eth1  -j DROP",
@@ -685,6 +764,12 @@ def test_DemoGitFireSet_build_ipt_restore():
         "-A INPUT  -i eth2  -j LOG --log-prefix \"default\" --log-level 1",
         "-A INPUT  -i eth2  -j DROP",
         "-A FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT",
+        "-A FORWARD -s 88.88.88.1/32 -d 172.16.2.223/32 -p tcp  -m tcp  --dport 22 -j LOG  --log-prefix \"ssh_all\" --log-level 0",
+        "-A FORWARD -s 88.88.88.1/32 -d 172.16.2.223/32 -p tcp  -m tcp  --dport 22 -j ACCEPT",
+        "-A FORWARD -s 88.88.88.1/32 -d 10.66.1.3/32 -p tcp  -m tcp  --dport 22 -j LOG  --log-prefix \"ssh_all\" --log-level 0",
+        "-A FORWARD -s 88.88.88.1/32 -d 10.66.1.3/32 -p tcp  -m tcp  --dport 22 -j ACCEPT",
+        "-A FORWARD -s 88.88.88.1/32 -d 10.66.2.2/32 -p tcp  -m tcp  --dport 22 -j LOG  --log-prefix \"ssh_all\" --log-level 0",
+        "-A FORWARD -s 88.88.88.1/32 -d 10.66.2.2/32 -p tcp  -m tcp  --dport 22 -j ACCEPT",
         "-A FORWARD -s 10.66.1.3/32 -d 172.16.2.223/32 -p udp  -m udp  --dport 123 -j LOG  --log-prefix \"ntp\" --log-level 0",
         "-A FORWARD -s 10.66.1.3/32 -d 172.16.2.223/32 -p udp  -m udp  --dport 123 -j ACCEPT",
         "-A FORWARD  -j LOG  --log-prefix \"default\" --log-level 1",
@@ -704,28 +789,6 @@ def test_DemoGitFireSet_build_ipt_restore():
         "-A OUTPUT  -o eth1  -j DROP",
         "-A OUTPUT  -o eth2  -j LOG --log-prefix \"default\" --log-level 1",
         "-A OUTPUT  -o eth2  -j DROP",
-        "COMMIT"
-      ],
-      "Smeagol": [
-        "# Created by Firelet for host Smeagol",
-        "*filter",
-        "-A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT",
-        "-A INPUT -i lo -j ACCEPT",
-        "-A INPUT -s 10.66.2.2/32 -d 10.66.1.3/32 -i eth0  -p tcp  -m tcp  --dport 6660:6669 -j ACCEPT",
-        "-A INPUT -s 172.16.2.223/32 -d 10.66.1.3/32 -i eth0  -p udp  -m udp  --dport 123 -j ACCEPT",
-        "-A INPUT -s 10.66.2.2/32 -d 10.66.1.3/32 -i eth0  -p udp  -m udp  --dport 123 -j ACCEPT",
-        "-A INPUT  -i eth0  -j LOG --log-prefix \"default\" --log-level 1",
-        "-A INPUT  -i eth0  -j DROP",
-        "-A FORWARD -j DROP",
-        "-A OUTPUT -m state --state RELATED,ESTABLISHED -j ACCEPT",
-        "-A OUTPUT -o lo -j ACCEPT",
-        "-A OUTPUT -s 10.66.1.3/32 -d 10.66.1.1/32 -o eth0  -j LOG --log-prefix \"NoSmeagol\" --log-level 3",
-        "-A OUTPUT -s 10.66.1.3/32 -d 10.66.1.1/32 -o eth0  -j DROP",
-        "-A OUTPUT -s 10.66.1.3/32 -d 10.66.1.2/32 -o eth0  -p tcp  -m multiport --dports 143,585,993 -j LOG --log-prefix \"imap\" --log-level 2",
-        "-A OUTPUT -s 10.66.1.3/32 -d 10.66.1.2/32 -o eth0  -p tcp  -m multiport --dports 143,585,993 -j ACCEPT",
-        "-A OUTPUT -s 10.66.1.3/32 -d 172.16.2.223/32 -o eth0  -p udp  -m udp  --dport 123 -j ACCEPT",
-        "-A OUTPUT  -o eth0  -j LOG --log-prefix \"default\" --log-level 1",
-        "-A OUTPUT  -o eth0  -j DROP",
         "COMMIT"
       ]
     }
@@ -831,8 +894,6 @@ def test_DemoGitFireSet_check():
 
 
 
-
-
 @with_setup(setup_dir, teardown_dir)
 def test_DemoGitFireSet_deploy():
     """Run diff between complied rules and remote confs.
@@ -840,7 +901,7 @@ def test_DemoGitFireSet_deploy():
     fs = DemoGitFireSet(repodir=testingutils.repodir)
     log.debug("Test deployment in %s" % repodir)
     fs.deploy()
-    for h in fs.hosts:
+    for h in fs._get_firewalls():
         ok = open(testingutils.repodir + '/iptables-save-%s' % h.hostname).readlines()
         r = open(testingutils.repodir + '/iptables-save-%s-x' % h.hostname).readlines()
         assert ok == r

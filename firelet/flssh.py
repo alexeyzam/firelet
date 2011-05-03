@@ -77,8 +77,8 @@ class SSHConnector(object):
         self._targets = targets   # {hostname: [management ip address list ], ... }
         assert isinstance(targets, dict), "targets must be a dict"
         self._username = username
-#        paramiko_logger = paramiko.util.logging.getLogger()
-#        paramiko_logger.setLevel(logging.WARN)
+        paramiko_logger = paramiko.util.logging.getLogger()
+        paramiko_logger.setLevel(logging.WARN)
 #        log = logging.getLogger()
 #        log.setLevel(logging.DEBUG)
 
@@ -100,7 +100,7 @@ class SSHConnector(object):
                 hostname=ip_addr,
                 port=22,
                 username=self._username,
-#                password=password, Q
+#                password=password,
 #                key_filename=env.key_filename,
                 timeout=10,
 #                allow_agent=not env.no_agent,
@@ -157,9 +157,10 @@ class SSHConnector(object):
             log.info("Setting up connection to %s" % hostname)
             ip_addrs = self._targets[hostname]
             self._connect_one(self, hostname, addrs)
-            assert hostname in self._pool, "EWW"
+            assert hostname in self._pool, "EWW" #TODO:
 
         c = self._pool[hostname]
+        assert not isinstance(c, str), repr(c)
 
         if hostname not in self._pool:
             log.info("Not connected to %s" % hostname)
@@ -169,9 +170,11 @@ class SSHConnector(object):
             try:
                 stdin, stdout, stderr = c.exec_command(cmd)
                 out = stdout.readlines()
+                return map(str.rstrip, out)
             except:
                 pass #TODO: handle errors
-            return map(str.rstrip, out)
+            #FIXME: raise exception?
+            return None
 
         else:
             c.exec_command(cmd)
@@ -521,6 +524,7 @@ class MockSSHConnector(SSHConnector):
             assert len(addrs), "No management IP address for %s, " % hostname
             ip_addr = addrs[0]      #TODO: cycle through different addrs?
             p = hostname # Instead of a pxssh session, the hostname is stored here
+            #FIXME: ugly
             self._pool[hostname] = p
         return unreachables
 

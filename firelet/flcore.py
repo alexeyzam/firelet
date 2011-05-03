@@ -686,19 +686,21 @@ class FireSet(object):
         if not items: return None
         return map(flatten1, items)
 
+    def _get_firewalls(self):
+        """Returns only the hosts that can be managed by Firelet
+        """
+        # List host names that have *at least one* management interface
+        firewall_names = set(h.hostname for h in self.hosts if int(h.mng))
+        return [h for h in self.hosts if h.hostname in firewall_names]
+
     def _get_confs(self, keep_sessions=False):
         """Connect to the firewalls and fetch the existing configuration
         Return the SSHConnector instance if keep_sessions is True
         """
         self._remote_confs = None
-        d = {}      # {hostname: [management ip address list ], ... }    If the IP addr list is empty firelet cannot reach that host.
-        for h in self.hosts:
-            if h.hostname not in d:
-                d[h.hostname] = []
-            if flag(h.mng):                            # IP address flagged for management
-                d[h.hostname].append(h.ip_addr)
-        for h, x in d.iteritems():
-            assert len(x), "No management IP address for %s " % n
+        d = defaultdict(list) # {hostname: [management ip address list ], ... }
+        for h in self._get_firewalls():
+            d[h.hostname].append(h.ip_addr)
         sx = self.SSHConnector(d)
         log.debug("Running SSH.")
         self._remote_confs = sx.get_confs()
@@ -717,7 +719,7 @@ class FireSet(object):
         for q in confs.itervalues():
             assert isinstance(q, Bunch), repr(confs)
             assert len(q) == 2
-        for h in self.hosts:
+        for h in self._get_firewalls():
             if not h.hostname in confs:
                 raise Alert, "Host %s not available." % h.hostname
             ip_a_s = confs[h.hostname].ip_a_s
@@ -1040,7 +1042,6 @@ class FireSet(object):
         f = open(fn, 'w')
         f.write(repr(o))
         f.close()
-
 
     def deploy(self, ignore_unreachables=False, replace_ruleset=False):
         """Check and then deploy the configuration to the firewalls.
