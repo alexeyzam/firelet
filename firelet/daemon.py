@@ -23,6 +23,7 @@ from bottle import abort, route, static_file, run, view, request
 from bottle import debug as bottle_debug
 from collections import defaultdict
 from datetime import datetime
+from setproctitle import setproctitle
 from sys import exit
 from time import time, sleep, localtime
 
@@ -613,6 +614,7 @@ def rss_channels(channel=None):
 
 def main():
     global conf
+    setproctitle('firelet')
 
     parser = ArgumentParser(description='Firelet daemon')
     parser.add_argument('-d', '--debug', action='store_true', help='debug mode')
