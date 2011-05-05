@@ -28,11 +28,21 @@ log = logging.getLogger(__name__)
 def timeit(method):
     def timed(*args, **kw):
         t = time()
-        log.debug("start %s with %s %s" % \
-            (method.__name__, repr(args), repr(kw)))
+#        log.debug("start %s with %s %s" % \
+#            (method.__name__, repr(args), repr(kw)))
+        log.setLevel(logging.WARN)
         result = method(*args, **kw)
-        log.debug("ended %s in %2.3fs" %
-            (method.__name__, time() - t)
+        log.setLevel(logging.DEBUG)
+#        log.debug("ended %s in %2.3fs" %
+#            (method.__name__, time() - t)
+#        )
+        log.debug("%2.0fms %s %s %s" %
+            (
+                (time() - t) * 1000,
+                method.__name__,
+                repr(args)[:200],
+                repr(kw)[:200],
+            )
         )
         return result
     return timed
@@ -82,8 +92,6 @@ class SSHConnector(object):
 #        log = logging.getLogger()
 #        log.setLevel(logging.DEBUG)
 
-
-    @timeit
     def _connect_one(self, hostname, addrs):
         """Connect to a firewall
         """
@@ -118,13 +126,14 @@ class SSHConnector(object):
             #TODO: add proper exception handling
 
 
-    @timeit
     def _connect(self):
         """Connect to the firewalls on a per-need basis.
         Returns a list of unreachable hosts.
         """
         unreachables = []
-        args = self._targets.iteritems()
+        args = [ (hn, addrs) for hn, addrs in self._targets.iteritems() if hn not in self._pool ]
+        if not args:
+            return []
         Forker(self._connect_one, args)
         missing = len(self._targets) - len(self._pool)
         if missing:
@@ -141,23 +150,29 @@ class SSHConnector(object):
             except Exception, e:
                 print e
 
+    #TODO: refactore __del__ and _disconnect together?
     @timeit
     def _disconnect(self):
         """Close existing SSH connections"""
-        for c in self._pool.itervalues():
+        for hn, c in self._pool.iteritems():
             try:
+                self._pool.pop(hn)
                 c.close()
             except Exception, e:
                 log.info("Error while disconnecting from a host: %s" % e)
 
+    #TODO: refactor the use of _connect_one
+    # do we have to connect to every firewall every time we run _execute? no
+
     @timeit
     def _execute(self, hostname, cmd, get_output=True):
         """Execute remote command"""
-        if hostname not in self._pool:
-            log.info("Setting up connection to %s" % hostname)
-            ip_addrs = self._targets[hostname]
-            self._connect_one(self, hostname, addrs)
-            assert hostname in self._pool, "EWW" #TODO:
+        self._connect()
+#        if hostname not in self._pool:
+#            log.info("Setting up connection to %s" % hostname)
+#            ip_addrs = self._targets[hostname]
+#            self._connect_one(self, hostname, ip_addrs)
+#            assert hostname in self._pool, "EWW" #TODO:
 
         c = self._pool[hostname]
         assert not isinstance(c, str), repr(c)
@@ -184,12 +199,12 @@ class SSHConnector(object):
         """Connect to a firewall and get its configuration.
             Save the output in a dict inside the shared dict "confs"
         """
+        self._execute(hostname, 'logger -t firelet "Fetching existing configuration %s"' % hostname)
         iptables_save = self._execute(hostname, 'sudo /sbin/iptables-save')
         ip_addr_show = self._execute(hostname, '/bin/ip addr show')
         log.info("iptables save on %s: %s" % (hostname, iptables_save))
         confs[hostname] = (iptables_save, ip_addr_show)
         #FIXME: if a host returns unexpected output i.e. missing sudo it should be logged
-        log.debug("_get_conf ended")
 
 
     @timeit
@@ -330,6 +345,7 @@ class SSHConnector(object):
 #        log.debug('Copied ruleset file to %s, got """%s"""' % (hostname, ret)  )
         # setup symlink
         ret = self._execute(hostname, "/bin/ln -fs .iptables-%s iptables_current" % tstamp)
+        self._execute(hostname, 'logger -t firelet "Existing configuration saved"')
         log.debug('Linked ruleset file to %s, got """%s"""' % (hostname, ret)  )
         status[hostname] = 'ok'
         return
@@ -382,7 +398,7 @@ class SSHConnector(object):
         #log.debug(" on %s..." % hostname)
         self._execute(hostname, """rm -f rollback.pid; ( \
 logger -t firelet "Automatic rollback enabled"; \
-sleep 10; \
+sleep 5; \
 logger -t firelet "Rolling back configuration!"; \
 sudo /sbin/iptables-restore < iptables_previous && logger -t firelet "Configuration rolled back!"; \
 rm -f rollback.pid; \
@@ -404,12 +420,14 @@ rm -f rollback.pid; \
         """Kill the running auto-rollback script
         """
         log.debug("Killing auto-rollback on %s" % hostname)
+        self._execute(hostname, 'logger -t firelet "Cancelling automatic rollback"')
         out = self._execute(hostname, "kill $(cat rollback.pid); rm -f rollback.pid")
         if out == []:
             status[hostname] = 'ok'
         else:
             log.warn("killing auto-rollback output on %s %s" % (hostname, out))
 
+    #TODO: rewrite threading wrappers to include status handling
     @timeit
     def cancel_auto_rollbacks(self, keep_sessions=False):
         """Run _cancel_auto_rollback on the firewalls
@@ -417,6 +435,9 @@ rm -f rollback.pid; \
         status = {}
         args = [(status, hn, 'firelet') for hn in self._targets ]
         Forker(self._cancel_auto_rollback, args)
+        failed = set(self._targets) - set(status)
+        if failed:
+            raise Exception, "Cancelling rollback failed on %s" % ', '.join(failed)
         return status
 
 
@@ -512,7 +533,7 @@ class MockSSHConnector(SSHConnector):
 
 
 
-
+    #TODO: compare this method with the same in SSHConnector
     def _connect(self):
         """Connects to the firewalls on a per-need basis.
         Returns a list of unreachable hosts.

@@ -187,9 +187,8 @@ def test_deliver_apply_and_get_confs():
 
 @with_setup(setup_dir, teardown_dir)
 def test_GitFireSet_deployment():
-    """Check, then deploy confs"""
+    """Deploy confs, then check"""
     fs = GitFireSet(repodir=testingutils.repodir)
-    diff_before = fs.check()
     fs.deploy()
     diff = fs.check()
     assert diff == {}, repr(diff)

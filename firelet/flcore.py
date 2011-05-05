@@ -479,9 +479,7 @@ class HostGroups(SmartTable):
         for child in d['childs']:
             flat = self._simpleflatten(child)
             assert item.name not in flat, "Loop "
-#            print "flattened child %s -> %s" % (child,  repr(self._simpleflatten(child)))
-#
-#        print
+
         item.update(d)
         self.save()
 
@@ -661,7 +659,6 @@ class FireSet(object):
                 items.add(c)
         for h in self.hosts:
             items.add("%s:%s" % (h.hostname, h.iface))
-#        print repr(sorted(items))
         return sorted(items)
 
 
@@ -941,7 +938,7 @@ class FireSet(object):
             # "for every host"
         # "for every rule"
 
-        log.debug("rd first 900 bytes: %s" % repr(rd)[:900])
+#        log.debug("rd first 900 bytes: %s" % repr(rd)[:900])
         return rd       # complile_rules()
 
     def _remove_dup_spaces(self, s):
@@ -1058,7 +1055,6 @@ class FireSet(object):
         self._remote_confs = None
         m = map(self._build_ipt_restore, comp_rules.iteritems())
         c = dict(m)
-
         log.debug('Delivering configurations...')
         sx.deliver_confs(c)
 
@@ -1066,21 +1062,23 @@ class FireSet(object):
         sx.save_existing_confs()
 
         log.debug('Setting up automatic rollback...')
-        sx.setup_auto_rollbacks()
+        out = sx.setup_auto_rollbacks()
+        if out:
+            raise Alert('Automated rollback enabling failed on %s' % out)
+
         log.debug('Applying configurations...')
         sx.apply_remote_confs()
-        return
+        log.debug("Disconnecting")
+        sx._disconnect()
+        log.debug('Connecting')
+        sx._connect()
+
         log.debug('Cancelling automatic rollback...')
         sx.cancel_auto_rollbacks()
 
         log.debug('Fetching live configurations...')
         self._get_confs(keep_sessions=False)
         diff = self._diff_compiled_and_remote_rules(comp_rules)
-#        self.saverepr(comp_rules, '/tmp/comp')
-#        self.saverepr(self._remote_confs, '/tmp/rem')
-#        log.debug('--diff--')
-#        log.debug(repr(diff))
-#        log.debug('--end--')
 
         if diff:
             log.error('Deployment failed!')
