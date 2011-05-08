@@ -1035,25 +1035,15 @@ class FireSet(object):
         """Compare remote and compiled rules and return a diff
         self._remote_confs needs to be populated in advance
         """
-        import json
-#        json.dump(self._remote_confs, open('/tmp/remote', 'w'), indent=2)
-#        open('/tmp/remote', 'w').write(repr(self._remote_confs))
-#        json.dump(comp_rules, open('/tmp/comp', 'w'), indent=2)
         assert self._remote_confs, "self._remote_confs not set \
         before calling _diff_compiled_and_remote_rules"
 
 #        m = map(self._build_ipt_restore, comp_rules.iteritems())
-
         new_rules = {}
         for hn, b in comp_rules.iteritems():
             li = self._build_ipt_restore_blocks((hn, b))
             new_rules[hn] = li
         existing_rules = self._extract_ipt_filter_rules(self._remote_confs)
-        log.debug('COMPILED\n\n %s' % repr(existing_rules)[:1500])
-
-        json.dump(new_rules, open('/tmp/new', 'w'), indent=2)
-        json.dump(existing_rules, open('/tmp/remote', 'w'), indent=2)
-
         return self._diff(existing_rules, new_rules)
 
     def check(self):

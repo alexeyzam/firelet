@@ -202,7 +202,6 @@ class SSHConnector(object):
         confs[hostname] = (iptables_save, ip_addr_show)
         #FIXME: if a host returns unexpected output i.e. missing sudo it should be logged
 
-
     @timeit
     def get_confs(self, keep_sessions=False):
         """Connects to the firewalls, get the configuration and return:
@@ -229,13 +228,10 @@ class SSHConnector(object):
             confs[hostname] = d
 
         return confs
-        log.debug("SSHConnector.get_confs ended")
-
 
     def _extract_iptables_save_nat(self, li):
         for line in li:
             pass
-
 
     def parse_iptables_save(self, li, hostname=None):
         """Parse iptables-save output and returns a dict:
@@ -519,91 +515,47 @@ class MockSSHConnector(SSHConnector):
     Only some methods from SSHConnector are redefined.
     """
 
-
-    def get_confs(self, keep_sessions=False):
-        """Connects to the firewalls, get the configuration and return:
-            { hostname: Bunch of "session, ip_addr, iptables-save, interfaces", ... }
-        """
-        bad = self._connect()
-        assert len(bad) < 1, "Cannot connect to a host:" + repr(bad)
-        confs = {} # {hostname:  Bunch(), ... }
-
-        for hostname, p in self._pool.iteritems():
-            iptables = self._interact(p, 'sudo /sbin/iptables-save')
-            iptables_p = self.parse_iptables_save(iptables)
-            ip_a_s = self._interact(p,'/bin/ip addr show')
-            ip_a_s_p = self.parse_ip_addr_show(ip_a_s)
-            confs[hostname] = Bunch(iptables=iptables, ip_a_s=ip_a_s_p)
-        if not keep_sessions:
-            log.debug("Closing connections.")
-            d = self._disconnect()
-#        log.debug("Dictionary built by get_confs: %s" % repr(confs))
-        return confs
-
-
-
-
-    #TODO: compare this method with the same in SSHConnector
-    def _connect(self):
-        """Connects to the firewalls on a per-need basis.
-        Returns a list of unreachable hosts.
-        """
-        unreachables = []
-        for hostname, addrs in self._targets.iteritems():
-            if hostname in self._pool and self._pool[hostname]:
-                continue # already connected
-            assert len(addrs), "No management IP address for %s, " % hostname
-            ip_addr = addrs[0]      #TODO: cycle through different addrs?
-            p = hostname # Instead of a pxssh session, the hostname is stored here
-            #FIXME: ugly
-            self._pool[hostname] = p
-        return unreachables
+    def _connect_one(self, hostname, addrs):
+        self._pool[hostname] = 'fake_connection'
 
     def _disconnect(self):
-        """Disconnects from the hosts and purge the session from the dict"""
-        for hostname, p in self._pool.iteritems():
-            try:
-#                p.logout()
-                self._pool[hostname] = None
-            except:
-                log.debug('Unable to disconnect from host "%s"' % hostname)
-        #TODO: delete "None" hosts
+        pass
 
-    def _interact(self, p, s):
-        """Fake interaction using files instead of SSH connections"""
+    def _execute(self, hostname, s, get_output=True):
+        """Execute remote command"""
+        self._connect()
         d = self.repodir
+        h = hostname
+        # Used by _get_conf
         if s == 'sudo /sbin/iptables-save':
-            log.debug("Reading from %s/iptables-save-%s" % (d, p))
-            return map(str.rstrip, open('%s/iptables-save-%s' % (d, p)))
+            log.debug("Reading from %s/iptables-save-%s" % (d, h))
+            return map(str.rstrip, open('%s/iptables-save-%s' % (d, h)))
         elif s == '/bin/ip addr show':
-            log.debug("Reading from %s/ip-addr-show-%s" % (d, p))
-            return map(str.rstrip, open('%s/ip-addr-show-%s' % (d, p)))
+            log.debug("Reading from %s/ip-addr-show-%s" % (d, h))
+            return map(str.rstrip, open('%s/ip-addr-show-%s' % (d, h)))
+        # Used by _deliver_conf
+        elif 'cat > .iptables' in s:
+            log.debug("Writing to %s/iptables-save-%s and -x" % (d, h))
+            log.debug("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+            li = s.split('\n')[1:-1]
+            open('%s/iptables-save-%s' % (d, h), 'w').write('\n'.join(li)+'\n')
         else:
-            raise NotImplementedError
+            # Ignore other commands
+            ignored = ('logger -t',
+                'kill $(cat rollback.pid)',
+                'sudo /sbin/iptables-restore < iptables_current',
+                'sudo /sbin/iptables-save > iptables_previous',
+                'sync',
+                '/bin/ln -fs .iptables'
+            )
+            for i in ignored:
+                if i in s:
+                    return []
+            # Exception on unknown ones
+            raise NotImplementedError, s
 
-    def deliver_confs(self, newconfs_d):
-        """Write the conf on local temp files instead of delivering it.
-            newconfs_d =  {hostname: [iptables-save line, line, line, ], ... }
-        """
-        assert isinstance(newconfs_d, dict), "Dict expected"
-        self._connect()
-        d = self.repodir
-        for hostname, p in self._pool.iteritems():
-            li = newconfs_d[hostname]
-            log.debug("Writing to %s/iptables-save-%s and -x" % (d, p))
-            open('%s/iptables-save-%s' % (d, p), 'w').write('\n'.join(li)+'\n')
-            open('%s/iptables-save-%s-x' % (d, p), 'w').write('\n'.join(li)+'\n')
-            ret = ''
-#            log.debug("Deployed ruleset file to %s, got %s" % (hostname, ret)  )
-        return
-        #TODO: fix deliver_confs in SSHConnector
 
-    def apply_remote_confs(self, keep_sessions=False):
-        """Loads the deployed ruleset on the firewalls"""
-        self._connect()
-        # No way to test the iptables-restore.
-        if not keep_sessions: self._disconnect()
-        return
+
 
 
 

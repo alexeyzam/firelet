@@ -436,8 +436,6 @@ def test_gitfireset_get_firewalls():
 
 
 
-
-
 @with_setup(setup_dir, teardown_dir)
 def test_DemoGitFireSet_get_confs():
     fs = DemoGitFireSet(repodir=testingutils.repodir)
@@ -447,6 +445,13 @@ def test_DemoGitFireSet_get_confs():
     for h in fs._get_firewalls():
         assert h.hostname in fs._remote_confs, "Missing host %s" % h.hostname
 
+@with_setup(setup_dir, teardown_dir)
+def test_DemoGitFireSet_deployment():
+    """Deploy confs, then check"""
+    fs = DemoGitFireSet(repodir=testingutils.repodir)
+    fs.deploy()
+    diff = fs.check()
+    assert diff == {}, repr(diff)[:400]
 
 
 # # Rule compliation and deployment testing # #
