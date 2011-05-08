@@ -467,32 +467,34 @@ def test_DemoGitFireSet_compile_rules_full():
     ok = {
         "InternalFW": {
         "FORWARD": [
+          "-j ACCEPT",
           "-m state --state RELATED,ESTABLISHED -j ACCEPT",
-          "-s 10.66.1.1/32 -d 10.66.2.0/24 -p tcp  -m tcp  --dport 22 -j LOG  --log-prefix \"ssh_mgmt\" --log-level 2",
+          "-s 10.66.1.1/32 -d 10.66.2.0/24 -p tcp  -m tcp  --dport 22 -j LOG  --log-prefix \"f_ssh_mgmt\" --log-level 2",
           "-s 10.66.1.1/32 -d 10.66.2.0/24 -p tcp  -m tcp  --dport 22 -j ACCEPT",
-          "-s 10.66.2.2/32 -d 10.66.1.3/32 -p tcp  -m tcp  --dport 6660:6669 -j LOG  --log-prefix \"irc\" --log-level 0",
+          "-s 10.66.2.2/32 -d 10.66.1.3/32 -p tcp  -m tcp  --dport 6660:6669 -j LOG  --log-prefix \"f_irc\" --log-level 0",
           "-s 10.66.2.2/32 -d 10.66.1.3/32 -p tcp  -m tcp  --dport 6660:6669 -j ACCEPT",
-          "-s 10.66.1.3/32 -d 172.16.2.223/32 -p udp  -m udp  --dport 123 -j LOG  --log-prefix \"ntp\" --log-level 0",
+          "-s 10.66.1.3/32 -d 172.16.2.223/32 -p udp  -m udp  --dport 123 -j LOG  --log-prefix \"f_ntp\" --log-level 0",
           "-s 10.66.1.3/32 -d 172.16.2.223/32 -p udp  -m udp  --dport 123 -j ACCEPT",
-          "-s 10.66.2.2/32 -d 172.16.2.223/32 -p udp  -m udp  --dport 123 -j LOG  --log-prefix \"ntp\" --log-level 0",
+          "-s 10.66.2.2/32 -d 172.16.2.223/32 -p udp  -m udp  --dport 123 -j LOG  --log-prefix \"f_ntp\" --log-level 0",
           "-s 10.66.2.2/32 -d 172.16.2.223/32 -p udp  -m udp  --dport 123 -j ACCEPT",
-          "-s 10.66.2.2/32 -d 10.66.1.3/32 -p udp  -m udp  --dport 123 -j LOG  --log-prefix \"ntp\" --log-level 0",
+          "-s 10.66.2.2/32 -d 10.66.1.3/32 -p udp  -m udp  --dport 123 -j LOG  --log-prefix \"f_ntp\" --log-level 0",
           "-s 10.66.2.2/32 -d 10.66.1.3/32 -p udp  -m udp  --dport 123 -j ACCEPT",
-          " -j LOG  --log-prefix \"default\" --log-level 1",
+          " -j LOG  --log-prefix \"f_default\" --log-level 1",
           " -j DROP",
-          " -j LOG  --log-prefix \"default\" --log-level 1",
+          " -j LOG  --log-prefix \"f_default\" --log-level 1",
           " -j DROP"
         ],
         "INPUT": [
+        "-j ACCEPT",
           "-m state --state RELATED,ESTABLISHED -j ACCEPT",
           "-i lo -j ACCEPT",
-          "-s 10.66.1.1/32 -d 10.66.2.0/24 -i eth1  -p tcp  -m tcp  --dport 22 -j LOG --log-prefix \"ssh_mgmt\" --log-level 2",
+          "-s 10.66.1.1/32 -d 10.66.2.0/24 -i eth1  -p tcp  -m tcp  --dport 22 -j LOG --log-prefix \"i_ssh_mgmt\" --log-level 2",
           "-s 10.66.1.1/32 -d 10.66.2.0/24 -i eth1  -p tcp  -m tcp  --dport 22 -j ACCEPT",
-          "-s 10.66.1.3/32 -d 10.66.1.2/32 -i eth0  -p tcp  -m multiport --dports 143,585,993 -j LOG --log-prefix \"imap\" --log-level 2",
+          "-s 10.66.1.3/32 -d 10.66.1.2/32 -i eth0  -p tcp  -m multiport --dports 143,585,993 -j LOG --log-prefix \"i_imap\" --log-level 2",
           "-s 10.66.1.3/32 -d 10.66.1.2/32 -i eth0  -p tcp  -m multiport --dports 143,585,993 -j ACCEPT",
-          " -i eth0  -j LOG --log-prefix \"default\" --log-level 1",
+          " -i eth0  -j LOG --log-prefix \"i_default\" --log-level 1",
           " -i eth0  -j DROP",
-          " -i eth1  -j LOG --log-prefix \"default\" --log-level 1",
+          " -i eth1  -j LOG --log-prefix \"i_default\" --log-level 1",
           " -i eth1  -j DROP"
         ],
         "OUTPUT": [
@@ -500,9 +502,9 @@ def test_DemoGitFireSet_compile_rules_full():
           "-o lo -j ACCEPT",
           "-s 10.66.1.2/32 -d 10.66.1.1/32 -o eth0  -p tcp  -m tcp  --dport 443 -j ACCEPT",
           "-s 10.66.2.1/32 -d 10.66.2.2/32 -o eth1  -p tcp  -m tcp  --dport 80 -j ACCEPT",
-          " -o eth0  -j LOG --log-prefix \"default\" --log-level 1",
+          " -o eth0  -j LOG --log-prefix \"o_default\" --log-level 1",
           " -o eth0  -j DROP",
-          " -o eth1  -j LOG --log-prefix \"default\" --log-level 1",
+          " -o eth1  -j LOG --log-prefix \"o_default\" --log-level 1",
           " -o eth1  -j DROP"
         ]
       },
@@ -543,19 +545,20 @@ def test_DemoGitFireSet_compile_rules_full():
         "OUTPUT": [
           "-m state --state RELATED,ESTABLISHED -j ACCEPT",
           "-o lo -j ACCEPT",
-          "-s 10.66.1.1/32 -d 10.66.2.0/24 -o eth1  -p tcp  -m tcp  --dport 22 -j LOG --log-prefix \"ssh_mgmt\" --log-level 2",
+          "-s 10.66.1.1/32 -d 10.66.2.0/24 -o eth1  -p tcp  -m tcp  --dport 22 -j LOG --log-prefix \"o_ssh_mgmt\" --log-level 2",
           "-s 10.66.1.1/32 -d 10.66.2.0/24 -o eth1  -p tcp  -m tcp  --dport 22 -j ACCEPT",
           "-s 172.16.2.223/32 -d 10.66.1.3/32 -o eth0  -p udp  -m udp  --dport 123 -j ACCEPT",
-          " -o eth0  -j LOG --log-prefix \"default\" --log-level 1",
+          " -o eth0  -j LOG --log-prefix \"o_default\" --log-level 1",
           " -o eth0  -j DROP",
-          " -o eth1  -j LOG --log-prefix \"default\" --log-level 1",
+          " -o eth1  -j LOG --log-prefix \"o_default\" --log-level 1",
           " -o eth1  -j DROP",
-          " -o eth2  -j LOG --log-prefix \"default\" --log-level 1",
+          " -o eth2  -j LOG --log-prefix \"o_default\" --log-level 1",
           " -o eth2  -j DROP"
         ]
       },
       "Server001": {
         "FORWARD": [
+            '-j ACCEPT',
           "-j DROP"
         ],
         "INPUT": [
@@ -563,10 +566,10 @@ def test_DemoGitFireSet_compile_rules_full():
           "-i lo -j ACCEPT",
           "-s 88.88.88.1/32 -d 10.66.2.2/32 -i eth0  -p tcp  -m tcp  --dport 22 -j ACCEPT",
           "-s 10.66.2.1/32 -d 10.66.2.2/32 -i eth0  -p tcp  -m tcp  --dport 80 -j ACCEPT",
-          "-s 0.0.0.0/0 -d 10.66.2.2/32 -i eth0  -p tcp  -m tcp  --dport 80 -j ACCEPT",
-          "-s 10.66.1.1/32 -d 10.66.2.0/24 -i eth0  -p tcp  -m tcp  --dport 22 -j LOG --log-prefix \"ssh_mgmt\" --log-level 2",
+          "-d 10.66.2.2/32 -i eth0  -p tcp  -m tcp  --dport 80 -j ACCEPT",
+          "-s 10.66.1.1/32 -d 10.66.2.0/24 -i eth0  -p tcp  -m tcp  --dport 22 -j LOG --log-prefix \"i_ssh_mgmt\" --log-level 2",
           "-s 10.66.1.1/32 -d 10.66.2.0/24 -i eth0  -p tcp  -m tcp  --dport 22 -j ACCEPT",
-          " -i eth0  -j LOG --log-prefix \"default\" --log-level 1",
+          " -i eth0  -j LOG --log-prefix \"i_default\" --log-level 1",
           " -i eth0  -j DROP"
         ],
         "OUTPUT": [
@@ -575,7 +578,7 @@ def test_DemoGitFireSet_compile_rules_full():
           "-s 10.66.2.2/32 -d 10.66.1.3/32 -o eth0  -p tcp  -m tcp  --dport 6660:6669 -j ACCEPT",
           "-s 10.66.2.2/32 -d 172.16.2.223/32 -o eth0  -p udp  -m udp  --dport 123 -j ACCEPT",
           "-s 10.66.2.2/32 -d 10.66.1.3/32 -o eth0  -p udp  -m udp  --dport 123 -j ACCEPT",
-          " -o eth0  -j LOG --log-prefix \"default\" --log-level 1",
+          " -o eth0  -j LOG --log-prefix \"o_default\" --log-level 1",
           " -o eth0  -j DROP"
         ]
       },
@@ -595,7 +598,7 @@ def test_DemoGitFireSet_compile_rules_full():
           "-s 88.88.88.1/32 -d 172.16.2.223/32 -o eth1  -p tcp  -m tcp  --dport 22 -j ACCEPT",
           "-s 88.88.88.1/32 -d 10.66.1.3/32 -o eth1  -p tcp  -m tcp  --dport 22 -j ACCEPT",
           "-s 88.88.88.1/32 -d 10.66.2.2/32 -o eth1  -p tcp  -m tcp  --dport 22 -j ACCEPT",
-          " -o eth1  -j LOG --log-prefix \"default\" --log-level 1",
+          " -o eth1  -j LOG --log-prefix \"o_default\" --log-level 1",
           " -o eth1  -j DROP"
         ]
       },
@@ -616,24 +619,23 @@ def test_DemoGitFireSet_compile_rules_full():
         "OUTPUT": [
           "-m state --state RELATED,ESTABLISHED -j ACCEPT",
           "-o lo -j ACCEPT",
-          "-s 10.66.1.3/32 -d 10.66.1.1/32 -o eth0  -j LOG --log-prefix \"NoSmeagol\" --log-level 3",
+          "-s 10.66.1.3/32 -d 10.66.1.1/32 -o eth0  -j LOG --log-prefix \"o_NoSmeagol\" --log-level 3",
           "-s 10.66.1.3/32 -d 10.66.1.1/32 -o eth0  -j DROP",
-          "-s 10.66.1.3/32 -d 10.66.1.2/32 -o eth0  -p tcp  -m multiport --dports 143,585,993 -j LOG --log-prefix \"imap\" --log-level 2",
+          "-s 10.66.1.3/32 -d 10.66.1.2/32 -o eth0  -p tcp  -m multiport --dports 143,585,993 -j LOG --log-prefix \"o_imap\" --log-level 2",
           "-s 10.66.1.3/32 -d 10.66.1.2/32 -o eth0  -p tcp  -m multiport --dports 143,585,993 -j ACCEPT",
           "-s 10.66.1.3/32 -d 172.16.2.223/32 -o eth0  -p udp  -m udp  --dport 123 -j ACCEPT",
-          " -o eth0  -j LOG --log-prefix \"default\" --log-level 1",
+          " -o eth0  -j LOG --log-prefix \"o_default\" --log-level 1",
           " -o eth0  -j DROP"
         ]
       }
     }
 
-    debug('rd', rd)
-
     for hostname in ok:
         for chain in ok[hostname]:
             for n, my_line in enumerate(rd[hostname][chain]):
                 ok_line = ok[hostname][chain][n]
-                assert my_line == ok_line, "Incorrect rules in %s chain %s:\ngot:      [%s]\nexpected: [%s]" % (hostname, chain, my_line,  ok_line )
+                assert my_line.strip() == ok_line.strip(), "Incorrect rules in %s chain %s:\ngot:      [%s]\nexpected: [%s]\nline: %d" % (
+                    hostname, chain, my_line,  ok_line , n )
 
     #FIXME: review rule, ensure they are really correct
 
@@ -816,6 +818,7 @@ def test_DemoGitFireSet_build_ipt_restore():
 @with_setup(setup_dir, teardown_dir)
 def test_DemoGitFireSet_extract_iptables_rules():
     fs = DemoGitFireSet(repodir=testingutils.repodir)
+    #FIXME: the _get_confs implementation in DemoGitFireSet is broken
     fs._get_confs(keep_sessions=False)
     rules_d = fs._extract_ipt_filter_rules(fs._remote_confs)
     for hn, rules in rules_d.iteritems():
@@ -823,6 +826,25 @@ def test_DemoGitFireSet_extract_iptables_rules():
         assert len(rules) < 34,  rules
         for rule in rules:
             assert rule not in ('COMMIT', '*filter', '*nat')
+
+#TODO: review this test, ensure it's using real data
+@with_setup(setup_dir, teardown_dir)
+def test_DemoGitFireSet_extract_iptables_rules_2():
+    fs = DemoGitFireSet(repodir=testingutils.repodir)
+    remote_confs = {
+        'InternalFW': {
+            'iptables': {'filter': [], 'nat': []},
+            'ip_a_s': {},
+        },
+        'BorderFW': {
+            'iptables': {'filter': ['a', 'b', 'c'], 'nat': []},
+            'ip_a_s': {},
+        }
+    }
+    rules_d = fs._extract_ipt_filter_rules(remote_confs)
+    assert rules_d == {'InternalFW': [], 'BorderFW': ['a', 'b', 'c']}, repr(rules_d)
+
+
 
 @with_setup(setup_dir, teardown_dir)
 def test_DemoGitFireSet_diff_table_generation_1():

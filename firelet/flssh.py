@@ -28,15 +28,10 @@ log = logging.getLogger(__name__)
 def timeit(method):
     def timed(*args, **kw):
         t = time()
-#        log.debug("start %s with %s %s" % \
-#            (method.__name__, repr(args), repr(kw)))
         log.setLevel(logging.WARN)
         result = method(*args, **kw)
         log.setLevel(logging.DEBUG)
-#        log.debug("ended %s in %2.3fs" %
-#            (method.__name__, time() - t)
-#        )
-        log.debug("%2.0fms %s %s %s" %
+        log.debug("%4.0fms %s %s %s" %
             (
                 (time() - t) * 1000,
                 method.__name__,
@@ -87,8 +82,9 @@ class SSHConnector(object):
         self._targets = targets   # {hostname: [management ip address list ], ... }
         assert isinstance(targets, dict), "targets must be a dict"
         self._username = username
-        paramiko_logger = paramiko.util.logging.getLogger()
-        paramiko_logger.setLevel(logging.WARN)
+        #FIXME: logging level for paramiko
+#        paramiko_logger = paramiko.util.logging.getLogger()
+#        paramiko_logger.setLevel(logging.WARN)
 #        log = logging.getLogger()
 #        log.setLevel(logging.DEBUG)
 
@@ -154,7 +150,7 @@ class SSHConnector(object):
     @timeit
     def _disconnect(self):
         """Close existing SSH connections"""
-        for hn, c in self._pool.iteritems():
+        for hn, c in self._pool.items():
             try:
                 self._pool.pop(hn)
                 c.close()
@@ -202,7 +198,7 @@ class SSHConnector(object):
         self._execute(hostname, 'logger -t firelet "Fetching existing configuration %s"' % hostname)
         iptables_save = self._execute(hostname, 'sudo /sbin/iptables-save')
         ip_addr_show = self._execute(hostname, '/bin/ip addr show')
-        log.info("iptables save on %s: %s" % (hostname, iptables_save))
+        log.info("iptables save on %s: %s..." % (hostname, repr(iptables_save)[:130]))
         confs[hostname] = (iptables_save, ip_addr_show)
         #FIXME: if a host returns unexpected output i.e. missing sudo it should be logged
 
@@ -219,7 +215,6 @@ class SSHConnector(object):
         args = [(confs, hn, 'firelet') for hn in self._targets ]
         Forker(self._get_conf, args)
 
-        log.debug("Threads stopped")
         # parse the configurations
         for hostname in self._targets:
             if hostname not in confs:
@@ -398,7 +393,7 @@ class SSHConnector(object):
         #log.debug(" on %s..." % hostname)
         self._execute(hostname, """rm -f rollback.pid; ( \
 logger -t firelet "Automatic rollback enabled"; \
-sleep 5; \
+sleep 15; \
 logger -t firelet "Rolling back configuration!"; \
 sudo /sbin/iptables-restore < iptables_previous && logger -t firelet "Configuration rolled back!"; \
 rm -f rollback.pid; \
@@ -446,12 +441,16 @@ rm -f rollback.pid; \
         """
         log.debug("Applying conf on %s..." % hostname)
         self._execute(hostname, 'logger -t firelet "Applying new firewall configuration"')
+        self._execute(hostname, 'logger -t firelet "cur file: $(wc -l iptables_current)"')
+        self._execute(hostname, 'logger -t firelet "ipt-save: $(sudo iptables-save | wc -l)"')
         iptables_out = self._execute(hostname,
             'sudo /sbin/iptables-restore < iptables_current 2>&1')
         if iptables_out == []:
             status[hostname] = 'ok'
         else:
             log.warn("iptables-restore output on %s %s" % (hostname, iptables_out))
+            self._execute(hostname, 'logger -t firelet "iptables-restore failed"')
+        self._execute(hostname, 'logger -t firelet "$(sudo iptables-save | wc -l)"')
 
     @timeit
     def apply_remote_confs(self, keep_sessions=False):
@@ -459,6 +458,17 @@ rm -f rollback.pid; \
         status = {}
         args = [(status, hn, 'firelet') for hn in self._targets ]
         Forker(self._apply_remote_conf, args)
+        return status
+
+
+    def _log_ping(self, status, hostname, username):
+        self._execute(hostname, 'logger -t firelet ping')
+
+    @timeit
+    def log_ping(self):
+        status = {}
+        args = [(status, hn, 'firelet') for hn in self._targets ]
+        Forker(self._log_ping, args)
         return status
 
 

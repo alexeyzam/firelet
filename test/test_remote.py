@@ -176,14 +176,14 @@ def test_deliver_apply_and_get_confs():
 ## # End-to-end Fireset testing # #
 
 
-#@with_setup(setup_dir, teardown_dir)
-#def test_GitFireSet_check():
-#    """Run diff between complied rules and remote confs using GitFireSet
-#    Given the test files, the check should be ok and require no deployment"""
-#    fs = GitFireSet(repodir=testingutils.repodir)
-#    diff = fs.check()
-#    #TODO: initial
-#    assert diff == {}, repr(diff)
+@with_setup(setup_dir, teardown_dir)
+def test_GitFireSet_check():
+    """Run diff between complied rules and remote confs using GitFireSet
+    Given the test files, the check should be ok and require no deployment"""
+    fs = GitFireSet(repodir=testingutils.repodir)
+    diff = fs.check()
+    #TODO: initial
+    assert diff == {}, repr(diff)[:400]
 
 @with_setup(setup_dir, teardown_dir)
 def test_GitFireSet_deployment():
@@ -191,7 +191,7 @@ def test_GitFireSet_deployment():
     fs = GitFireSet(repodir=testingutils.repodir)
     fs.deploy()
     diff = fs.check()
-    assert diff == {}, repr(diff)
+    assert diff == {}, repr(diff)[:400]
 
 
 
