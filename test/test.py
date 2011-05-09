@@ -151,10 +151,8 @@ def test_MockSSHConnector_get_confs():
 
     for x in d:
         for y in d[x]:
-            assert d[x][y] == ok[x][y], """Incorrect conf retrieved
-                \n%s versus\n%s""" % (d[x][y], ok[x][y])
-    assert_raises(NotImplementedError,  sshconn._interact, '', 'echo hi')
-
+            assert d[x][y] == ok[x][y], """Incorrect conf retrieved:
+                \n%s\n\nversus\n\n%s""" % (d[x][y], ok[x][y])
 
 
 #def setup_dummy_flssh():
@@ -515,36 +513,38 @@ def test_DemoGitFireSet_compile_rules_full():
       },
       "BorderFW": {
         "FORWARD": [
+            '-j ACCEPT',  #FIXME
           "-m state --state RELATED,ESTABLISHED -j ACCEPT",
-          "-s 88.88.88.1/32 -d 172.16.2.223/32 -p tcp  -m tcp  --dport 22 -j LOG  --log-prefix \"ssh_all\" --log-level 0",
+          "-s 88.88.88.1/32 -d 172.16.2.223/32 -p tcp  -m tcp  --dport 22 -j LOG  --log-prefix \"f_ssh_all\" --log-level 0",
           "-s 88.88.88.1/32 -d 172.16.2.223/32 -p tcp  -m tcp  --dport 22 -j ACCEPT",
-          "-s 88.88.88.1/32 -d 10.66.1.3/32 -p tcp  -m tcp  --dport 22 -j LOG  --log-prefix \"ssh_all\" --log-level 0",
+          "-s 88.88.88.1/32 -d 10.66.1.3/32 -p tcp  -m tcp  --dport 22 -j LOG  --log-prefix \"f_ssh_all\" --log-level 0",
           "-s 88.88.88.1/32 -d 10.66.1.3/32 -p tcp  -m tcp  --dport 22 -j ACCEPT",
-          "-s 88.88.88.1/32 -d 10.66.2.2/32 -p tcp  -m tcp  --dport 22 -j LOG  --log-prefix \"ssh_all\" --log-level 0",
+          "-s 88.88.88.1/32 -d 10.66.2.2/32 -p tcp  -m tcp  --dport 22 -j LOG  --log-prefix \"f_ssh_all\" --log-level 0",
           "-s 88.88.88.1/32 -d 10.66.2.2/32 -p tcp  -m tcp  --dport 22 -j ACCEPT",
-          "-s 10.66.1.3/32 -d 172.16.2.223/32 -p udp  -m udp  --dport 123 -j LOG  --log-prefix \"ntp\" --log-level 0",
+          "-s 10.66.1.3/32 -d 172.16.2.223/32 -p udp  -m udp  --dport 123 -j LOG  --log-prefix \"f_ntp\" --log-level 0",
           "-s 10.66.1.3/32 -d 172.16.2.223/32 -p udp  -m udp  --dport 123 -j ACCEPT",
-          " -j LOG  --log-prefix \"default\" --log-level 1",
+          " -j LOG  --log-prefix \"f_default\" --log-level 1",
           " -j DROP",
-          " -j LOG  --log-prefix \"default\" --log-level 1",
+          " -j LOG  --log-prefix \"f_default\" --log-level 1",
           " -j DROP",
-          " -j LOG  --log-prefix \"default\" --log-level 1",
+          " -j LOG  --log-prefix \"f_default\" --log-level 1",
           " -j DROP"
         ],
         "INPUT": [
+            '-j ACCEPT', #FIXME
           "-m state --state RELATED,ESTABLISHED -j ACCEPT",
           "-i lo -j ACCEPT",
           "-s 88.88.88.1/32 -d 172.16.2.223/32 -i eth0  -p tcp  -m tcp  --dport 22 -j ACCEPT",
           "-s 10.66.1.2/32 -d 10.66.1.1/32 -i eth1  -p tcp  -m tcp  --dport 443 -j ACCEPT",
-          "-s 10.66.1.3/32 -d 10.66.1.1/32 -i eth1  -j LOG --log-prefix \"NoSmeagol\" --log-level 3",
+          "-s 10.66.1.3/32 -d 10.66.1.1/32 -i eth1  -j LOG --log-prefix \"i_NoSmeagol\" --log-level 3",
           "-s 10.66.1.3/32 -d 10.66.1.1/32 -i eth1  -j DROP",
           "-s 10.66.1.3/32 -d 172.16.2.223/32 -i eth0  -p udp  -m udp  --dport 123 -j ACCEPT",
           "-s 10.66.2.2/32 -d 172.16.2.223/32 -i eth0  -p udp  -m udp  --dport 123 -j ACCEPT",
-          " -i eth0  -j LOG --log-prefix \"default\" --log-level 1",
+          " -i eth0  -j LOG --log-prefix \"i_default\" --log-level 1",
           " -i eth0  -j DROP",
-          " -i eth1  -j LOG --log-prefix \"default\" --log-level 1",
+          " -i eth1  -j LOG --log-prefix \"i_default\" --log-level 1",
           " -i eth1  -j DROP",
-          " -i eth2  -j LOG --log-prefix \"default\" --log-level 1",
+          " -i eth2  -j LOG --log-prefix \"i_default\" --log-level 1",
           " -i eth2  -j DROP"
         ],
         "OUTPUT": [
@@ -563,7 +563,6 @@ def test_DemoGitFireSet_compile_rules_full():
       },
       "Server001": {
         "FORWARD": [
-            '-j ACCEPT',
           "-j DROP"
         ],
         "INPUT": [
@@ -594,7 +593,7 @@ def test_DemoGitFireSet_compile_rules_full():
         "INPUT": [
           "-m state --state RELATED,ESTABLISHED -j ACCEPT",
           "-i lo -j ACCEPT",
-          " -i eth1  -j LOG --log-prefix \"default\" --log-level 1",
+          " -i eth1  -j LOG --log-prefix \"i_default\" --log-level 1",
           " -i eth1  -j DROP"
         ],
         "OUTPUT": [
@@ -618,7 +617,7 @@ def test_DemoGitFireSet_compile_rules_full():
           "-s 10.66.2.2/32 -d 10.66.1.3/32 -i eth0  -p tcp  -m tcp  --dport 6660:6669 -j ACCEPT",
           "-s 172.16.2.223/32 -d 10.66.1.3/32 -i eth0  -p udp  -m udp  --dport 123 -j ACCEPT",
           "-s 10.66.2.2/32 -d 10.66.1.3/32 -i eth0  -p udp  -m udp  --dport 123 -j ACCEPT",
-          " -i eth0  -j LOG --log-prefix \"default\" --log-level 1",
+          " -i eth0  -j LOG --log-prefix \"i_default\" --log-level 1",
           " -i eth0  -j DROP"
         ],
         "OUTPUT": [

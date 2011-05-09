@@ -536,9 +536,9 @@ class MockSSHConnector(SSHConnector):
         # Used by _deliver_conf
         elif 'cat > .iptables' in s:
             log.debug("Writing to %s/iptables-save-%s and -x" % (d, h))
-            log.debug("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
             li = s.split('\n')[1:-1]
             open('%s/iptables-save-%s' % (d, h), 'w').write('\n'.join(li)+'\n')
+            open('%s/iptables-save-%s-x' % (d, h), 'w').write('\n'.join(li)+'\n')
         else:
             # Ignore other commands
             ignored = ('logger -t',
