@@ -364,6 +364,45 @@ function refresh_msg()
     });
 }
 
+// Shortcut key bindings
+function setup_main_keybindings(save_overlay) {
+    var tabs = $("ul.css-tabs").data("tabs");
+    var tabs_key_map = {
+        114: 0, // Ruleset
+        103: 1, // host Groups
+        104: 2, // Hosts
+        110: 3, // Networks
+        115: 4, // Services
+        109: 5, // Manage
+        97: 6, // mAp
+    }
+    $('body').keypress(function(e) {
+        var k = (e.keyCode ? e.keyCode : e.which);
+        if (k in tabs_key_map) {
+            tabs.click(tabs_key_map[k]);
+            return;
+        }
+        switch (k) {
+            case 67: // Shift Cancel
+                break;
+            case 83: // Shift Save
+                // FIXME
+                save_overlay.load();
+                break;
+            case 65: // Shift Add
+                break;
+            case 106: // J: move up
+                break;
+            case 107: // K: move down
+                break;
+            case 13: // Enter
+                break;
+            default:
+                console.log(k);
+        }
+    });
+}
+
 
 $(function() {
 
@@ -426,6 +465,8 @@ $(function() {
         },"json");
         return e.preventDefault();
     });
+
+    setup_main_keybindings(triggers);
 
 });
 
