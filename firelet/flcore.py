@@ -109,6 +109,11 @@ class Sys(Bunch):
 
 class Host(Bunch):
     def __init__(self, r):
+        """Creates a Host object
+
+        Args:
+            r (list): Host attributes
+        """
         self.hostname=r[0]
         self.iface=r[1]
         self.ip_addr=r[2]
@@ -133,12 +138,21 @@ class Host(Bunch):
             return addr_ok and net_ok
 
     def mynetwork(self):
-        """Return unnamed network directly connected to the host"""
+        """Creates an unnamed network directly connected to the host
+
+        Ruturns:
+            A Network instance
+        """
         return Network(['', self.ip_addr, self.masklen])
 
 
 class Network(Bunch):
     def __init__(self, r):
+        """Creates a Host object
+
+        Args:
+            r (list): Network attributes
+        """
         self.name = r[0]
         self.update({'ip_addr': r[1], 'masklen': r[2]})
 
@@ -178,6 +192,11 @@ class HostGroup(Bunch):
     """A Host Group contains hosts, networks, and other host groups"""
 
     def __init__(self, li):
+        """Creates a HostGroup object
+
+        Args:
+            r (list): HostGroup attributes
+        """
         self.name = li[0]
         if len(li) == 1:
             childs = []
@@ -186,7 +205,10 @@ class HostGroup(Bunch):
         self.childs = childs
 
     def _flatten(self, i):
-        """Flatten the host groups hierarchy and returns a list of strings"""
+        """Flatten the host groups hierarchy
+       Returns:
+            a list of strings
+        """
         if hasattr(i, 'childs'):  # "i" is a hostgroup _object_!
             childs = i.childs
             leaves = sum(map(self._flatten, childs), [])
@@ -203,8 +225,10 @@ class HostGroup(Bunch):
             return [i]
 
     def flat(self, host_by_name, net_by_name, hg_by_name):
-        """Flatten the host groups hierarchy and returns Host
-        or Network instances"""
+        """Flatten the host groups hierarchy
+        Returns:
+            Host or Network instances
+        """
         self._hbn = hg_by_name
         li = self._flatten(self)
         del(self._hbn)
@@ -347,6 +371,11 @@ class SmartTable(object):
 class Rules(SmartTable):
     """A list of Bunch instances""" #TODO: unit testing across all the methods
     def __init__(self, d):
+        """Creates a Rules object
+
+        Args:
+            d (string): data directory
+        """
         self._dir = d
         li = readcsv('rules', d)
         self._list = [Bunch(enabled=r[0], name=r[1], src=r[2], src_serv=r[3],
@@ -354,11 +383,13 @@ class Rules(SmartTable):
             for r in li ]
 
     def save(self):
+        """Save the ruleset"""
         li = [[x.enabled, x.name, x.src, x.src_serv, x.dst, x.dst_serv,
                     x.action, x.log_level, x.desc] for x in self._list]
         savecsv('rules', li, self._dir)
 
     def moveup(self, rid):
+        """Move a rule up"""
         try:
             rules = self._list
             rules[rid], rules[rid - 1] = rules[rid - 1], rules[rid]
@@ -370,6 +401,7 @@ class Rules(SmartTable):
             #            say("Cannot move rule %d up." % rid)
 
     def movedown(self, rid):
+        """Move a rule down"""
         try:
             rules = self._list
             rules[rid], rules[rid + 1] = rules[rid + 1], rules[rid]
@@ -380,10 +412,12 @@ class Rules(SmartTable):
             raise Alert
 
     def disable(self, rid):
+        """Disable a rule"""
         self._list[rid].enabled = '0'
         self.save()
 
     def enable(self, rid):
+        """Enable a rule"""
         self._list[rid].enabled = '1'
         self.save()
 
@@ -530,6 +564,15 @@ class Services(SmartTable):
 # CSV files
 
 def loadcsv(n, d):
+    """Load a CSV file
+
+    Args:
+        n (string): filename, without .csv
+        d (string): directory
+
+    Returns:
+        a Table instance
+    """
     try:
         f = open("%s/%s.csv" % (d, n))
         li = [x for x in f if not x.startswith('#') and x != '\n']
@@ -1101,8 +1144,10 @@ class GitFireSet(FireSet):
             self._git('commit -m "Configuration database created."')
 
     def version_list(self):
-        """Parse git log --date=iso and returns a list of lists:
-        [ [author, date, [msg lines], commit_id ], ... ]
+        """Parse git log --date=iso
+
+        Returns:
+            a list of lists: [ [author, date, [msg lines], commit_id ], ... ]
         """
         o, e = self._git('log --date=iso')
         if e:
@@ -1240,19 +1285,42 @@ class Users(object):
 
     def list(self):
         return list(self._users)
+
     def _save(self):
+        """Save users in a JSON file"""
         savejson('users', self._users, d=self._dir)
 
     def _hash(self, u, pwd): #TODO: should I add salting?
+        """Hash username and password"""
         return sha512("%s:::%s" % (u, pwd)).hexdigest()
 
     def create(self, username, role, pwd, email=None):
+        """
+        Create a new user
+
+        Args:
+            username (string): the username
+            role (string): user role
+            pwd (string): user password
+
+        Kwargs:
+            email (string): optional
+        """
         assert username, "Username must be provided."
         assert username not in self._users, "User already exists."
         self._users[username] = [role, self._hash(username, pwd), email]
         self._save()
 
     def update(self, username, role=None, pwd=None, email=None):
+        """Update an user
+
+        Args:
+            username (string): the username
+        Kwargs:
+            role (string): user role
+            pwd (string): user password
+            email (string): user email
+        """
         assert username in self._users, "Non existing user."
         if role is not None:
             self._users[username][0] = role
@@ -1263,6 +1331,7 @@ class Users(object):
         self._save()
 
     def delete(self, username):
+        """Delete an username"""
         try:
             self._users.pop(username)
         except KeyError:
@@ -1270,6 +1339,7 @@ class Users(object):
         self._save()
 
     def validate(self, username, pwd):
+        """Validate an username and password"""
         assert username, "Missing username."
         assert username in self._users, "Incorrect user or password."
         assert self._hash(username, pwd) == self._users[username][1], \

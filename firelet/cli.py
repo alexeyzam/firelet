@@ -84,6 +84,7 @@ def cli_args(mockargs=None):
     return opts, six_commands
 
 def give_help():    # pragma: no cover
+    """Print a help page"""
     #TODO
     say("""
     Commands:
@@ -119,12 +120,14 @@ def give_help():    # pragma: no cover
     """)
 
 def help(s=None):
+    """Print help and exit"""
     if s:
         say(s)
     give_help()
     exit(1)
 
 def to_int(s):
+    """Convert string to int, exit on failure"""
     try:
         return int(s)
     except:
@@ -167,12 +170,15 @@ def prettyprint(li):
             id = 0
 
 def say(s):
+    """Print to stdout"""
     print s
 
 def open_fs(repodir):
+    """Open Git FireSet"""
     return GitFireSet(repodir=repodir)
 
 def main(mockargs=None):
+    """Firelet command line interface"""
 
     opts, (a1, a2, a3, a4, a5, a6) = cli_args(mockargs=mockargs)
 
