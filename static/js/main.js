@@ -21,7 +21,7 @@ function refresh_msg()
 
 //Disable shortcut key bindings
 function remove_main_keybindings() {
-    $('body').keypress();
+    $('body').unbind('keypress');
 }
 
 // Setup shortcut key bindings
@@ -59,6 +59,8 @@ function setup_main_keybindings() {
                 if (selected_row < trs.length - 1) {
                     selected_row++;
                 }
+                //TODO: make selection look better
+                //TODO: reset selected_row on tab change
                 $('table#items tbody tr').css('color','black');
                 $('table#items tbody tr').eq(selected_row).css('color','red');
                 break;
@@ -76,12 +78,14 @@ function setup_main_keybindings() {
                 if (selected_row != -1) {
                     tr = $('table#items tbody tr').eq(selected_row);
                     console.log(tr);
+                    //FIXME
                     $("div#editing_form").overlay().load();
                 }
                 break;
 
             case 78: // Shift New
                 $("img.new[rel]").overlay().load();
+                //FIXME
                 break
 
             default:
@@ -148,7 +152,13 @@ $(function() {
             loadSpeed: 200,
             opacity: 0.9
         },
-        closeOnClick: false
+        closeOnClick: false,
+        onBeforeLoad: function() {
+            remove_main_keybindings();
+        },
+        onClose: function() {
+            setup_main_keybindings();
+        },
     });
 
     $("#savediag form").submit(function(e) {
