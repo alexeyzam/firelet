@@ -101,7 +101,13 @@ $(function() {
     // Setup tabs
     $("ul.css-tabs").tabs("div.tabpane > div", {
         effect: 'ajax',
-        history: true
+        history: true,
+        onClick: function() {
+            // On tab change, setup new help overlay
+            $("img#help[rel]").overlay({mask: {loadSpeed: 200, opacity: 0.9, }, });
+            // Reset selected row
+            selected_row = -1;
+        }
     });
     //FIXME: history not updated by shortcuts
 
@@ -153,8 +159,9 @@ $(function() {
             opacity: 0.9
         },
         closeOnClick: false,
-        onBeforeLoad: function() {
+        onLoad: function() {
             remove_main_keybindings();
+            $("div#savediag form input").focus();
         },
         onClose: function() {
             setup_main_keybindings();

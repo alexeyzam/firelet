@@ -135,8 +135,7 @@ $(function() {
             });
     });
 
-    // Help overlay
-    $("img#help[rel]").overlay({ mask: {loadSpeed: 200, opacity: 0.9, }, });
+
 
 
     /// Editing form ///

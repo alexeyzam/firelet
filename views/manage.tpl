@@ -208,11 +208,12 @@ $(function() {
 
     });
 
-
+    // FIXME: Check button should open the overlay
+    // TODO: create Deploy overlay?
 
     // Check feedback overlay
 
-    var over = $("img#check[rel]").overlay({
+    $("img#check[rel]").overlay({
         mask: {
             loadSpeed: 200,
             opacity: 0.9,
@@ -223,11 +224,16 @@ $(function() {
                 dt.load("check", {});
             }
         },
-        closeOnClick: false
+        closeOnClick: false,
+        onLoad: function() {
+            remove_main_keybindings();
+            $("div#savediag form input").focus();
+        },
+        onClose: function() {
+            setup_main_keybindings();
+        },
     });
 
-    // Help overlay
-    $("img#help[rel]").overlay({ mask: {loadSpeed: 200, opacity: 0.9, }, });
 
     // RSS overlay
     $("img#rss[rel]").overlay({ mask: {loadSpeed: 200, opacity: 0.9, }, });
