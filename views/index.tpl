@@ -279,6 +279,13 @@ div#gradient {
   z-index: 4000;
 }
 
+// Selected table row
+.selected_tr {
+    border: 1px solid black;
+    border-left: 3px solid black;
+    color: red;
+}
+
 </style>
 
 </head>
@@ -349,129 +356,8 @@ div#gradient {
     <br />
 </div>
 
-<script>
+<script type="text/javascript" src="static/js/main.js"></script>
 
-function refresh_msg()
-{
-    setTimeout("refresh_msg()",2000);
-    t = $("div#msgslot").scrollTop();
-    th = $("table#msgs").height();
-    delta = th - t - 100;
-    if (delta < 10) { $("table#msgs").load("/messages"); }
-    $.getJSON("save_needed", function(json){
-        if (json.sn === true) $("div#savereset").show();
-        else $("div#savereset").hide();
-    });
-}
-
-// Shortcut key bindings
-function setup_main_keybindings(save_overlay) {
-    var tabs = $("ul.css-tabs").data("tabs");
-    var tabs_key_map = {
-        114: 0, // Ruleset
-        103: 1, // host Groups
-        104: 2, // Hosts
-        110: 3, // Networks
-        115: 4, // Services
-        109: 5, // Manage
-        97: 6, // mAp
-    }
-    $('body').keypress(function(e) {
-        var k = (e.keyCode ? e.keyCode : e.which);
-        if (k in tabs_key_map) {
-            tabs.click(tabs_key_map[k]);
-            return;
-        }
-        switch (k) {
-            case 67: // Shift Cancel
-                break;
-            case 83: // Shift Save
-                // FIXME
-                save_overlay.load();
-                break;
-            case 65: // Shift Add
-                break;
-            case 106: // J: move up
-                break;
-            case 107: // K: move down
-                break;
-            case 13: // Enter
-                break;
-            default:
-                console.log(k);
-        }
-    });
-}
-
-
-$(function() {
-
-    $("ul.css-tabs").tabs("div.tabpane > div", {effect: 'ajax', history: true});
-
-    refresh_msg();
-
-    setTimeout(function() {
-        $("div#msgslot").scrollTop(1000);
-    },500);
-
-
-    // Save and reset buttons
-
-    $("div#savereset").hide();
-
-    $.getJSON("save_needed", function(json){
-        if (json.sn === true) $("div#savereset").show();
-    });
-
-    $("div#savereset img[title]").tooltip({
-        tip: '.tooltip',
-        effect: 'fade',
-        fadeOutSpeed: 100,
-        predelay: 800,
-        position: "bottom right",
-        offset: [15, -30]
-    });
-
-    $("div#savereset img").fadeTo(0, 0.6);
-
-    $("div#savereset img").hover(function() {
-      $(this).fadeTo("fast", 1);
-    }, function() {
-      $(this).fadeTo("fast", 0.6);
-    });
-
-
-    $('img#reset').click(function() {
-      $.post("reset");
-      $('div#savereset').hide();
-    });
-
-    // Save form
-
-    var triggers = $("img#saveimg").overlay({
-        mask: {
-            color: '#ebecff',
-            loadSpeed: 200,
-            opacity: 0.9
-        },
-        closeOnClick: false
-    });
-
-    $("#savediag form").submit(function(e) {
-        var input = $("input", this).val();
-        $.post("save",{msg: input}, function(json) {
-            triggers.eq(0).overlay().close();
-            $('div#savereset').hide();
-        },"json");
-        return e.preventDefault();
-    });
-
-    setup_main_keybindings(triggers);
-
-});
-
-
-</script>
 </body>
 
 </html>
