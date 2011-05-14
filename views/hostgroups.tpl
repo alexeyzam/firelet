@@ -57,31 +57,14 @@
 <script>
 $(function() {
 
-    $("table#items tr td img[title]").tooltip({
-        tip: '.tooltip',
-        effect: 'fade',
-        fadeOutSpeed: 100,
-        predelay: 800,
-        position: "bottom right",
-        offset: [15, 15]
-    });
+    on_tab_load();
 
-    $("table#items tr td img").fadeTo(0, 0.6);
-
-    $("table#items tr td img").hover(function() {
-      $(this).fadeTo("fast", 1);
-    }, function() {
-      $(this).fadeTo("fast", 0.6);
-    });
-
-    $(function() {
-        $('img.delete').click(function() {
-            td = this.parentElement.parentElement;
-            $.post("hostgroups", { action: 'delete', rid: td.id},
-                function(data){
-                    $('div.tabpane div').load('/hostgroups');
-                });
-        });
+    $('img.delete').click(function() {
+        td = this.parentElement.parentElement;
+        $.post("hostgroups", { action: 'delete', rid: td.id},
+            function(data){
+                $('div.tabpane div').load('/hostgroups');
+            });
     });
 
     // Form management //

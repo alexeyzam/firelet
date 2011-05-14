@@ -162,6 +162,8 @@ div#diff_table {
 <script>
 $(function() {
 
+    on_tab_load();
+
     $('button#save').click(function() {
         $.post("save",
             function(data){            });
@@ -233,7 +235,6 @@ $(function() {
             setup_main_keybindings();
         },
     });
-
 
     // RSS overlay
     $("img#rss[rel]").overlay({ mask: {loadSpeed: 200, opacity: 0.9, }, });

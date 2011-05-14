@@ -1,6 +1,7 @@
 // Main jQuery script
 
-// globals
+// globals variables and functions
+
 var selected_row = -1;
 
 // Refresh message pane
@@ -16,8 +17,6 @@ function refresh_msg()
         else $("div#savereset").hide();
     });
 }
-//TODO: disable main keybinding during an overlay
-// enable them again on overlay close
 
 //Disable shortcut key bindings
 function remove_main_keybindings() {
@@ -89,11 +88,38 @@ function setup_main_keybindings() {
                 break
 
             default:
-                //TODO: remove this
-                console.log(k);
+                //console.log(k);
         }
     });
 }
+
+// Ran on tab change or reload
+function on_tab_load() {
+    // Setup new help overlay
+    $("img#help[rel]").overlay({mask: {loadSpeed: 200, opacity: 0.9, }, });
+
+    // Reset selected row
+    selected_row = -1;
+
+    // Setup tooltips and hovering
+    $("table#items tr td img[title]").tooltip({
+        tip: '.tooltip',
+        effect: 'fade',
+        fadeOutSpeed: 100,
+        predelay: 800,
+        position: "bottom right",
+        offset: [15, 15]
+    });
+
+    $("table#items tr td img").fadeTo(0, 0.6);
+
+    $("table#items tr td img").hover(function() {
+      $(this).fadeTo("fast", 1);
+    }, function() {
+      $(this).fadeTo("fast", 0.6);
+    });
+}
+
 
 // Execute on main page load
 $(function() {
@@ -103,10 +129,7 @@ $(function() {
         effect: 'ajax',
         history: true,
         onClick: function() {
-            // On tab change, setup new help overlay
-            $("img#help[rel]").overlay({mask: {loadSpeed: 200, opacity: 0.9, }, });
-            // Reset selected row
-            selected_row = -1;
+            on_tab_load();
         }
     });
     //FIXME: history not updated by shortcuts

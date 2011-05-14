@@ -106,22 +106,7 @@
 <script>
 $(function() {
 
-    $("table#items tr td img[title]").tooltip({
-        tip: '.tooltip',
-        effect: 'fade',
-        fadeOutSpeed: 100,
-        predelay: 800,
-        position: "bottom right",
-        offset: [15, 15]
-    });
-
-    $("table#items tr td img").fadeTo(0, 0.6);
-
-    $("table#items tr td img").hover(function() {
-      $(this).fadeTo("fast", 1);
-    }, function() {
-      $(this).fadeTo("fast", 0.6);
-    });
+    on_tab_load();
 
     $('img.action').click(function() {
         tr = $(this).parents('tr');
@@ -272,4 +257,3 @@ $(function() {
 
 });
 </script>
-
