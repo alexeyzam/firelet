@@ -38,19 +38,8 @@ from bottle import HTTPResponse, HTTPError
 import logging
 log = logging.getLogger(__name__)
 
-class LoggedHTTPError(bottle.HTTPResponse):
-    """ Used to generate an error page """
-    def __init__(self, code=500, output='Unknown Error', exception=None,
-                 traceback=None, header=None):
-        super(bottle.HTTPError, self).__init__(output, code, header)
-        log.debug("""Internal error '%s':\n  Output: %s\n  Header: %s\n  %s---
-            End of traceback ---""" % (exception, output, header, traceback))
-
-
-bottle.HTTPError = LoggedHTTPError
-
-#TODO: API version number
-#TODO: say() as a custom log target
+#TODO: add API version number
+#TODO: rewrite say() as a custom log target
 #TODO: full rule checking upon Save
 #TODO: move fireset editing in flcore
 #TODO: setup three roles
@@ -64,8 +53,28 @@ bottle.HTTPError = LoggedHTTPError
 #TODO: insert  change description in save message
 #FIXME: Reset not working
 
+# Setup Python error logging
+
+class LoggedHTTPError(bottle.HTTPResponse):
+    """Log a full traceback"""
+    def __init__(self, code=500, output='Unknown Error', exception=None,
+            traceback=None, header=None):
+        super(bottle.HTTPError, self).__init__(output, code, header)
+        log.error("""Internal error '%s':\n  Output: %s\n  Header: %s\n  %s \
+--- End of traceback ---""" % (exception, output, header, traceback))
+
+    def __repr__(self):
+        ts = datetime.now()
+        return "%s: An error occourred and has been logged." % ts
+
+bottle.HTTPError = LoggedHTTPError
+
+
+# Global variables
+
 msg_list = []
 
+# Miscellaneous functions
 
 def say(s, level='info'):
     """Generate a message. level can be: info, warning, alert"""
@@ -76,7 +85,6 @@ def say(s, level='info'):
     msg_list.append((level, ts, s))
     if len(msg_list) > 10:
         msg_list.pop(0)
-
 
 def ack(s=None):
     """Acknowledge successful processing and returns ajax confirmation."""
@@ -124,6 +132,7 @@ def pcheckbox(name):
     if name in request.POST:
         return '1'
     return '0'
+
 
 # # #  web services  # # #
 
@@ -464,7 +473,6 @@ def services():
         abort(500)
 
 
-
 # management commands
 
 @bottle.route('/manage')
@@ -701,7 +709,13 @@ def main():
     app = bottle.default_app()
     app = SessionMiddleware(app, session_opts)
 
-    run(app=app, host=conf.listen_address, port=conf.listen_port, reloader=reload)
+    run(
+        app=app,
+        quiet=True,
+        host=conf.listen_address,
+        port=conf.listen_port,
+        reloader=reload
+    )
 
 
 if __name__ == "__main__":
