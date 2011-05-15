@@ -28,11 +28,11 @@ function remove_main_keybindings() {
 function refresh_selected_row(direction) {
     if (selected_row > 0 && direction == -1) {
         selected_row--;
-    } else{
+    } else {
         trs = $('table#items tbody tr')
         if  (selected_row < trs.length - 1 && direction == 1) {
-            selected_row += direction;
-        }
+            selected_row++;
+        } else return;
     }
 
     $('table#items tbody tr').css({
