@@ -49,7 +49,6 @@ log = logging.getLogger(__name__)
 
 #TODO: new rule creation
 
-#FIXME: first rule cannot be disabled
 #TODO: insert  change description in save message
 #FIXME: Reset not working
 
@@ -211,7 +210,6 @@ def messages():
 @view('index')
 def index():
     """Serve main page"""
-    _require()
     s = bottle.request.environ.get('beaker.session')
     logged_in = True if s and 'username' in s else False
 
@@ -245,7 +243,7 @@ def ruleset():
     _require('editor')
     action = pg('action', '')
     rid = int_pg('rid')
-    assert rid, "Item number not provided"
+    assert rid is not None, "Item number not provided"
     try:
         if action == 'delete':
             item = fs.fetch('rules', rid)
@@ -575,8 +573,11 @@ def rollback():
 @bottle.route('/static/:filename#[a-zA-Z0-9_\.?\/?]+#')
 def static(filename):
     """Serve static content"""
-    _require()
     bottle.response.headers['Cache-Control'] = 'max-age=3600, public'
+    if filename == 'rss.png':
+        return static_file(filename, 'static')
+    # Authenticated users contents:
+    _require()
     if filename == '/jquery-ui.js':
         return static_file('jquery-ui/jquery-ui.js',
             '/usr/share/javascript/') #TODO: support other distros
