@@ -46,8 +46,10 @@ function setup_main_keybindings() {
                 break;
 
             case 83: // Shift Save
-                // FIXME: should open only when needed
-                $("img#saveimg").overlay().load();
+                $.getJSON("save_needed", function(json){
+                    if (json.sn === true)
+                        $("img#saveimg").overlay().load();
+                });
                 break;
 
             case 65: // Shift Add
@@ -133,6 +135,8 @@ $(function() {
         }
     });
     //FIXME: history not updated by shortcuts
+
+    //FIXME: tooltips do not disappear sometimes
 
     // Start refreshing message pane
     refresh_msg();
