@@ -54,7 +54,6 @@ bottle.HTTPError = LoggedHTTPError
 #TODO: full rule checking upon Save
 #TODO: move fireset editing in flcore
 #TODO: setup three roles
-#TODO: display only login form to unauth users
 #TODO: store a local copy of the deployed confs
 #              - compare in with the fetched conf
 #              - show it on the webapp
@@ -63,7 +62,7 @@ bottle.HTTPError = LoggedHTTPError
 
 #FIXME: first rule cannot be disabled
 #TODO: insert  change description in save message
-
+#FIXME: Reset not working
 
 msg_list = []
 
@@ -149,9 +148,10 @@ def _require(role='readonly'):
     say("An account with '%s' level or higher is required." % repr(role))
     raise Exception
 
+
 @bottle.route('/login', method='POST')
 def login():
-    """ """
+    """Log user in if authorized"""
     s = bottle.request.environ.get('beaker.session')
     if 'username' in s:  # user is authenticated <--> username is set
         say("Already logged in as \"%s\"." % s['username'])
@@ -174,6 +174,8 @@ def login():
 
 @bottle.route('/logout')
 def logout():
+    """Log user out"""
+    _require()
     s = bottle.request.environ.get('beaker.session')
     u = s.get('username', None)
     if u:
@@ -191,12 +193,16 @@ def logout():
 @bottle.route('/messages')
 @view('messages')
 def messages():
+    """Populate log message pane"""
+    _require()
     messages = [ (lvl, ts.strftime("%H:%M:%S"), msg) for lvl, ts, msg in msg_list]
     return dict(messages=messages)
 
 @bottle.route('/')
 @view('index')
 def index():
+    """Serve main page"""
+    _require()
     s = bottle.request.environ.get('beaker.session')
     logged_in = True if s and 'username' in s else False
 
@@ -220,6 +226,7 @@ def index():
 @bottle.route('/ruleset')
 @view('ruleset')
 def ruleset():
+    """Serve ruleset tab"""
     _require()
     return dict(rules=enumerate(fs.rules))
 
@@ -323,6 +330,7 @@ def hostgroups():
 @bottle.route('/hosts')
 @view('hosts')
 def hosts():
+    """Serve hosts tab"""
     _require()
     return dict(hosts=enumerate(fs.hosts))
 
@@ -367,6 +375,7 @@ def hosts():
 
 @bottle.route('/net_names', method='POST')
 def net_names():
+    """Serve networks names"""
     _require()
     nn = [n.name for n in fs.networks]
     return dict(net_names=nn)
@@ -461,6 +470,7 @@ def services():
 @bottle.route('/manage')
 @view('manage')
 def manage():
+    """Serve manage tab"""
     _require()
     s = bottle.request.environ.get('beaker.session')
     myrole = s.get('role', '')
@@ -469,11 +479,13 @@ def manage():
 
 @bottle.route('/save_needed')
 def save_needed():
+    """Serve fs.save_needed() output"""
     _require()
     return {'sn': fs.save_needed()}
 
 @bottle.route('/save', method='POST')
 def savebtn():
+    """Save configuration"""
     _require()
     msg = pg('msg', '')
     if not fs.save_needed():
@@ -484,6 +496,7 @@ def savebtn():
 
 @bottle.route('/reset', method='POST')
 def resetbtn():
+    """Reset configuration"""
     _require()
     if not fs.save_needed():
         ret_warn('Reset not needed.')
@@ -494,6 +507,7 @@ def resetbtn():
 @bottle.route('/check', method='POST')
 @view('rules_diff_table')
 def checkbtn():
+    """Check configuration"""
     _require()
     say('Configuration check started...')
     try:
@@ -511,6 +525,7 @@ def checkbtn():
 
 @bottle.route('/deploy', method='POST')
 def deploybtn():
+    """Deploy configuration"""
     _require('admin')
     say('Configuration deployment started...')
     say('Compiling firewall rules...')
@@ -523,6 +538,7 @@ def deploybtn():
 @bottle.route('/version_list')
 @view('version_list')
 def version_list():
+    """Serve version list"""
     _require()
     li = fs.version_list()
     return dict(version_list=li)
@@ -530,6 +546,7 @@ def version_list():
 @bottle.route('/version_diff', method='POST')
 @view('version_diff')
 def version_diff():
+    """Serve version diff"""
     _require()
     cid = pg('commit_id') #TODO validate cid?
     li = fs.version_diff(cid)
@@ -539,6 +556,7 @@ def version_diff():
 
 @bottle.route('/rollback', method='POST')
 def rollback():
+    """Rollback configuration"""
     _require('admin')
     cid = pg('commit_id') #TODO validate cid?
     fs.rollback(cid)
@@ -548,6 +566,7 @@ def rollback():
 
 @bottle.route('/static/:filename#[a-zA-Z0-9_\.?\/?]+#')
 def static(filename):
+    """Serve static content"""
     _require()
     bottle.response.headers['Cache-Control'] = 'max-age=3600, public'
     if filename == '/jquery-ui.js':

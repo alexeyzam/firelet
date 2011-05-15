@@ -153,7 +153,6 @@ $(function() {
         $("div#msgslot").scrollTop(1000);
     },500);
 
-    //TODO: put focus on save input field
     // Setup triggers for the save and reset buttons
 
     $("div#savereset").hide();
