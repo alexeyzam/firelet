@@ -11,7 +11,12 @@
 
 <table id="items">
     <thead>
-        <tr><th></th><th>Name</th><th>Protocol</th><th>Ports / ICMP Type</th></tr>
+        <tr>
+            <th></th>
+            <th>Name</th>
+            <th>Protocol</th>
+            <th>Ports / ICMP Type</th>
+        </tr>
     </thead>
 % for rid, service in services:
     <tr id="{{rid}}">

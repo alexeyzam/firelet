@@ -23,6 +23,26 @@ function remove_main_keybindings() {
     $('body').unbind('keypress');
 }
 
+// Refresh selected table row
+// direction can be +1 or -1
+function refresh_selected_row(direction) {
+    if (selected_row > 0 && direction == -1) {
+        selected_row--;
+    } else{
+        trs = $('table#items tbody tr')
+        if  (selected_row < trs.length - 1 && direction == 1) {
+            selected_row += direction;
+        }
+    }
+
+    $('table#items tbody tr').css({
+        backgroundColor: ''
+    });
+    $('table#items tbody tr').eq(selected_row).css({
+        backgroundColor: '#f9f9f9',
+    });
+}
+
 // Setup shortcut key bindings
 function setup_main_keybindings() {
     var tabs = $("ul.css-tabs").data("tabs");
@@ -56,23 +76,11 @@ function setup_main_keybindings() {
                 break;
 
             case 106: // J: move down
-                trs = $('table#items tbody tr')
-                if (selected_row < trs.length - 1) {
-                    selected_row++;
-                }
-                //TODO: make selection look better
-                //TODO: reset selected_row on tab change
-                $('table#items tbody tr').css('color','black');
-                $('table#items tbody tr').eq(selected_row).css('color','red');
+                refresh_selected_row(1);
                 break;
 
             case 107: // K: move up
-                trs = $('table#items tbody tr')
-                if (selected_row > 0) {
-                    selected_row-- ;
-                }
-                trs.css('color','black');
-                trs.eq(selected_row).css('color','red');
+                refresh_selected_row(-1);
                 break;
 
             case 13: // Enter

@@ -9,7 +9,13 @@
 </div>
 
 <table id="items">
-    <tr><th></th><th>Name</th><th>Siblings</th></tr>
+    <thead>
+        <tr>
+            <th></th>
+            <th>Name</th>
+            <th>Siblings</th>
+        </tr>
+    </thead>
 % for rid, hg in hostgroups:
     <tr id="{{rid}}">
     <td class="hea">

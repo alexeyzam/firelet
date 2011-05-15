@@ -11,8 +11,17 @@
 
 <table id="items">
     <thead>
-        <tr><th></th><th>Name</th><th>Iface</th><th>IP Address</th><th>Netmask l.</th><th>Local Fw</th>
-            <th>Network Fw</th><th>Management</th><th>Routed networks</th></tr>
+        <tr>
+			<th></th>
+			<th>Name</th>
+			<th>Iface</th>
+			<th>IP Address</th>
+			<th>Netmask l.</th>
+			<th>Local Fw</th>
+            <th>Network Fw</th>
+			<th>Management</th>
+			<th>Routed networks</th>
+		</tr>
     </thead>
 % for rid, h in hosts:
     <tr id="{{rid}}">

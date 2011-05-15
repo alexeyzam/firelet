@@ -154,6 +154,9 @@ table td {
     padding: 0 .5em 0 .5em;
 }
 
+table#items tbody .selected_row {
+    color: red;
+}
 
 .diff_chg {
     color: red;
