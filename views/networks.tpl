@@ -1,62 +1,3 @@
-
-<style>
-
-#triggers img {
-    border:0;
-    cursor:pointer;
-    margin-left:11px;
-}
-
-/* Form validation error message */
-
-.error {
-    z-index: 30055;
-    height:15px;
-    background-color: #eeeeff;
-    border:1px solid #000;
-    font-size:11px;
-    color:#000;
-    padding:3px 10px;
-    margin-left:20px;
-
-
-    /* CSS3 spicing for mozilla and webkit */
-    -moz-border-radius:4px;
-    -webkit-border-radius:4px;
-    -moz-border-radius-bottomleft:0;
-    -moz-border-radius-topleft:0;
-    -webkit-border-bottom-left-radius:0;
-    -webkit-border-top-left-radius:0;
-
-    -moz-box-shadow:0 0 6px #ddd;
-    -webkit-box-shadow:0 0 6px #ddd;
-}
-div#multisel {
-    margin: 0;
-    padding: 0.1em;
-    display: block;
-    border: 0;
-    background-color: transparent;
-}
-div#multisel div#selected {
-    margin: 0 0 0 4em;
-    padding: 0 2px 0 2px;
-    display: block;
-    border: 1px #333 solid;
-    width: 20em;
-    background: #fafafa;
-}
-div#multisel div#selected p {
-    margin: 0;
-    padding: 0;
-    height: 1em;
-    cursor: default;
-}
-div#multisel div#selected p:hover {
-    text-decoration: line-through;
-}
-</style>
-
 <img id="help" src="static/help.png" rel="div#help_ovr" title="Help">
 <div id="help_ovr">
     <h4>Contextual help: Manage</h4>
@@ -139,31 +80,14 @@ div#help_ovr {
 <script>
 $(function() {
 
-    $("table#items tr td img[title]").tooltip({
-        tip: '.tooltip',
-        effect: 'fade',
-        fadeOutSpeed: 100,
-        predelay: 800,
-        position: "bottom right",
-        offset: [15, 15]
-    });
+    on_tab_load();
 
-    $("table#items tr td img").fadeTo(0, 0.6);
-
-    $("table#items tr td img").hover(function() {
-      $(this).fadeTo("fast", 1);
-    }, function() {
-      $(this).fadeTo("fast", 0.6);
-    });
-
-    $(function() {
-        $('img.delete').click(function() {
-            td = this.parentElement.parentElement;
-            $.post("networks", { action: 'delete', rid: td.id},
-                function(data){
-                    $('div.tabpane div').load('/networks');
-                });
-        });
+    $('img.delete').click(function() {
+        td = this.parentElement.parentElement;
+        $.post("networks", { action: 'delete', rid: td.id},
+            function(data){
+                $('div.tabpane div').load('/networks');
+            });
     });
 
     function reset_form() {
@@ -229,10 +153,5 @@ $(function() {
     });
 
 
-
-    // Help overlay
-    $("img#help[rel]").overlay({ mask: {loadSpeed: 200, opacity: 0.9, }, });
 });
 </script>
-
-

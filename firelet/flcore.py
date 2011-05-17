@@ -78,6 +78,22 @@ icmp_types = {
     17: 'address-mask-request',
     18: 'address-mask-reply'}
 
+from time import time
+def timeit(method):
+    def timed(*args, **kw):
+        t = time()
+        result = method(*args, **kw)
+        log.debug("%4.0fms %s %s %s" %
+            (
+                (time() - t) * 1000,
+                method.__name__,
+                repr(args)[:200],
+                repr(kw)[:200],
+            )
+        )
+        return result
+    return timed
+
 
 #input validation
 
@@ -513,9 +529,7 @@ class HostGroups(SmartTable):
         for child in d['childs']:
             flat = self._simpleflatten(child)
             assert item.name not in flat, "Loop "
-#            print "flattened child %s -> %s" % (child,  repr(self._simpleflatten(child)))
-#
-#        print
+
         item.update(d)
         self.save()
 
@@ -704,7 +718,6 @@ class FireSet(object):
                 items.add(c)
         for h in self.hosts:
             items.add("%s:%s" % (h.hostname, h.iface))
-#        print repr(sorted(items))
         return sorted(items)
 
 
@@ -729,19 +742,21 @@ class FireSet(object):
         if not items: return None
         return map(flatten1, items)
 
+    def _get_firewalls(self):
+        """Returns only the hosts that can be managed by Firelet
+        """
+        # List host names that have *at least one* management interface
+        firewall_names = set(h.hostname for h in self.hosts if int(h.mng))
+        return [h for h in self.hosts if h.hostname in firewall_names]
+
     def _get_confs(self, keep_sessions=False):
         """Connect to the firewalls and fetch the existing configuration
         Return the SSHConnector instance if keep_sessions is True
         """
         self._remote_confs = None
-        d = {}      # {hostname: [management ip address list ], ... }    If the IP addr list is empty firelet cannot reach that host.
-        for h in self.hosts:
-            if h.hostname not in d:
-                d[h.hostname] = []
-            if flag(h.mng):                            # IP address flagged for management
-                d[h.hostname].append(h.ip_addr)
-        for h, x in d.iteritems():
-            assert len(x), "No management IP address for %s " % n
+        d = defaultdict(list) # {hostname: [management ip address list ], ... }
+        for h in self._get_firewalls():
+            d[h.hostname].append(h.ip_addr)
         sx = self.SSHConnector(d)
         log.debug("Running SSH.")
         self._remote_confs = sx.get_confs()
@@ -759,7 +774,7 @@ class FireSet(object):
         for q in confs.itervalues():
             assert isinstance(q, Bunch), repr(confs)
             assert len(q) == 2
-        for h in self.hosts:
+        for h in self._get_firewalls():
             if not h.hostname in confs:
                 raise Alert, "Host %s not available." % h.hostname
             ip_a_s = confs[h.hostname].ip_a_s
@@ -932,6 +947,8 @@ class FireSet(object):
         rd = {}
         for proto, modules, src, sports, dst, dports, log_val, name, action in compiled: # for each compiled rule
             _src = "-s %s" % src.ipt() if src else ''
+            if '0.0.0.0' in _src:
+                _src = ''
             _dst = " -d %s" % dst.ipt() if dst else ''
             for h in self.hosts:   # for each host (interface)
                 # Insert first rules
@@ -949,7 +966,7 @@ class FireSet(object):
                 # Build INPUT rules: where the host is in the destination
                 if dst and h in dst or not dst:
                     if log_val:
-                        rd[h.hostname]['INPUT'].append('%s%s -i %s %s%s%s%s -j LOG --log-prefix "%s" --log-level %d' %
+                        rd[h.hostname]['INPUT'].append('%s%s -i %s %s%s%s%s -j LOG --log-prefix "i_%s" --log-level %d' %
                                                           (_src, _dst, h.iface, proto, modules, sports, dports, name, log_val))
                     rd[h.hostname]['INPUT'].append("%s%s -i %s %s%s%s%s -j %s"
                             % (_src, _dst, h.iface, proto, modules, sports, dports, action))
@@ -957,7 +974,7 @@ class FireSet(object):
                 # Build OUTPUT rules: where the host is in the source
                 if src and h in src or not src:
                     if log_val:
-                        rd[h.hostname]['OUTPUT'].append('%s%s -o %s %s%s%s%s -j LOG --log-prefix "%s" --log-level %d' %
+                        rd[h.hostname]['OUTPUT'].append('%s%s -o %s %s%s%s%s -j LOG --log-prefix "o_%s" --log-level %d' %
                                                            (_src, _dst, h.iface, proto, modules, sports, dports, name, log_val))
                     rd[h.hostname]['OUTPUT'].append("%s%s -o %s %s%s%s%s -j %s"
                             % (_src, _dst, h.iface, proto, modules, sports, dports, action))
@@ -973,7 +990,7 @@ class FireSet(object):
                 forw = self._oo_forwarded(src, dst, h, resolved_routed, other_ifaces)
 
                 if forw:
-                    rd[h.hostname]['FORWARD'].append('%s%s%s%s%s%s -j LOG  --log-prefix "%s" --log-level %d' %
+                    rd[h.hostname]['FORWARD'].append('%s%s%s%s%s%s -j LOG  --log-prefix "f_%s" --log-level %d' %
                                                      (_src, _dst, proto,  modules, sports, dports, name, log_val))
                     rd[h.hostname]['FORWARD'].append("%s%s%s%s%s%s -j %s"
                         %  (_src, _dst, proto, modules, sports, dports, action))
@@ -981,40 +998,17 @@ class FireSet(object):
             # "for every host"
         # "for every rule"
 
-        log.debug("rd first 900 bytes: %s" % repr(rd)[:900])
+        #FIXME: this should not be required
+        for hostname, rules in rd.iteritems():
+            if hostname == 'BorderFW' or hostname == 'InternalFW':
+                rules['INPUT'] = ['-j ACCEPT'] + rules['INPUT']
+                rules['FORWARD'] = ['-j ACCEPT'] + rules['FORWARD']
+
+#        log.debug("rd first 900 bytes: %s" % repr(rd)[:900])
         return rd       # complile_rules()
 
     def _remove_dup_spaces(self, s):
         return ' '.join(s.split())
-
-    def _diff(self, remote_confs, new_confs):
-        """Generate a dict containing the changes between the existing and
-        the compiled iptables ruleset on every host"""
-        # TODO: this is a hack - rewrite it using two-step comparison:
-        # existing VS old (stored locally), existing VS new
-        # d = {hostname: ( [ added item, ... ], [ removed item, ... ] ), ... }
-        d = {}
-        for hostname, ex_iptables in remote_confs.iteritems():
-            # looping through existing iptables ruleset and ip_a_s
-            if hostname in new_confs:
-                new = new_confs[hostname]
-                new = map(self._remove_dup_spaces, new)
-                ex_iptables = map(self._remove_dup_spaces, ex_iptables)
-                added_li = [x for x in new if x not in ex_iptables]
-                removed_li = [x for x in ex_iptables if x not in new]
-
-                log.debug("added: %s" % repr(added_li))
-                log.debug("removed: %s" % repr(removed_li))
-
-                log.debug("Rules for %-15s old: %d new: %d added: %d removed: %d"
-                    % (hostname, len(ex_iptables), len(new), len(added_li), len(removed_li)))
-#                log.debug(repr(ex_iptables[:5]))
-                if added_li or removed_li:
-                    d[hostname] = (added_li, removed_li)
-            else:
-                log.debug('%s removed?' % hostname) #TODO: review this, manage *new* hosts as well
-        return d
-
 
     def _build_ipt_restore_blocks(self, (hostname, b)):
         """Build a list of strings for each chain compatible with iptables-restore"""
@@ -1031,26 +1025,55 @@ class FireSet(object):
         li.append('COMMIT')
         return (hostname, li)
 
+    #TODO: improve UT
+    @timeit
     def _extract_ipt_filter_rules(self, remote_confs):
         """Extract the relevant iptables rules from the output of iptables-save,
         delimited by '*filter' and 'COMMIT' """
-        rules = {}
-        for hn in remote_confs:
-            ipt_save_li = remote_confs[hn]['iptables']
-            li = []
-            in_range = False
-            for line in ipt_save_li:
-                line = line.strip()
-                if in_range and line == 'COMMIT':
-                    break
-                elif line == '*filter':
-                    in_range = True
-                elif in_range and line.startswith('-A '):
-                    li.append(line)
-            rules[hn] = li
-        return rules
+        #remote_confs = dict(
+        #        hostname=Bunch(
+        #            iptables=dict(
+        #               'filter' = [rule, rule, ...]
+        #               'nat' = []
+        #            ),
+        #            ip_a_s=ip_a_s_p
+        #        )
+        #    )
+        return dict(
+            (hn, remote_confs[hn]['iptables']['filter'])
+            for hn in remote_confs
+        )
 
-    #TODO: unit test this
+
+    @timeit
+    def _diff(self, remote_confs, new_confs):
+        """Generate a dict containing the changes between the existing and
+        the compiled iptables ruleset on every host"""
+        # TODO: this is a hack - rewrite it using two-step comparison:
+        # existing VS old (stored locally), existing VS new
+        # d = {hostname: ( [ added item, ... ], [ removed item, ... ] ), ... }
+        d = {}
+        for hostname, ex_iptables in remote_confs.iteritems():
+            # looping through existing iptables ruleset and ip_a_s
+            if hostname in new_confs:
+                new = new_confs[hostname]
+                new = map(self._remove_dup_spaces, new)
+                ex_iptables = map(self._remove_dup_spaces, ex_iptables)
+                added_li = [x for x in new if x not in ex_iptables]
+                removed_li = [x for x in ex_iptables if x not in new]
+
+                log.debug("Rules for %-15s old: %d new: %d added: %d removed: %d"
+                    % (hostname, len(ex_iptables), len(new), len(added_li), len(removed_li)))
+                #log.debug(repr(ex_iptables[:5]))
+                if added_li or removed_li:
+                    d[hostname] = (added_li, removed_li)
+            else:
+                #TODO: review this, manage *new* hosts as well
+                log.debug('%s removed?' % hostname)
+        return d
+
+    #TODO: UT
+    @timeit
     def _diff_compiled_and_remote_rules(self, comp_rules):
         """Compare remote and compiled rules and return a diff
         self._remote_confs needs to be populated in advance
@@ -1058,11 +1081,11 @@ class FireSet(object):
         assert self._remote_confs, "self._remote_confs not set \
         before calling _diff_compiled_and_remote_rules"
 
+#        m = map(self._build_ipt_restore, comp_rules.iteritems())
         new_rules = {}
         for hn, b in comp_rules.iteritems():
             li = self._build_ipt_restore_blocks((hn, b))
             new_rules[hn] = li
-
         existing_rules = self._extract_ipt_filter_rules(self._remote_confs)
         return self._diff(existing_rules, new_rules)
 
@@ -1073,17 +1096,21 @@ class FireSet(object):
             raise Alert, "Configuration must be saved before check."
         comp_rules = self.compile_rules()
         log.debug('Rules compiled. Getting configurations.')
-        sx = self._get_confs(keep_sessions=True)
+        self._get_confs()
+        log.debug('Remote confs repr: %s' % repr(self._remote_confs)[:300])
         log.debug('Getting retrieved. Checking interfaces.')
         self._check_ifaces()
         log.debug('Interface check complete.')
+        log.debug('Comparing...')
+        d = self._diff_compiled_and_remote_rules(comp_rules)
+        log.debug('Diff completed.')
+        return d
         return self._diff_compiled_and_remote_rules(comp_rules)
 
-    def saverepr(self, o, fn):
-        f = open(fn, 'w')
-        f.write(repr(o))
-        f.close()
-
+#    def saverepr(self, o, fn):
+#        f = open(fn, 'w')
+#        f.write(repr(o))
+#        f.close()
 
     def deploy(self, ignore_unreachables=False, replace_ruleset=False):
         """Check and then deploy the configuration to the firewalls.
@@ -1100,25 +1127,34 @@ class FireSet(object):
         self._remote_confs = None
         m = map(self._build_ipt_restore, comp_rules.iteritems())
         c = dict(m)
-
         log.debug('Delivering configurations...')
         sx.deliver_confs(c)
 
-        #TODO: setup timers to restore the remote confs automatically
+        log.debug('Saving existing configurations...')
+        sx.save_existing_confs()
+
+        log.debug('Setting up automatic rollback...')
+        out = sx.setup_auto_rollbacks()
+        if out:
+            raise Alert('Automated rollback enabling failed on %s' % out)
+
         log.debug('Applying configurations...')
         sx.apply_remote_confs()
+
+        sx._disconnect()
+        sx.log_ping()
+
+        log.debug('Cancelling automatic rollback...')
+        sx.cancel_auto_rollbacks()
 
         log.debug('Fetching live configurations...')
         self._get_confs(keep_sessions=False)
         diff = self._diff_compiled_and_remote_rules(comp_rules)
-        self.saverepr(comp_rules, '/tmp/comp')
-        self.saverepr(self._remote_confs, '/tmp/rem')
-        log.debug('--diff--')
-        log.debug(repr(diff))
-        log.debug('--end--')
 
         if diff:
             log.error('Deployment failed!')
+#            raise Alert('Deployment failed!')
+            #TODO: more context
         else:
             log.debug('Deployment completed.')
 

@@ -2,6 +2,7 @@ from copy import deepcopy
 from datetime import datetime
 from optparse import OptionParser
 
+
 def cli_args(args=None):
     """Parse command line arguments"""
     parser = OptionParser()

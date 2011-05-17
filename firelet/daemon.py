@@ -23,6 +23,7 @@ from bottle import abort, route, static_file, run, view, request
 from bottle import debug as bottle_debug
 from collections import defaultdict
 from datetime import datetime
+from setproctitle import setproctitle
 from sys import exit
 from time import time, sleep, localtime
 
@@ -37,35 +38,42 @@ from bottle import HTTPResponse, HTTPError
 import logging
 log = logging.getLogger(__name__)
 
-class LoggedHTTPError(bottle.HTTPResponse):
-    """ Used to generate an error page """
-    def __init__(self, code=500, output='Unknown Error', exception=None,
-                 traceback=None, header=None):
-        super(bottle.HTTPError, self).__init__(output, code, header)
-        log.debug("""Internal error '%s':\n  Output: %s\n  Header: %s\n  %s---
-            End of traceback ---""" % (exception, output, header, traceback))
-
-
-bottle.HTTPError = LoggedHTTPError
-
-#TODO: API version number
-#TODO: say() as a custom log target
+#TODO: add API version number
+#TODO: rewrite say() as a custom log target
 #TODO: full rule checking upon Save
 #TODO: move fireset editing in flcore
 #TODO: setup three roles
-#TODO: display only login form to unauth users
 #TODO: store a local copy of the deployed confs
 #              - compare in with the fetched conf
 #              - show it on the webapp
 
 #TODO: new rule creation
 
-#FIXME: first rule cannot be disabled
 #TODO: insert  change description in save message
+#FIXME: Reset not working
 
+# Setup Python error logging
+
+class LoggedHTTPError(bottle.HTTPResponse):
+    """Log a full traceback"""
+    def __init__(self, code=500, output='Unknown Error', exception=None,
+            traceback=None, header=None):
+        super(bottle.HTTPError, self).__init__(output, code, header)
+        log.error("""Internal error '%s':\n  Output: %s\n  Header: %s\n  %s \
+--- End of traceback ---""" % (exception, output, header, traceback))
+
+    def __repr__(self):
+        ts = datetime.now()
+        return "%s: An error occourred and has been logged." % ts
+
+bottle.HTTPError = LoggedHTTPError
+
+
+# Global variables
 
 msg_list = []
 
+# Miscellaneous functions
 
 def say(s, level='info'):
     """Generate a message. level can be: info, warning, alert"""
@@ -76,7 +84,6 @@ def say(s, level='info'):
     msg_list.append((level, ts, s))
     if len(msg_list) > 10:
         msg_list.pop(0)
-
 
 def ack(s=None):
     """Acknowledge successful processing and returns ajax confirmation."""
@@ -125,6 +132,7 @@ def pcheckbox(name):
         return '1'
     return '0'
 
+
 # # #  web services  # # #
 
 
@@ -148,9 +156,10 @@ def _require(role='readonly'):
     say("An account with '%s' level or higher is required." % repr(role))
     raise Exception
 
+
 @bottle.route('/login', method='POST')
 def login():
-    """ """
+    """Log user in if authorized"""
     s = bottle.request.environ.get('beaker.session')
     if 'username' in s:  # user is authenticated <--> username is set
         say("Already logged in as \"%s\"." % s['username'])
@@ -173,6 +182,8 @@ def login():
 
 @bottle.route('/logout')
 def logout():
+    """Log user out"""
+    _require()
     s = bottle.request.environ.get('beaker.session')
     u = s.get('username', None)
     if u:
@@ -190,12 +201,15 @@ def logout():
 @bottle.route('/messages')
 @view('messages')
 def messages():
+    """Populate log message pane"""
+    _require()
     messages = [ (lvl, ts.strftime("%H:%M:%S"), msg) for lvl, ts, msg in msg_list]
     return dict(messages=messages)
 
 @bottle.route('/')
 @view('index')
 def index():
+    """Serve main page"""
     s = bottle.request.environ.get('beaker.session')
     logged_in = True if s and 'username' in s else False
 
@@ -219,6 +233,7 @@ def index():
 @bottle.route('/ruleset')
 @view('ruleset')
 def ruleset():
+    """Serve ruleset tab"""
     _require()
     return dict(rules=enumerate(fs.rules))
 
@@ -228,7 +243,7 @@ def ruleset():
     _require('editor')
     action = pg('action', '')
     rid = int_pg('rid')
-    assert rid, "Item number not provided"
+    assert rid is not None, "Item number not provided"
     try:
         if action == 'delete':
             item = fs.fetch('rules', rid)
@@ -322,6 +337,7 @@ def hostgroups():
 @bottle.route('/hosts')
 @view('hosts')
 def hosts():
+    """Serve hosts tab"""
     _require()
     return dict(hosts=enumerate(fs.hosts))
 
@@ -366,6 +382,7 @@ def hosts():
 
 @bottle.route('/net_names', method='POST')
 def net_names():
+    """Serve networks names"""
     _require()
     nn = [n.name for n in fs.networks]
     return dict(net_names=nn)
@@ -454,12 +471,12 @@ def services():
         abort(500)
 
 
-
 # management commands
 
 @bottle.route('/manage')
 @view('manage')
 def manage():
+    """Serve manage tab"""
     _require()
     s = bottle.request.environ.get('beaker.session')
     myrole = s.get('role', '')
@@ -468,11 +485,13 @@ def manage():
 
 @bottle.route('/save_needed')
 def save_needed():
+    """Serve fs.save_needed() output"""
     _require()
     return {'sn': fs.save_needed()}
 
 @bottle.route('/save', method='POST')
 def savebtn():
+    """Save configuration"""
     _require()
     msg = pg('msg', '')
     if not fs.save_needed():
@@ -483,6 +502,7 @@ def savebtn():
 
 @bottle.route('/reset', method='POST')
 def resetbtn():
+    """Reset configuration"""
     _require()
     if not fs.save_needed():
         ret_warn('Reset not needed.')
@@ -493,6 +513,7 @@ def resetbtn():
 @bottle.route('/check', method='POST')
 @view('rules_diff_table')
 def checkbtn():
+    """Check configuration"""
     _require()
     say('Configuration check started...')
     try:
@@ -510,6 +531,7 @@ def checkbtn():
 
 @bottle.route('/deploy', method='POST')
 def deploybtn():
+    """Deploy configuration"""
     _require('admin')
     say('Configuration deployment started...')
     say('Compiling firewall rules...')
@@ -522,6 +544,7 @@ def deploybtn():
 @bottle.route('/version_list')
 @view('version_list')
 def version_list():
+    """Serve version list"""
     _require()
     li = fs.version_list()
     return dict(version_list=li)
@@ -529,6 +552,7 @@ def version_list():
 @bottle.route('/version_diff', method='POST')
 @view('version_diff')
 def version_diff():
+    """Serve version diff"""
     _require()
     cid = pg('commit_id') #TODO validate cid?
     li = fs.version_diff(cid)
@@ -538,6 +562,7 @@ def version_diff():
 
 @bottle.route('/rollback', method='POST')
 def rollback():
+    """Rollback configuration"""
     _require('admin')
     cid = pg('commit_id') #TODO validate cid?
     fs.rollback(cid)
@@ -547,8 +572,12 @@ def rollback():
 
 @bottle.route('/static/:filename#[a-zA-Z0-9_\.?\/?]+#')
 def static(filename):
-    _require()
+    """Serve static content"""
     bottle.response.headers['Cache-Control'] = 'max-age=3600, public'
+    if filename == 'rss.png':
+        return static_file(filename, 'static')
+    # Authenticated users contents:
+    _require()
     if filename == '/jquery-ui.js':
         return static_file('jquery-ui/jquery-ui.js',
             '/usr/share/javascript/') #TODO: support other distros
@@ -613,6 +642,7 @@ def rss_channels(channel=None):
 
 def main():
     global conf
+    setproctitle('firelet')
 
     parser = ArgumentParser(description='Firelet daemon')
     parser.add_argument('-d', '--debug', action='store_true', help='debug mode')
@@ -635,23 +665,27 @@ def main():
     # logging
 
     if args.debug:
-        debug_mode = True
 #        log.basicConfig(level=log.DEBUG,
 #                        format='%(asctime)s %(levelname)-8s %(message)s',
 #                        datefmt='%a, %d %b %Y %H:%M:%S')
+        logging.basicConfig(
+            level=logging.DEBUG,
+#            format='%(asctime)s [%(process)d] %(levelname)s %(name)s %(message)s',
+            format='%(asctime)s [%(process)d] %(levelname)s %(name)s (%(funcName)s) %(message)s',
+            datefmt = '%Y-%m-%d %H:%M:%S' # %z for timezone
+        )
         log.debug("Debug mode")
         log.debug("Configuration file: '%s'" % args.cf)
-        bottle.debug(True)
         say("Firelet started in debug mode.", level="success")
         bottle_debug(True)
-        reload = False
+        reload = True
     else:
-        debug_mode = False
-#        log.basicConfig(level=log.INFO,
-#                    format='%(asctime)s %(levelname)-8s %(message)s',
-#                    datefmt='%a, %d %b %Y %H:%M:%S',
-#                    filename=conf.logfile,
-#                    filemode='w')
+        logging.basicConfig(
+            level=logging.DEBUG,
+            format='%(asctime)s [%(process)d] %(levelname)s %(name)s %(message)s',
+            datefmt = '%Y-%m-%d %H:%M:%S' # %z for timezone
+            #TODO: add filename=conf.logfile
+        )
         reload = False
         say("Firelet started.", level="success")
 
@@ -676,7 +710,13 @@ def main():
     app = bottle.default_app()
     app = SessionMiddleware(app, session_opts)
 
-    run(app=app, host=conf.listen_address, port=conf.listen_port, reloader=reload)
+    run(
+        app=app,
+        quiet=True,
+        host=conf.listen_address,
+        port=conf.listen_port,
+        reloader=reload
+    )
 
 
 if __name__ == "__main__":
