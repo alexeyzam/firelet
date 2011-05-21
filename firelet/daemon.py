@@ -691,17 +691,16 @@ def main():
 
     globals()['users'] = Users(d=conf.data_dir)
 
-    if conf.demo_mode == 'False':
+    if not conf.demo_mode:
         globals()['fs'] = GitFireSet(conf.data_dir)
         say("Configuration loaded.")
         say("%d hosts, %d rules, %d networks loaded." % (len(fs.hosts), len(fs.rules),
             len(fs.networks)))
-    elif conf.demo_mode == 'True':
+    else:
         globals()['fs'] = DemoGitFireSet(conf.data_dir)
         say("Demo mode.")
         say("%d hosts, %d rules, %d networks loaded." % (len(fs.hosts), len(fs.rules),
             len(fs.networks)))
-#        reload = True
 
     session_opts = {
         'session.type': 'cookie',

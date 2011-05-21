@@ -38,9 +38,12 @@ class ConfReader(object):
         config.read(fn)
 
         for name, default in defaults.iteritems():
-            if type(default) == int:
+            if isinstance(default, int):
                 self.__dict__[name] = config.getint('global', name)
-            elif type(default) == float:
+            elif isinstance(default, float):
                 self.__dict__[name] = config.getfloat('global', name)
+            elif isinstance(default, bool):
+                self.__dict__[name] = config.getboolean('global', name)
             else:
                 self.__dict__[name] = config.get('global', name)
+
