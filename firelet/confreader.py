@@ -29,7 +29,8 @@ class ConfReader(object):
             'smtp_server_addr': '',
             'email_source': 'firelet@localhost.local',
             'email_dests': 'root@localhost',
-            'public_url': None
+            'public_url': '',
+            'stop_on_extra_interfaces': False,
         }
         #TODO: validate strings from the .ini file  ---> fmt = "-ofmt:%" +
             # conf.ip_list_netflow_address
@@ -38,12 +39,22 @@ class ConfReader(object):
         config.read(fn)
 
         for name, default in defaults.iteritems():
-            if isinstance(default, int):
-                self.__dict__[name] = config.getint('global', name)
-            elif isinstance(default, float):
-                self.__dict__[name] = config.getfloat('global', name)
-            elif isinstance(default, bool):
-                self.__dict__[name] = config.getboolean('global', name)
-            else:
-                self.__dict__[name] = config.get('global', name)
+            caster = type(default)
+            value = config.get('global', name)
+            try:
+                value = caster(value)
+                self.__dict__[name] = value
+            except:
+                raise Exception("Unable to convert parameter '%s' having \
+value '%s' to %s in configuration file %s" % (name, value, caster, fn))
+
+#
+#            if isinstance(default, int):
+#                self.__dict__[name] = config.getint('global', name)
+#            elif isinstance(default, float):
+#                self.__dict__[name] = config.getfloat('global', name)
+#            elif isinstance(default, bool):
+#                self.__dict__[name] = config.getboolean('global', name)
+#            else:
+#                self.__dict__[name] = config.get('global', name)
 

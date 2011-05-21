@@ -517,7 +517,7 @@ def checkbtn():
     _require()
     say('Configuration check started...')
     try:
-        diff_dict = fs.check()
+        diff_dict = fs.check(stop_on_extra_interfaces=conf.stop_on_extra_interfaces)
     except Alert, e:
         say("Check failed: %s" % e,  level="alert")
         return dict(diff_dict="Check failed: %s" % e)
@@ -536,7 +536,7 @@ def deploybtn():
     say('Configuration deployment started...')
     say('Compiling firewall rules...')
     try:
-        fs.deploy()
+        fs.deploy(stop_on_extra_interfaces=conf.stop_on_extra_interfaces)
     except Alert, e:
         ret_alert("Compilation failed: %s" % e)
     ack('Configuration deployed.')
@@ -655,7 +655,7 @@ def main():
     try:
         conf = ConfReader(fn=args.cf)
     except Exception, e:
-        log.error("Exception %s while reading configuration file '%s'" % (e, args.cf))
+        logging.error("Exception %s while reading configuration file '%s'" % (e, args.cf))
         exit(1)
 
     if args.repodir:
@@ -663,8 +663,8 @@ def main():
 
 
     # logging
-
     if args.debug:
+        #TODO: fix this comments
 #        log.basicConfig(level=log.DEBUG,
 #                        format='%(asctime)s %(levelname)-8s %(message)s',
 #                        datefmt='%a, %d %b %Y %H:%M:%S')
@@ -711,7 +711,7 @@ def main():
 
     run(
         app=app,
-        quiet=True,
+        quiet=not reload,
         host=conf.listen_address,
         port=conf.listen_port,
         reloader=reload

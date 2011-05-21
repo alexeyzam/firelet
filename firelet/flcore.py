@@ -765,18 +765,23 @@ class FireSet(object):
         sx._disconnect()
         del(sx)
 
-    def _check_ifaces(self):
+    def _check_ifaces(self, stop_on_extra_interfaces=False):
         """Ensure that the interfaces configured on the hosts match
             the contents of the host table"""
         log.debug("Checking interfaces...")
         confs = self._remote_confs
         assert isinstance(confs, dict), "_remote_confs not populated before calling _check_ifaces"
         for q in confs.itervalues():
-            assert isinstance(q, Bunch), repr(confs)
-            assert len(q) == 2
+            assert isinstance(q, Bunch), "Incorrect type in %s" % repr(confs)
+            assert len(q) == 2, "%s must have 2 items" % repr(q)
+
+        # hostname -> interfaces_list
+        ifaces = defaultdict(set)
+
         for h in self._get_firewalls():
             if not h.hostname in confs:
                 raise Alert, "Host %s not available." % h.hostname
+            ifaces[h.hostname].add(h.iface)
             ip_a_s = confs[h.hostname].ip_a_s
             if not h.iface in ip_a_s:
                 raise Alert, "Interface %s missing on host %s" \
@@ -791,10 +796,26 @@ class FireSet(object):
                 raise Alert,"Wrong address on %s on interface %s: \
             %s and %s (should be %s)" % (h.hostname, iface, ip_addr_v4,
                         ip_addr_v6, h.ip_addr)
+
+        # Check if extra interfaces (unknown to Firelet) are present
+        # on the hosts
+        fw_having_extra_if = {}
+        if stop_on_extra_interfaces:
+            for hostname, flet_ifaces in ifaces.iteritems():
+                fw_ifaces = set(confs[h.hostname].ip_a_s)
+                extra = fw_ifaces - flet_ifaces
+                if extra:
+                    fw_having_extra_if[hostname] = extra
+
+            if fw_having_extra_if:
+                li = ["%s: %s" % (hn, ','.join(i))
+                        for hn, i in fw_having_extra_if.iteritems()]
+                s = "One or more firewalls have extra interfaces: %s" \
+                            % ' '.join(li)
+                log.warn(s)
+                raise Alert, s
+
         log.debug("self._check_ifaces successful")
-
-        #TODO: warn if there are extra interfaces?
-
 
     def _forwarded(self, remote, routed_nets, local_addr, local_masklen):
         """Tell if a remote net or ipaddr has to be routed through the local host.
@@ -1089,7 +1110,7 @@ class FireSet(object):
         existing_rules = self._extract_ipt_filter_rules(self._remote_confs)
         return self._diff(existing_rules, new_rules)
 
-    def check(self):
+    def check(self, stop_on_extra_interfaces=False):
         """Check the configuration on the firewalls.
         """
         if self.save_needed():
@@ -1098,21 +1119,16 @@ class FireSet(object):
         log.debug('Rules compiled. Getting configurations.')
         self._get_confs()
         log.debug('Remote confs repr: %s' % repr(self._remote_confs)[:300])
-        log.debug('Getting retrieved. Checking interfaces.')
-        self._check_ifaces()
+        log.debug('Checking interfaces.')
+        self._check_ifaces(stop_on_extra_interfaces=stop_on_extra_interfaces)
         log.debug('Interface check complete.')
         log.debug('Comparing...')
         d = self._diff_compiled_and_remote_rules(comp_rules)
         log.debug('Diff completed.')
         return d
-        return self._diff_compiled_and_remote_rules(comp_rules)
 
-#    def saverepr(self, o, fn):
-#        f = open(fn, 'w')
-#        f.write(repr(o))
-#        f.close()
-
-    def deploy(self, ignore_unreachables=False, replace_ruleset=False):
+    def deploy(self, ignore_unreachables=False, replace_ruleset=False,
+        stop_on_extra_interfaces=False):
         """Check and then deploy the configuration to the firewalls.
         Some ignore flags can be set to force the deployment even in case of errors.
         """
@@ -1122,7 +1138,7 @@ class FireSet(object):
         log.debug('Rules compiled. Fetching configurations.')
         sx = self._get_confs(keep_sessions=True)
         log.debug('Checking interfaces.')
-        self._check_ifaces()
+        self._check_ifaces(stop_on_extra_interfaces=stop_on_extra_interfaces)
         log.debug('Interface check complete.')
         self._remote_confs = None
         m = map(self._build_ipt_restore, comp_rules.iteritems())

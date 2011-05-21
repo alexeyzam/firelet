@@ -370,15 +370,53 @@ def test_gitfireset_check_ifaces_wrong_ipaddr():
 
 @with_setup(setup_dir, teardown_dir)
 def test_gitfireset_check_ifaces_correct():
-    """_check_ifaces should not raise AssertionError here"""
     fs = GitFireSet(repodir=testingutils.repodir)
     fs.hosts = [
-        Bunch(hostname='host1', iface='lo', ip_addr='1.2.3.4'),
+        Bunch(hostname='host1', iface='lo', ip_addr='1.2.3.4', mng='1'),
     ]
     fs._remote_confs = {
-        'host1': Bunch(ip_a_s = {'lo': ('1.2.3.4/32', None)}),
+        'host1': Bunch(
+            ip_a_s = {'lo': ('1.2.3.4/32', None)},
+            iptables_p = Bunch()
+        ),
     }
-    assert_raises(AssertionError, fs._check_ifaces)
+    fs._check_ifaces(stop_on_extra_interfaces=False)
+
+@with_setup(setup_dir, teardown_dir)
+def test_gitfireset_check_ifaces_correct2():
+    """gitfireset_check_ifaces_correct2 has stop_on_extra_interfaces = True"""
+    fs = GitFireSet(repodir=testingutils.repodir)
+    fs.hosts = [
+        Bunch(hostname='host1', iface='lo', ip_addr='1.2.3.4', mng=1),
+    ]
+    fs._remote_confs = {
+        'host1': Bunch(
+            ip_a_s = {'lo': ('1.2.3.4/32', None)},
+            iptables_p = Bunch()
+        ),
+    }
+    fs._check_ifaces(stop_on_extra_interfaces=True)
+
+@with_setup(setup_dir, teardown_dir)
+def test_gitfireset_check_ifaces_alert():
+    """gitfireset_check_ifaces_correct3 should raise Alert
+    'Alert: One or more firewalls have extra interfaces: host1: eth0'
+    """
+    fs = GitFireSet(repodir=testingutils.repodir)
+    fs.hosts = [
+        Bunch(hostname='host1', iface='lo', ip_addr='1.2.3.4', mng=1),
+    ]
+    fs._remote_confs = {
+        'host1': Bunch(
+            ip_a_s = {
+                'lo': ('1.2.3.4/32', None),
+                'eth0': ('7.7.7.7/32', None), #extra iface
+            },
+            iptables_p = Bunch()
+        ),
+    }
+    assert_raises(Alert, fs._check_ifaces, stop_on_extra_interfaces=True)
+
 
 @with_setup(setup_dir, teardown_dir)
 def test_gitfireset_sibling_names():
