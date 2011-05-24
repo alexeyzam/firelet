@@ -577,7 +577,7 @@ class Services(SmartTable):
 
 # CSV files
 
-def loadcsv(n, d):
+def loadcsv(fname, d):
     """Load a CSV file
 
     Args:
@@ -587,16 +587,15 @@ def loadcsv(n, d):
     Returns:
         a Table instance
     """
-    try:
-        f = open("%s/%s.csv" % (d, n))
-        li = [x for x in f if not x.startswith('#') and x != '\n']
-#        if li[0] != '# Format 0.1 - Do not edit this line':
-#            raise Exception, "Data format not supported in %s/%s.csv" % (d, n)
-        r = Table(csv.reader(li, delimiter=' '))
-        f.close()
-        return r
-    except IOError:
-        return [] #FIXME: why?
+    f = open("%s/%s.csv" % (d, fname))
+    lines = map(str.rstrip, f)
+    f.close()
+    if lines[0] != '# Format 0.1 - Do not edit this line':
+        raise Exception, "Data format not supported in %s/%s.csv" \
+            % (d, fname)
+    li = [x for x in lines if not x.startswith('#') and x != '\n']
+    r = Table(csv.reader(li, delimiter=' '))
+    return r
 
 def savecsv(n, stuff, d):
     """Save CSV file safely, preserving comments"""
