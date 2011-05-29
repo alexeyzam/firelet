@@ -18,11 +18,13 @@ import logging
 import inspect
 
 import glob
-from os import listdir
+from os import listdir, mkdir
 from json import dumps
 import shutil
 from tempfile import mkdtemp
+from time import time
 
+USE_SHM = True # Use tmpfs filesystem in /dev/shm/
 
 repodir = None
 
@@ -32,7 +34,12 @@ def setup_dir():
     global repodir
     if repodir:
         teardown_dir()
-    repodir = mkdtemp(prefix='tmp_fltest')
+    if USE_SHM:
+        tstamp = str(time())[5:]
+        repodir = "/dev/shm/fl_%s" % tstamp
+        mkdir(repodir)
+    else:
+        repodir = mkdtemp(prefix='tmp_fltest')
 
     # copy the needed files
     globs = ['test/iptables-save*', 'test/ip-addr-show*','test/*.csv', 'test/*.json']

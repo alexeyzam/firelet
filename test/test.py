@@ -1128,7 +1128,7 @@ def test_json5():
     d = {1:1, 2:2, 3:3}
     assert d != json_loop(d)
 
-@with_setup(setup_dir)
+@with_setup(setup_dir, teardown_dir)
 def test_json_files():
     d = {'d1':{'d2':{'d3':{'d4':{'d5':{'this is getting':'boring'}}}}}}
     savejson('jfile', d, d=testingutils.repodir)
