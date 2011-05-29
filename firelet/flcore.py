@@ -1202,7 +1202,7 @@ class GitFireSet(FireSet):
         """
         o, e = self._git('log --date=iso')
         if e:
-            Alert, e   #TODO
+            Alert, "Error while running 'git log --date=iso': %s" % e
         li = []
         msg = []
         author = None
@@ -1221,22 +1221,32 @@ class GitFireSet(FireSet):
         return li
 
     def version_diff(self, commit_id):
-        """Parse git diff <commit_id>"""
+        """Parse git diff <commit_id>
+        Returns a list of (line, tag), the tag being 'title', 'add',
+        'del,' or empty
+        """
+        tags = {'+': 'add', '-': 'del',  ' ': '',  '':''}
         o, e = self._git('diff %s' % commit_id)
         if e:
-            Alert, e   #TODO
+            Alert, "Error while runnig 'git diff %s': %s" % \
+                (commit_id, e)
         li = []
-        for x in o.split('\n')[2:]: #TODO: Looks fragile
+        for x in o.split('\n'):
+            x = x.rstrip()
+            # get the title from the filename
+            # "+++ b/hostgroups.csv"
             if x.startswith('+++'):
                 li.append((x[6:-4], 'title'))
-            elif x.startswith('---') or x.startswith('@@'):
+            # ignore some non-diff lines
+            elif x.startswith('---') or \
+                x.startswith('@@') or \
+                x.startswith('diff --git a/') or \
+                x.startswith('index '):
                 pass
-            elif x.startswith('-'):
-                li.append((x[1:], 'del'))
-            elif x.startswith('+'):
-                li.append((x[1:], 'add'))
+            # add diff lines with the appropriate tag
             else:
-                li.append((x, ''))
+                tag = tags[x[:1]]
+                li.append((x[1:], tag))
         return li
 
     def _git(self, cmd):

@@ -46,25 +46,6 @@ deb = log.debug
 from testingutils import *
 import testingutils
 
-
-# utility functions
-
-def string_in_list(s, li):
-    """Count how many times a string is contained in a list of strings
-    No exact match is required
-    >>> strings_in_list('p', ['apple'])
-    1
-    """
-    return sum((1 for x in li if s in str(x)))
-
-def test_string_in_list():
-    li = ['apple', 'p', '', None, 123, '   ']
-    assert string_in_list('p', li) == 2
-
-def assert_equal_line_by_line(li1, li2):
-    for x, y in zip(li1, li2):
-        assert x == y, "'%s' differs from '%s' in:\n%s\n%s\n" % (repr(li1), repr(li2))
-
 def debug(s, o=None):
     """Log an object representation"""
     try:
@@ -270,29 +251,55 @@ def test_gitfireset_simple():
 @with_setup(setup_dir, teardown_dir)
 def test_gitfireset_long():
     fs = GitFireSet(repodir=testingutils.repodir)
+    # Delete first item in every table
     for t in ('rules', 'hosts', 'hostgroups', 'services', 'networks'):
         fs.delete(t, 1)
-#        assert fs.save_needed() == True, "save_needed non set when deleting item 1 from %s" % t
+        assert fs.save_needed() == True, "save_needed non set when deleting item 1 from %s" % t
         fs.save("%s: n.1 deleted" % t)
         assert fs.save_needed() == False
+
+    # Perform changes
     fs.rules.moveup(2)
-#    assert fs.save_needed() == True
+    assert fs.save_needed() == True
     fs.rules.movedown(1)
     fs.save('movedown1')
     fs.rules.movedown(2)
     fs.save('movedown2')
     fs.rules.movedown(3)
     fs.save('movedown3')
+
+    # Check version list
     vl = fs.version_list()
-    log.debug('version_list: %s' % repr(vl))
-    assert zip(*vl)[2] == (['movedown3'], ['movedown2'], ['networks: n.1 deleted'], ['services: n.1 deleted'],
-                            ['hostgroups: n.1 deleted'], ['hosts: n.1 deleted'], ['rules: n.1 deleted'])
+    assert zip(*vl)[2] == (['movedown3'],
+        ['movedown2'],
+        ['networks: n.1 deleted'],
+        ['services: n.1 deleted'],
+        ['hostgroups: n.1 deleted'],
+        ['hosts: n.1 deleted'],
+        ['rules: n.1 deleted'])
+    dup = duplicates(zip(*vl)[3])
+    assert not dup, "Some commit IDs are duplicate: \
+    %s" % repr(dup)
+
+    # Check version_diff
+    last_commit_id = vl[-1][-1]
+    diff = fs.version_diff(last_commit_id)
+    assert ('1 http_ok InternalFW:eth1 * Server001:eth0 HTTP ACCEPT 0 "Web server"',
+        'add') in diff
+    assert ('1 http_ok InternalFW:eth1 * Server001:eth0 HTTP ACCEPT 0 "Web server"',
+        'del') in diff
+    assert len(diff) == 52
+
+    # Rollback and check again
     fs.rollback(2)
     assert fs.save_needed() == False
     vl = fs.version_list()
     log.debug('version_list: %s' % repr(vl))
-    assert zip(*vl)[2] == (['networks: n.1 deleted'], ['services: n.1 deleted'], ['hostgroups: n.1 deleted'],
-                            ['hosts: n.1 deleted'], ['rules: n.1 deleted'])
+    assert zip(*vl)[2] == (['networks: n.1 deleted'],
+        ['services: n.1 deleted'],
+        ['hostgroups: n.1 deleted'],
+        ['hosts: n.1 deleted'],
+        ['rules: n.1 deleted'])
 
 
 @with_setup(setup_dir, teardown_dir)

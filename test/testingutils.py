@@ -76,3 +76,28 @@ def show(s, o=None):
         indented = "\n    ".join(li)
         return "\n-------- [%s] ---------\n    %s\n----- [end of %s] -----\n" % (s, indented, s)
 
+
+# utility functions
+
+def string_in_list(s, li):
+    """Count how many times a string is contained in a list of strings
+    No exact match is required
+    >>> strings_in_list('p', ['apple'])
+    1
+    """
+    return sum((1 for x in li if s in str(x)))
+
+def test_string_in_list():
+    li = ['apple', 'p', '', None, 123, '   ']
+    assert string_in_list('p', li) == 2
+
+def assert_equal_line_by_line(li1, li2):
+    for x, y in zip(li1, li2):
+        assert x == y, "'%s' differs from '%s' in:\n%s\n%s\n" % (repr(li1), repr(li2))
+
+def duplicates(li):
+    """Find duplicate elements in a list
+    Return [ (item, number_of_instances), ... ]
+    """
+    return [(i,li.count(i))  for i in set(li) if li.count(i) > 1 ]
+
