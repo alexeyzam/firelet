@@ -52,8 +52,8 @@ log = logging.getLogger(__name__)
 #TODO: insert  change description in save message
 #FIXME: Reset not working
 
-# Setup Python error logging
 
+# Setup Python error logging
 class LoggedHTTPError(bottle.HTTPResponse):
     """Log a full traceback"""
     def __init__(self, code=500, output='Unknown Error', exception=None,
@@ -518,15 +518,11 @@ def checkbtn():
     say('Configuration check started...')
     try:
         diff_dict = fs.check(stop_on_extra_interfaces=conf.stop_on_extra_interfaces)
+        say('Configuration check successful.', level="success")
+        return dict(diff_dict=diff_dict, error=None)
     except Alert, e:
         say("Check failed: %s" % e,  level="alert")
-        return dict(diff_dict="Check failed: %s" % e)
-    except Exception, e:
-        import traceback # TODO: remove traceback
-        log.debug(traceback.format_exc())
-        return
-    say('Configuration check successful.', level="success")
-    return dict(diff_dict=diff_dict)
+        return dict(diff_dict={}, error="Check failed: %s" % e)
 
 
 @bottle.route('/deploy', method='POST')
@@ -691,16 +687,16 @@ def main():
 
     globals()['users'] = Users(d=conf.data_dir)
 
-    if not conf.demo_mode:
+    print repr(conf.demo_mode)
+    if conf.demo_mode:
+        globals()['fs'] = DemoGitFireSet(conf.data_dir)
+        say("Configuration loaded. Demo mode.")
+    else:
         globals()['fs'] = GitFireSet(conf.data_dir)
         say("Configuration loaded.")
-        say("%d hosts, %d rules, %d networks loaded." % (len(fs.hosts), len(fs.rules),
-            len(fs.networks)))
-    else:
-        globals()['fs'] = DemoGitFireSet(conf.data_dir)
-        say("Demo mode.")
-        say("%d hosts, %d rules, %d networks loaded." % (len(fs.hosts), len(fs.rules),
-            len(fs.networks)))
+
+    say("%d hosts, %d rules, %d networks loaded." % (len(fs.hosts), len(fs.rules),
+        len(fs.networks)))
 
     session_opts = {
         'session.type': 'cookie',

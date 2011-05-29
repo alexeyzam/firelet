@@ -42,7 +42,10 @@ class ConfReader(object):
             caster = type(default)
             value = config.get('global', name)
             try:
-                value = caster(value)
+                if caster == bool:
+                    value = True if value == 'True' else False
+                else:
+                    value = caster(value)
                 self.__dict__[name] = value
             except:
                 raise Exception("Unable to convert parameter '%s' having \

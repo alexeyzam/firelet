@@ -92,34 +92,36 @@ class SSHConnector(object):
         """Connect to a firewall
         """
         assert len(addrs), "No management IP address for %s, " % hostname
-        ip_addr = addrs[0]      #TODO: cycle through different addrs
 
         c = paramiko.SSHClient()
         c.load_system_host_keys()
-        c.set_missing_host_key_policy(paramiko.AutoAddPolicy()) #TODO: configurable
+        #TODO: make this configurable
+        c.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
-        try:
-            log.debug("Connecting to %s on %s" % (hostname, ip_addr))
-            c.connect(
-                hostname=ip_addr,
-                port=22,
-                username=self._username,
-#                password=password,
-#                key_filename=env.key_filename,
-                timeout=10,
-#                allow_agent=not env.no_agent,
-#                look_for_keys=not env.no_keys
-            )
-            c.hostname = hostname
-            c.ip_addr = ip_addr
-            log.debug("Connected to %s on %s" % (hostname, ip_addr))
-            # add the new connection to the connection pool
-            self._pool[hostname] = c
-        except Exception, e:
-            c.close()
-            raise Exception("Unable to connect to %s on %s: %s" % (hostname, ip_addr, e))
-#            unreachables.append(hostname)
-            #TODO: add proper exception handling
+        # Cycle through IP addrs until a connection is established
+        for ip_addr in addrs:
+            try:
+                log.debug("Connecting to %s on %s" % (hostname, ip_addr))
+                c.connect(
+                    hostname=ip_addr,
+                    port=22,
+                    username=self._username,
+                    #password=password,
+                    #key_filename=env.key_filename,
+                    timeout=10,
+                    #allow_agent=not env.no_agent,
+                    #look_for_keys=not env.no_keys
+                )
+                c.hostname = hostname
+                c.ip_addr = ip_addr
+                log.debug("Connected to %s on %s" % (hostname, ip_addr))
+                # add the new connection to the connection pool
+                self._pool[hostname] = c
+                return
+            except Exception, e:
+                log.info("Unable to connect to %s on %s: %s" % (hostname, ip_addr, e))
+
+        raise Exception("Unable to connect to %s" % (hostname))
 
 
     def _connect(self):
@@ -466,46 +468,6 @@ rm -f rollback.pid; \
         args = [(status, hn, 'firelet') for hn in self._targets ]
         Forker(self._log_ping, args)
         return status
-
-
-# ################################
-
-addrmap = {
-    "10.66.1.2": "InternalFW",
-    "10.66.2.1": "InternalFW",
-    "10.66.1.3": "Smeagol",
-    "10.66.2.2": "Server001",
-    "172.16.2.223": "BorderFW",
-    "10.66.1.1": "BorderFW",
-    '127.0.0.1': 'localhost'
-}
-
-def test_me():
-
-    d = dict((h, [ip_addr]) for ip_addr, h in addrmap.iteritems())
-    sx = SSHConnector(d)
-    log.info(sx._connect())
-    log.error('so')
-    print 'exec'
-    print sx._execute('Server001', 'date')
-    print 'end'
-
-#    for hn in d:
-#        print hn
-#        print 'executing date on ',  hn
-#        print sx._execute(hn, 'date')
-#    log.debug('sa')
-#    log.info("len %s" % len(sx._pool))
-
-
-#    assert False
-
-if __name__ == '__main__':
-    test_me()
-
-
-
-# ################################
 
 
 #TODO: fix MockSSHConnector
