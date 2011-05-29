@@ -303,6 +303,20 @@ def test_gitfireset_long():
 
 
 @with_setup(setup_dir, teardown_dir)
+def test_gitfireset_smarttable_methods():
+    fs = GitFireSet(repodir=testingutils.repodir)
+
+    h = fs.fetch('hosts', 0)
+    fs.delete('hosts', 0)
+    #TODO: add other methods
+
+#        d = {'name': pg('name'),
+#                    'childs': childs}
+#            if rid == None:     # new item
+#                fs.hostgroups.add(d)
+
+
+@with_setup(setup_dir, teardown_dir)
 def test_gitfireset_check_ifaces_1():
     fs = GitFireSet(repodir=testingutils.repodir)
     fs._remote_confs = None

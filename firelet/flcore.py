@@ -372,7 +372,15 @@ class SmartTable(object):
         return x
 
     def update(self, d, rid=None, token=None):
-        """Update internal dictionary based on d"""
+        """Update internal dictionary based on d
+
+        :param d: Fields
+        :type d: dict.
+        :param rid: row ID (optional)
+        :type rid: int.
+        :param token: token (optional)
+        :type token: str.
+        """
         assert rid != None, "Malformed input row ID is missing."
         try:
             item = self.__getitem__(int(rid))
@@ -385,7 +393,7 @@ class SmartTable(object):
 
 
 class Rules(SmartTable):
-    """A list of Bunch instances""" #TODO: unit testing across all the methods
+    """A list of Bunch instances"""
     def __init__(self, d):
         """Creates a Rules object
 
@@ -428,12 +436,20 @@ class Rules(SmartTable):
             raise Alert
 
     def disable(self, rid):
-        """Disable a rule"""
+        """Disable a rule
+
+        :param rid: Rule ID
+        :type rid: int.
+        """
         self._list[rid].enabled = '0'
         self.save()
 
     def enable(self, rid):
-        """Enable a rule"""
+        """Enable a rule
+
+        :param rid: Rule ID
+        :type rid: int.
+        """
         self._list[rid].enabled = '1'
         self.save()
 
@@ -460,10 +476,12 @@ class Hosts(SmartTable):
             q = r[0:7] + [r[7:]]
             b = Host(q)
             self._list.append(b)
+
     def save(self):
         """Flatten the routed network list and save"""
         li = [[x.hostname, x.iface, x.ip_addr, x.masklen, x.local_fw, x.network_fw, x.mng] + x.routed for x in self._list]
         savecsv('hosts', li, self._dir)
+
     def add(self, f): #TODO: unit testing
         """Add a new item based on a dict of fields"""
         names = ["%s:%s" % (x.hostname, x.iface) for x in self._list]
@@ -486,19 +504,23 @@ class Hosts(SmartTable):
 class HostGroups(SmartTable):
     """A list of Bunch instances"""
     def __init__(self, d):
+        """
+        .. automethod:: _simpleflatten
+        """
         self._dir = d
         li = readcsv('hostgroups', d)
         self._list = [HostGroup(r) for r in li]
+
     def save(self):
         li = [[x.name] + x.childs for x in self._list]
         savecsv('hostgroups', li, self._dir)
-    def _prevent_loop(self):
-        """Detect if a hostgroup generates a loop."""
-        pass
 
     def add(self, f): #TODO: unit testing
-        """Add a new item based on a dict of fields.
-        (No loop risk here)"""
+        """Add a new hostgroup based and saves to disk.
+
+        :param f: New hg's fields
+        :type f: dict.
+        """
         assert 'name' in f, '"name" field missing'
         assert 'childs' in f,  '"childs" field missing'
         names = [x.name for x in self._list]
@@ -507,8 +529,13 @@ class HostGroups(SmartTable):
         self._list.append(HostGroup(li))
         self.save()
 
-
     def _simpleflatten(self, node):
+        """Flatten a tree of hostgroups starting from a node
+
+        :param node: node to start from
+        :type node:  str.
+
+        """
         for root_hg in self._list:
             if node == root_hg.name:
                 m = map(self._simpleflatten, root_hg.childs)
@@ -518,7 +545,17 @@ class HostGroups(SmartTable):
 
     def update(self, d, rid=None, token=None):
         """Perform loop checking before running the original "update" method.
-        A loop happens when a HostGroup contains itself in one of its siblings (once flattened)"""
+        A loop happens when a HostGroup contains itself in one of its
+        siblings (once flattened)
+
+        :param d: Fields
+        :type d: dict.
+        :param rid: row ID (optional)
+        :type rid: int.
+        :param token: token (optional)
+        :type token: str.
+
+        """
         assert rid != None, "Malformed input row ID is missing."
         try:
             item = self.__getitem__(int(rid))

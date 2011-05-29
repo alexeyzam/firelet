@@ -51,6 +51,8 @@ log = logging.getLogger(__name__)
 
 #TODO: insert  change description in save message
 #FIXME: Reset not working
+#FIXME: enable back button on Manage>Check
+
 
 
 # Setup Python error logging
@@ -716,9 +718,6 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
 
 
 
