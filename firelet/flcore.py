@@ -1101,7 +1101,6 @@ class FireSet(object):
         assert self._remote_confs, "self._remote_confs not set \
         before calling _diff_compiled_and_remote_rules"
 
-#        m = map(self._build_ipt_restore, comp_rules.iteritems())
         new_rules = {}
         for hn, b in comp_rules.iteritems():
             li = self._build_ipt_restore_blocks((hn, b))
@@ -1122,9 +1121,9 @@ class FireSet(object):
         self._check_ifaces(stop_on_extra_interfaces=stop_on_extra_interfaces)
         log.debug('Interface check complete.')
         log.debug('Comparing...')
-        d = self._diff_compiled_and_remote_rules(comp_rules)
+        diff = self._diff_compiled_and_remote_rules(comp_rules)
         log.debug('Diff completed.')
-        return d
+        return diff
 
     def deploy(self, ignore_unreachables=False, replace_ruleset=False,
         stop_on_extra_interfaces=False):

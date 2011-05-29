@@ -198,9 +198,8 @@ class SSHConnector(object):
         self._execute(hostname, 'logger -t firelet "Fetching existing configuration %s"' % hostname)
         iptables_save = self._execute(hostname, 'sudo /sbin/iptables-save')
         ip_addr_show = self._execute(hostname, '/bin/ip addr show')
-        log.info("iptables save on %s: %s..." % (hostname, repr(iptables_save)[:130]))
+        #log.debug("iptables save on %s: %s..." % (hostname, repr(iptables_save)[:130]))
         confs[hostname] = (iptables_save, ip_addr_show)
-        #FIXME: if a host returns unexpected output i.e. missing sudo it should be logged
 
     @timeit
     def get_confs(self, keep_sessions=False):
@@ -226,6 +225,7 @@ class SSHConnector(object):
             ip_a_s_p = self.parse_ip_addr_show(ip_addr_show)
             d = Bunch(iptables=iptables_p, ip_a_s=ip_a_s_p)
             confs[hostname] = d
+        #FIXME: if a host returns unexpected output i.e. missing sudo it should be logged
 
         return confs
 

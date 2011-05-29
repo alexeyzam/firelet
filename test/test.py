@@ -443,7 +443,6 @@ def test_gitfireset_get_firewalls():
         ('InternalFW', 'eth1'), ('Server001', 'eth0'), ('Smeagol', 'eth0')]
     assert hostnames == ok, "Wrong hosts selected as firewalls: %s" % repr(hostnames)
 
-
 #@with_setup(setup_dir, teardown_dir)
 #def test_dumbfireset():
 #    fs = DumbFireSet(repodir=testingutils.repodir)
