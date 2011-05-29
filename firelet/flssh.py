@@ -77,11 +77,13 @@ class SSHConnector(object):
     configuation and deploy new configurations.
     """
 
-    def __init__(self, targets=None, username='firelet'):
+    def __init__(self, targets=None, username='firelet',
+        ssh_key_autoadd=True):
         self._pool = {} # connections pool: {'hostname': pxssh session, ... }
         self._targets = targets   # {hostname: [management ip address list ], ... }
         assert isinstance(targets, dict), "targets must be a dict"
         self._username = username
+        self._ssh_key_autoadd = ssh_key_autoadd
         #FIXME: logging level for paramiko
 #        paramiko_logger = paramiko.util.logging.getLogger()
 #        paramiko_logger.setLevel(logging.WARN)
@@ -96,7 +98,8 @@ class SSHConnector(object):
         c = paramiko.SSHClient()
         c.load_system_host_keys()
         #TODO: make this configurable
-        c.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        if self._ssh_key_autoadd:
+            c.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
         # Cycle through IP addrs until a connection is established
         for ip_addr in addrs:

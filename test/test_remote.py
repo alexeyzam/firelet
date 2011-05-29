@@ -84,7 +84,7 @@ def test_get_confs():
     Ignore the iptables confs: the current state on the hosts (or emulator) is not known
     """
     d = dict((h, [ip_addr]) for ip_addr, h in addrmap.iteritems())
-    sx = SSHConnector(d)
+    sx = SSHConnector(targets=d)
     confs = sx.get_confs()
     assert isinstance(confs, dict)
     for hostname in d:
@@ -105,6 +105,20 @@ def test_get_confs():
     assert 'eth1' in confs['BorderFW']['ip_a_s']
     assert 'eth1' in confs['InternalFW']['ip_a_s']
     assert 'eth2' in confs['BorderFW']['ip_a_s']
+
+
+@with_setup(setup_dir, teardown_dir)
+def test_get_confs_wrong_username():
+    """Try to get confs from firewalls
+    using a wrong username
+    """
+    d = dict((h, [ip_addr]) for ip_addr, h in addrmap.iteritems())
+    sx = SSHConnector(targets=d, username='nogcptkiho')
+    assert_raises(Exception, sx.get_confs), "Tget_confs should fail"
+
+
+
+
 
 
 @with_setup(setup_dir, teardown_dir)

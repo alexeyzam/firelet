@@ -748,7 +748,8 @@ class FireSet(object):
         firewall_names = set(h.hostname for h in self.hosts if int(h.mng))
         return [h for h in self.hosts if h.hostname in firewall_names]
 
-    def _get_confs(self, keep_sessions=False):
+    def _get_confs(self, keep_sessions=False, username='firelet',
+            ssh_key_autoadd=True):
         """Connect to the firewalls and fetch the existing configuration
         Return the SSHConnector instance if keep_sessions is True
         """
@@ -756,7 +757,11 @@ class FireSet(object):
         d = defaultdict(list) # {hostname: [management ip address list ], ... }
         for h in self._get_firewalls():
             d[h.hostname].append(h.ip_addr)
-        sx = self.SSHConnector(d)
+        sx = self.SSHConnector(
+            targets=d,
+            username=username,
+            ssh_key_autoadd=ssh_key_autoadd
+        )
         log.debug("Running SSH.")
         self._remote_confs = sx.get_confs()
         if keep_sessions:

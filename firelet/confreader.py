@@ -31,16 +31,17 @@ class ConfReader(object):
             'email_dests': 'root@localhost',
             'public_url': '',
             'stop_on_extra_interfaces': False,
+            'ssh_username': 'firelet',
+            'ssh_key_autoadd': True,
         }
-        #TODO: validate strings from the .ini file  ---> fmt = "-ofmt:%" +
-            # conf.ip_list_netflow_address
+
         self.__slots__ = defaults.keys()
         config = SafeConfigParser(defaults)
         config.read(fn)
 
         for name, default in defaults.iteritems():
             caster = type(default)
-            value = config.get('global', name)
+            value = config.get('global', name, default)
             try:
                 if caster == bool:
                     value = True if value == 'True' else False
@@ -50,14 +51,4 @@ class ConfReader(object):
             except:
                 raise Exception("Unable to convert parameter '%s' having \
 value '%s' to %s in configuration file %s" % (name, value, caster, fn))
-
-#
-#            if isinstance(default, int):
-#                self.__dict__[name] = config.getint('global', name)
-#            elif isinstance(default, float):
-#                self.__dict__[name] = config.getfloat('global', name)
-#            elif isinstance(default, bool):
-#                self.__dict__[name] = config.getboolean('global', name)
-#            else:
-#                self.__dict__[name] = config.get('global', name)
 
