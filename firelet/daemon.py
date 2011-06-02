@@ -622,7 +622,8 @@ def rss_index():
 @view('rss')
 def rss_channels(channel=None):
     """Generate RSS feeds for different channels"""
-    # FIXME: available to non-authenticated users
+    # TODO: RSS feeds are available to non-authenticated users
+    # make the feed enabled/disabled by conf
     bottle.response.content_type = 'application/rss+xml'
     if channel.endswith('.xml') or channel.endswith('.rss'):
         channel = channel[:-4]
