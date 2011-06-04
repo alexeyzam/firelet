@@ -240,6 +240,13 @@ def test_load_save_csv():
 # #  FireSet testing # #
 
 @with_setup(setup_dir, teardown_dir)
+def test_gitfireset_otp():
+    fs = GitFireSet(repodir=testingutils.repodir)
+    otp = fs.generate_otp()
+    assert isinstance(otp, str)
+    assert len(otp) == 10
+
+@with_setup(setup_dir, teardown_dir)
 def test_gitfireset_simple():
     fs = GitFireSet(repodir=testingutils.repodir)
     assert fs.save_needed() == False

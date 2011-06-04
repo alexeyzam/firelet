@@ -117,6 +117,7 @@ def give_help():    # pragma: no cover
         add <name> <group> <email>
         del <name>
         validatepwd <name>
+    assimilate <ip_address>  - configure a new firewall
     """)
 
 def help(s=None):
@@ -193,7 +194,8 @@ def main(mockargs=None):
 
     # read configuration,
     try:
-        conf = ConfReader(fn=opts.conffile.strip())
+        fn=opts.conffile.strip()
+        conf = ConfReader(fn=fn)
     except Exception, e:
         log.error("Exception %s while reading configuration file '%s'" % (e, fn))
         exit(1)
@@ -204,6 +206,7 @@ def main(mockargs=None):
     else:
         repodir = conf.data_dir
 
+    #TODO: open the FireSet only when needed
     fs = open_fs(repodir)
 
     if a1 == 'save':
@@ -333,6 +336,23 @@ def main(mockargs=None):
             whisper('Password is valid.')
         else:
             help('Incorrect arguments')
+
+
+    elif a1 == 'assimilate' and a2 is not None:
+
+        rsa_pub_key = fs.get_rsa_pub()
+        username = conf.ssh_username
+        password = fs.generate_otp()
+        say("""Interactive new firewall configuration.
+
+Please SSH to the firewall and run:
+sudo adduser %s
+
+Insert the following password: %s
+Press Enter when done or Ctrl-C to terminate""" % (username, password))
+        raw_input()
+
+        fs.assimilate(a2, rsa_pub_key, 'firelet', password)
 
     else:
         give_help()

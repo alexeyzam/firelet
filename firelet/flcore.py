@@ -14,13 +14,15 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import csv
+from __future__ import with_statement
 
 from copy import deepcopy
+import csv
 from hashlib import sha512
 from collections import defaultdict
 from netaddr import IPAddress, IPNetwork
-from os import fsync, rename, unlink
+from os import fsync, rename, unlink, getenv
+from random import choice
 from socket import inet_ntoa, inet_aton
 from struct import pack, unpack
 
@@ -385,9 +387,11 @@ class SmartTable(object):
         try:
             item = self.__getitem__(int(rid))
         except IndexError:
-            raise Alert, "Item to be updated not found: one or more items has been modified in the meantime."
+            raise Alert, "Item to be updated not found: one or more "\
+                "items has been modified in the meantime."
         if token:
-            assert token == item._token(), "Unable to update: one or more items has been modified in the meantime."
+            assert token == item._token(), "Unable to update: one " \
+                "or more items has been modified in the meantime."
         item.update(d)
         self.save()
 
@@ -560,9 +564,11 @@ class HostGroups(SmartTable):
         try:
             item = self.__getitem__(int(rid))
         except IndexError:
-            raise Alert, "Item to be updated not found: one or more items has been modified in the meantime."
+            raise Alert, "Item to be updated not found: one or more " \
+                "items has been modified in the meantime."
         if token:
-            assert token == item._token(), "Unable to update: one or more items has been modified in the meantime."
+            assert token == item._token(), "Unable to update: one " \
+                "or more items has been modified in the meantime."
         for child in d['childs']:
             flat = self._simpleflatten(child)
             assert item.name not in flat, "Loop "
@@ -746,7 +752,9 @@ class FireSet(object):
 
 
     def list_sibling_names(self):
-        """Return a list of all the possible siblings for a hostgroup being created or edited."""
+        """Return a list of all the possible siblings for a hostgroup
+        being created or edited.
+        """
         items = set()
         for hg in self.hostgroups:
             items.add(hg.name)
@@ -811,7 +819,8 @@ class FireSet(object):
             the contents of the host table"""
         log.debug("Checking interfaces...")
         confs = self._remote_confs
-        assert isinstance(confs, dict), "_remote_confs not populated before calling _check_ifaces"
+        assert isinstance(confs, dict), "_remote_confs not populated " \
+            "before calling _check_ifaces"
         for q in confs.itervalues():
             assert isinstance(q, Bunch), "Incorrect type in %s" % repr(confs)
             assert len(q) == 2, "%s must have 2 items" % repr(q)
@@ -828,8 +837,8 @@ class FireSet(object):
                 raise Alert, "Interface %s missing on host %s" \
                     % (h.iface, h.hostname)
             ip_addr_v4, ip_addr_v6 = ip_a_s[h.iface]
-            assert '/' in ip_addr_v4, """The IPv4 address extracted from
-                running 'ip addr show' on %s has no '/' in it""" % h.hostname
+            assert '/' in ip_addr_v4, "The IPv4 address extracted from " \
+                "running 'ip addr show' on %s has no '/' in it" % h.hostname
             if not ip_addr_v4 or len(ip_addr_v4.split('/')) != 2:
                 raise Alert, "Unable to parse IPv4 addr from '%s' on '%s'" % \
                     (ip_a_s, h.hostname)
@@ -859,8 +868,10 @@ class FireSet(object):
         log.debug("self._check_ifaces successful")
 
     def _forwarded(self, remote, routed_nets, local_addr, local_masklen):
-        """Tell if a remote net or ipaddr has to be routed through the local host.
-        All params are strings"""
+        """Tell if a remote net or ipaddr has to be routed through
+        the local host
+        All params are strings
+        """
         if not remote: return True
         remote_IPN = IPNetwork(remote)
         if remote_IPN in IPNetwork(local_addr + '/' + local_masklen) and \
@@ -928,9 +939,9 @@ class FireSet(object):
                 raise Alert, "Item %s is not defined." % n + repr(host_by_name_col_iface)
 
         log.debug('Compiling ruleset...')
-        # for each rule, for each (src,dst) tuple, compiles a list  [ (protocol, src, sports, dst, dports, log_val, rule_name, action), ... ]
+        # for each rule, for each (src,dst) tuple, compiles a list
+        #[ (protocol, src, sports, dst, dports, log_val, rule_name, action), ... ]
         compiled = []
-    #        for ena, name, src, src_serv, dst, dst_serv, action, log_val, desc in self.rules:  # for each rule
         for rule in self.rules:  # for each rule
             if rule.enabled == '0':
                 continue
@@ -1016,10 +1027,13 @@ class FireSet(object):
                 # Insert first rules
                 if h.hostname not in rd:
                     rd[h.hostname] = {}
-                    rd[h.hostname]['INPUT'] = ["-m state --state RELATED,ESTABLISHED -j ACCEPT", "-i lo -j ACCEPT"]
-                    rd[h.hostname]['OUTPUT'] = ["-m state --state RELATED,ESTABLISHED -j ACCEPT", "-o lo -j ACCEPT"]
+                    rd[h.hostname]['INPUT'] = ["-m state --state " \
+                        "RELATED,ESTABLISHED -j ACCEPT", "-i lo -j ACCEPT"]
+                    rd[h.hostname]['OUTPUT'] = ["-m state --state " \
+                        "RELATED,ESTABLISHED -j ACCEPT", "-o lo -j ACCEPT"]
                     if h.network_fw == '1':
-                        rd[h.hostname]['FORWARD'] = ["-m state --state RELATED,ESTABLISHED -j ACCEPT"]
+                        rd[h.hostname]['FORWARD'] = ["-m state --state " \
+                            "RELATED,ESTABLISHED -j ACCEPT"]
                     else:
                         rd[h.hostname]['FORWARD'] = ["-j DROP"]
                 if src and dst and src.ipt() == dst.ipt():
@@ -1028,16 +1042,19 @@ class FireSet(object):
                 # Build INPUT rules: where the host is in the destination
                 if dst and h in dst or not dst:
                     if log_val:
-                        rd[h.hostname]['INPUT'].append('%s%s -i %s %s%s%s%s -j LOG --log-prefix "i_%s" --log-level %d' %
-                                                          (_src, _dst, h.iface, proto, modules, sports, dports, name, log_val))
-                    rd[h.hostname]['INPUT'].append("%s%s -i %s %s%s%s%s -j %s"
+                        rd[h.hostname]['INPUT'].append(
+                            '%s%s -i %s %s%s%s%s -j LOG --log-prefix "i_%s" --log-level %d' %
+                                (_src, _dst, h.iface, proto, modules, sports, dports, name, log_val))
+                    rd[h.hostname]['INPUT'].append(
+                            "%s%s -i %s %s%s%s%s -j %s"
                             % (_src, _dst, h.iface, proto, modules, sports, dports, action))
 
                 # Build OUTPUT rules: where the host is in the source
                 if src and h in src or not src:
                     if log_val:
-                        rd[h.hostname]['OUTPUT'].append('%s%s -o %s %s%s%s%s -j LOG --log-prefix "o_%s" --log-level %d' %
-                                                           (_src, _dst, h.iface, proto, modules, sports, dports, name, log_val))
+                        rd[h.hostname]['OUTPUT'].append(
+                            '%s%s -o %s %s%s%s%s -j LOG --log-prefix "o_%s" --log-level %d' %
+                            (_src, _dst, h.iface, proto, modules, sports, dports, name, log_val))
                     rd[h.hostname]['OUTPUT'].append("%s%s -o %s %s%s%s%s -j %s"
                             % (_src, _dst, h.iface, proto, modules, sports, dports, action))
 
@@ -1214,8 +1231,68 @@ class FireSet(object):
         else:
             log.debug('Deployment completed.')
 
+    #TODO: remove this?
     def _check_remote_confs(self):
         pass
+
+
+    def get_rsa_pub(self):
+        """Read RSA public key from ~/.ssh/id_rsa.pub
+
+        :returns: Key (str)
+        """
+
+        id_rsa_fn = "%s/.ssh/id_rsa.pub" % getenv("HOME")
+        with open(id_rsa_fn) as f:
+            id_rsa = f.read()
+
+        assert id_rsa.startswith('ssh-rsa '), "The local RSA key\
+in %s does not look valid" % id_rsa_fn
+
+    def generate_otp(self):
+        """Generate one-time password used to configure new firewalls
+        """
+        chars = '0123456789ABCDEFGHIJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
+        password = [choice(chars) for x in xrange(10)]
+        password = ''.join(password)
+        return password
+
+    def assimilate(self, target, rsa_pub_key, username, password):
+        """Configure a new firewall node interactively.
+        Test SSH connectivity, sets up certificates
+
+        :param target: firewall IP address or hostname
+        :type target: str.
+        :param rsa_pub_key: RSA public key
+        :type rsa_pub_key: str.
+        :param password: SSH password
+        :type password: str.
+        """
+
+        cx = SSHConnector(targets={target:[target]}, username=username,
+            password=password, ssh_key_autoadd=True)
+        print "Setting up SSH connection..."
+        out = cx._execute(target, \
+            "umask 077;" \
+            "mkdir -p ~/.ssh ;" \
+            "cat >> ~/.ssh/authorized_keys << EOF || exit 1" \
+            "%s" \
+            "EOF" \
+        )
+
+
+
+
+
+        log.info("out %s" % out)
+
+        #
+
+
+        #ssh copy id
+        # cat ${HOME}/.ssh/id_rsa.pub
+
+
 
 
 

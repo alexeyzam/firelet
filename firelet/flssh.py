@@ -78,7 +78,19 @@ class SSHConnector(object):
     """
 
     def __init__(self, targets=None, username='firelet',
-        ssh_key_autoadd=True):
+        ssh_key_autoadd=True, password=None):
+        """SSHConnector init
+
+        :param targets: targets {hostname: [management ipaddr list ], ... }
+        :type targets: dict.
+        :param username: SSH username (defaults to 'firelet')
+        :type username: str.
+        :param ssh_key_autoadd: ssh key autoadd (defaults to True)
+        :type ssh_key_autoadd: bool.
+        :param password: SSH password, used only in assimilation (defaults to None)
+        :type password: str.
+        """
+
         self._pool = {} # connections pool: {'hostname': pxssh session, ... }
         self._targets = targets   # {hostname: [management ip address list ], ... }
         assert isinstance(targets, dict), "targets must be a dict"
