@@ -1451,7 +1451,7 @@ class DemoGitFireSet(GitFireSet):
 
 # #  User management  # #
 
-#TODO: add creation and last access date?
+#TODO: add user last access date?
 
 class Users(object):
     """User management, with password hashing.
