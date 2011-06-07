@@ -406,7 +406,16 @@ Returns a list of (line, tag), the tag being &#8216;title&#8217;, &#8216;add&#82
 <dl class="method">
 <dt id="flcore.Host.keys">
 <tt class="descname">keys</tt><big>(</big><big>)</big><a class="headerlink" href="#flcore.Host.keys" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Get the instance attributes</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Return type:</th><td class="field-body">list</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="method">
 <dt id="flcore.Host.mynetwork">
@@ -430,7 +439,20 @@ Returns a list of (line, tag), the tag being &#8216;title&#8217;, &#8216;add&#82
 <dl class="method">
 <dt id="flcore.Host.validate_token">
 <tt class="descname">validate_token</tt><big>(</big><em>t</em><big>)</big><a class="headerlink" href="#flcore.Host.validate_token" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Check if the given token matches the instance own token to ensure
+that the instance attributes has not been modified.
+The token is a hash of the instance&#8217;s attributes.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameter:</th><td class="field-body"><em>t</em> (str) &#8211; token</td>
+</tr>
+<tr class="field"><th class="field-name">Returns:</th><td class="field-body">True or False</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 </dd></dl>
 
@@ -439,10 +461,14 @@ Returns a list of (line, tag), the tag being &#8216;title&#8217;, &#8216;add&#82
 <em class="property">class </em><tt class="descclassname">flcore.</tt><tt class="descname">HostGroup</tt><big>(</big><em>li</em><big>)</big><a class="headerlink" href="#flcore.HostGroup" title="Permalink to this definition">¶</a></dt>
 <dd><p>A Host Group contains hosts, networks, and other host groups</p>
 <p>Creates a HostGroup object</p>
-<dl class="docutils">
-<dt>Args:</dt>
-<dd>r (list): HostGroup attributes</dd>
-</dl>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameter:</th><td class="field-body"><em>li</em> (list) &#8211; attributes</td>
+</tr>
+</tbody>
+</table>
 <dl class="method">
 <dt id="flcore.HostGroup.attr_dict">
 <tt class="descname">attr_dict</tt><big>(</big><big>)</big><a class="headerlink" href="#flcore.HostGroup.attr_dict" title="Permalink to this definition">¶</a></dt>
@@ -451,16 +477,38 @@ Returns a list of (line, tag), the tag being &#8216;title&#8217;, &#8216;add&#82
 <dl class="method">
 <dt id="flcore.HostGroup.flat">
 <tt class="descname">flat</tt><big>(</big><em>host_by_name</em>, <em>net_by_name</em>, <em>hg_by_name</em><big>)</big><a class="headerlink" href="#flcore.HostGroup.flat" title="Permalink to this definition">¶</a></dt>
-<dd><p>Flatten the host groups hierarchy
-Returns:</p>
-<blockquote>
-Host or Network instances</blockquote>
+<dd><p>Flatten the host groups hierarchy</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><em>host_by_name</em> (dict) &#8211; hostname -&gt; host</li>
+<li><em>net_by_name</em> (dict) &#8211; netname -&gt; net</li>
+<li><em>hg_by_name</em> (dict) &#8211; hgname -&gt; hg</li>
+</ul>
+</td>
+</tr>
+<tr class="field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><a title="flcore.Host" class="reference internal" href="#flcore.Host"><tt class="xref docutils literal"><span class="pre">Host</span></tt></a> or <a title="flcore.Network" class="reference internal" href="#flcore.Network"><tt class="xref docutils literal"><span class="pre">Network</span></tt></a> instances</p>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
 <dt id="flcore.HostGroup.keys">
 <tt class="descname">keys</tt><big>(</big><big>)</big><a class="headerlink" href="#flcore.HostGroup.keys" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Get the instance attributes</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Return type:</th><td class="field-body">list</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="method">
 <dt id="flcore.HostGroup.update">
@@ -470,7 +518,20 @@ Host or Network instances</blockquote>
 <dl class="method">
 <dt id="flcore.HostGroup.validate_token">
 <tt class="descname">validate_token</tt><big>(</big><em>t</em><big>)</big><a class="headerlink" href="#flcore.HostGroup.validate_token" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Check if the given token matches the instance own token to ensure
+that the instance attributes has not been modified.
+The token is a hash of the instance&#8217;s attributes.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameter:</th><td class="field-body"><em>t</em> (str) &#8211; token</td>
+</tr>
+<tr class="field"><th class="field-name">Returns:</th><td class="field-body">True or False</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 </dd></dl>
 
@@ -600,7 +661,16 @@ siblings (once flattened)</p>
 <dl class="method">
 <dt id="flcore.Network.keys">
 <tt class="descname">keys</tt><big>(</big><big>)</big><a class="headerlink" href="#flcore.Network.keys" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Get the instance attributes</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Return type:</th><td class="field-body">list</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="method">
 <dt id="flcore.Network.update">
@@ -610,7 +680,20 @@ siblings (once flattened)</p>
 <dl class="method">
 <dt id="flcore.Network.validate_token">
 <tt class="descname">validate_token</tt><big>(</big><em>t</em><big>)</big><a class="headerlink" href="#flcore.Network.validate_token" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Check if the given token matches the instance own token to ensure
+that the instance attributes has not been modified.
+The token is a hash of the instance&#8217;s attributes.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameter:</th><td class="field-body"><em>t</em> (str) &#8211; token</td>
+</tr>
+<tr class="field"><th class="field-name">Returns:</th><td class="field-body">True or False</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 </dd></dl>
 
@@ -747,7 +830,16 @@ They are stored as self._objdict where the key is the object name</p>
 <dl class="method">
 <dt id="flcore.Service.keys">
 <tt class="descname">keys</tt><big>(</big><big>)</big><a class="headerlink" href="#flcore.Service.keys" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Get the instance attributes</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Return type:</th><td class="field-body">list</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="method">
 <dt id="flcore.Service.update">
@@ -757,7 +849,20 @@ They are stored as self._objdict where the key is the object name</p>
 <dl class="method">
 <dt id="flcore.Service.validate_token">
 <tt class="descname">validate_token</tt><big>(</big><em>t</em><big>)</big><a class="headerlink" href="#flcore.Service.validate_token" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Check if the given token matches the instance own token to ensure
+that the instance attributes has not been modified.
+The token is a hash of the instance&#8217;s attributes.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameter:</th><td class="field-body"><em>t</em> (str) &#8211; token</td>
+</tr>
+<tr class="field"><th class="field-name">Returns:</th><td class="field-body">True or False</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 </dd></dl>
 
@@ -842,7 +947,16 @@ They are stored as self._objdict where the key is the object name</p>
 <dl class="method">
 <dt id="flcore.Sys.keys">
 <tt class="descname">keys</tt><big>(</big><big>)</big><a class="headerlink" href="#flcore.Sys.keys" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Get the instance attributes</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Return type:</th><td class="field-body">list</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="method">
 <dt id="flcore.Sys.update">
@@ -852,7 +966,20 @@ They are stored as self._objdict where the key is the object name</p>
 <dl class="method">
 <dt id="flcore.Sys.validate_token">
 <tt class="descname">validate_token</tt><big>(</big><em>t</em><big>)</big><a class="headerlink" href="#flcore.Sys.validate_token" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Check if the given token matches the instance own token to ensure
+that the instance attributes has not been modified.
+The token is a hash of the instance&#8217;s attributes.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameter:</th><td class="field-body"><em>t</em> (str) &#8211; token</td>
+</tr>
+<tr class="field"><th class="field-name">Returns:</th><td class="field-body">True or False</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 </dd></dl>
 

@@ -258,9 +258,13 @@ class HostGroup(Bunch):
     def flat(self, host_by_name, net_by_name, hg_by_name):
         """Flatten the host groups hierarchy
         
-        :arg host_by_name:
-        Returns:
-            Host or Network instances
+        :arg host_by_name: hostname -> host
+        :type host_by_name: dict
+        :arg net_by_name: netname -> net
+        :type net_by_name: dict
+        :arg hg_by_name: hgname -> hg
+        :type hg_by_name: dict
+        :returns: :class:`Host` or :class:`Network` instances
         """
         self._hbn = hg_by_name
         li = self._flatten(self)
