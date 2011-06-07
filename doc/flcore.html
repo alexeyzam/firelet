@@ -385,10 +385,14 @@ Returns a list of (line, tag), the tag being &#8216;title&#8217;, &#8216;add&#82
 <dt id="flcore.Host">
 <em class="property">class </em><tt class="descclassname">flcore.</tt><tt class="descname">Host</tt><big>(</big><em>r</em><big>)</big><a class="headerlink" href="#flcore.Host" title="Permalink to this definition">¶</a></dt>
 <dd><p>Creates a Host object</p>
-<dl class="docutils">
-<dt>Args:</dt>
-<dd>r (list): Host attributes</dd>
-</dl>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameter:</th><td class="field-body"><em>r</em> (list) &#8211; Host attributes</td>
+</tr>
+</tbody>
+</table>
 <dl class="method">
 <dt id="flcore.Host.attr_dict">
 <tt class="descname">attr_dict</tt><big>(</big><big>)</big><a class="headerlink" href="#flcore.Host.attr_dict" title="Permalink to this definition">¶</a></dt>
@@ -408,10 +412,14 @@ Returns a list of (line, tag), the tag being &#8216;title&#8217;, &#8216;add&#82
 <dt id="flcore.Host.mynetwork">
 <tt class="descname">mynetwork</tt><big>(</big><big>)</big><a class="headerlink" href="#flcore.Host.mynetwork" title="Permalink to this definition">¶</a></dt>
 <dd><p>Creates an unnamed network directly connected to the host</p>
-<dl class="docutils">
-<dt>Ruturns:</dt>
-<dd>A Network instance</dd>
-</dl>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Returns:</th><td class="field-body">A <a title="flcore.Network" class="reference internal" href="#flcore.Network"><tt class="xref docutils literal"><span class="pre">Network</span></tt></a> instance</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
@@ -961,9 +969,20 @@ email (string): user email</dd>
 <dl class="function">
 <dt id="flcore.clean">
 <tt class="descclassname">flcore.</tt><tt class="descname">clean</tt><big>(</big><em>s</em><big>)</big><a class="headerlink" href="#flcore.clean" title="Permalink to this definition">¶</a></dt>
-<dd>Remove dangerous characters.
+<dd><p>Remove dangerous characters.
 &gt;&gt;&gt; clean(&#8216; !&#8221;#$%&amp;&#8217;()*+,-./0123456789:;&lt;=&gt;?&#64;ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_&#8217;)
-&#8216; !#$%&amp;()*+,-./0123456789:;=?&#64;ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_&#8217;</dd></dl>
+&#8216; !#$%&amp;()*+,-./0123456789:;=?&#64;ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_&#8217;</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameter:</th><td class="field-body"><em>s</em> (str) &#8211; string</td>
+</tr>
+<tr class="field"><th class="field-name">Return type:</th><td class="field-body">str</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="function">
 <dt id="flcore.load_hosts_csv">
@@ -1011,12 +1030,26 @@ d (string): directory</dd>
 <dl class="function">
 <dt id="flcore.timeit">
 <tt class="descclassname">flcore.</tt><tt class="descname">timeit</tt><big>(</big><em>method</em><big>)</big><a class="headerlink" href="#flcore.timeit" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd>Log function call and execution time
+Used for debugging</dd></dl>
 
 <dl class="function">
 <dt id="flcore.validc">
 <tt class="descclassname">flcore.</tt><tt class="descname">validc</tt><big>(</big><em>c</em><big>)</big><a class="headerlink" href="#flcore.validc" title="Permalink to this definition">¶</a></dt>
-<dd>Validate character in rule name</dd></dl>
+<dd><p>Validate a character in rule name</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameter:</th><td class="field-body"><em>c</em> &#8211; character</td>
+</tr>
+<tr class="field"><th class="field-name">Returns:</th><td class="field-body">True/False</td>
+</tr>
+<tr class="field"><th class="field-name">Return type:</th><td class="field-body">bool</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 
 

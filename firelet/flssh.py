@@ -231,8 +231,10 @@ class SSHConnector(object):
 
     @timeit
     def get_confs(self, keep_sessions=False):
-        """Connects to the firewalls, get the configuration and return:
-            { hostname: Bunch of "session, ip_addr, iptables-save, interfaces", ... }
+        """Connects to the firewalls, get the configuration and
+
+        :return: { hostname: Bunch of "session, ip_addr, iptables-save, interfaces", ... }
+        :rtype: dict
         """
         self._connect()
         confs = {} # used by the threads to return the confs
@@ -267,12 +269,13 @@ class SSHConnector(object):
 
     def parse_iptables_save(self, li, hostname=None):
         """Parse iptables-save output and returns a dict:
-        {'filter': [rule, rule, ... ], 'nat': [] }
-
+        
         :param li: iptables-save output
         :type li: list.
         :param hostname: hostname (optional)
         :type hostname: str.
+        :return: {'filter': [rule, rule, ... ], 'nat': [] }
+        :rtype: dict of lists
         """
 
         example = """Input example:
@@ -421,7 +424,9 @@ class SSHConnector(object):
     @timeit
     def save_existing_confs(self, keep_sessions=False):
         """Run _save_existing_conf on the firewalls
-
+        
+        :return: status
+        :rtype: dict
         """
         status = {}
         args = [(status, hn, 'firelet') for hn in self._targets ]
@@ -447,7 +452,12 @@ class SSHConnector(object):
 
     @timeit
     def setup_auto_rollbacks(self, keep_sessions=False):
-        """Run _setup_auto_rollback on the firewalls
+        """Setup the auto-rollback script on the firewalls.
+        Iptables-restore is ran automatically after a timeout,
+        and the previously saved configuration is loaded.
+        
+        :return: status
+        :rtype: dict
         """
         status = {}
         args = [(status, hn, 'firelet') for hn in self._targets ]
@@ -469,7 +479,9 @@ class SSHConnector(object):
     #TODO: rewrite threading wrappers to include status handling
     @timeit
     def cancel_auto_rollbacks(self, keep_sessions=False):
-        """Run _cancel_auto_rollback on the firewalls
+        """Kill the auto-rollback script running on the firewalls
+        :return: status
+        :rtype: dict
         """
         status = {}
         args = [(status, hn, 'firelet') for hn in self._targets ]
@@ -510,6 +522,8 @@ class SSHConnector(object):
 
     @timeit
     def log_ping(self):
+        """Connect to the firewalls and log a 'ping' message on syslog
+        """
         status = {}
         args = [(status, hn, 'firelet') for hn in self._targets ]
         Forker(self._log_ping, args)

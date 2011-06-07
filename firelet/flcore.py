@@ -82,9 +82,14 @@ icmp_types = {
 
 from time import time
 def timeit(method):
+    """Log function call and execution time
+    Used for debugging
+    """
     def timed(*args, **kw):
         t = time()
+        log.setLevel(logging.WARN)
         result = method(*args, **kw)
+        log.setLevel(logging.DEBUG)
         log.debug("%4.0fms %s %s %s" %
             (
                 (time() - t) * 1000,
@@ -94,13 +99,18 @@ def timeit(method):
             )
         )
         return result
+    timed.__doc__ = method.__doc__
     return timed
-
 
 #input validation
 
 def validc(c):
-    """Validate character in rule name"""
+    """Validate a character in rule name
+    
+    :arg c: character
+    :return: True/False
+    :rtype: bool
+    """
     n = ord(c)
     if 31 < n < 127 and n not in (34, 39, 60, 62, 96):
         return True
@@ -110,6 +120,10 @@ def clean(s):
     """Remove dangerous characters.
     >>> clean(' !"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_')
     ' !#$%&()*+,-./0123456789:;=?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_'
+    
+    :arg s: string
+    :type s: str
+    :rtype: str
     """
     o = ''
     for x in s:
@@ -129,8 +143,8 @@ class Host(Bunch):
     def __init__(self, r):
         """Creates a Host object
 
-        Args:
-            r (list): Host attributes
+        :arg r: Host attributes
+        :type r: list
         """
         self.hostname=r[0]
         self.iface=r[1]
@@ -158,8 +172,7 @@ class Host(Bunch):
     def mynetwork(self):
         """Creates an unnamed network directly connected to the host
 
-        Ruturns:
-            A Network instance
+        :returns: A :class:`Network` instance
         """
         return Network(['', self.ip_addr, self.masklen])
 
@@ -212,8 +225,8 @@ class HostGroup(Bunch):
     def __init__(self, li):
         """Creates a HostGroup object
 
-        Args:
-            r (list): HostGroup attributes
+        :arg li: attributes
+        :type li: list
         """
         self.name = li[0]
         if len(li) == 1:
@@ -224,8 +237,8 @@ class HostGroup(Bunch):
 
     def _flatten(self, i):
         """Flatten the host groups hierarchy
-       Returns:
-            a list of strings
+       
+        :return: list of strings
         """
         if hasattr(i, 'childs'):  # "i" is a hostgroup _object_!
             childs = i.childs
@@ -244,6 +257,8 @@ class HostGroup(Bunch):
 
     def flat(self, host_by_name, net_by_name, hg_by_name):
         """Flatten the host groups hierarchy
+        
+        :arg host_by_name:
         Returns:
             Host or Network instances
         """
