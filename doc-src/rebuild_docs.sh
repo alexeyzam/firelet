@@ -1,2 +1,7 @@
 #!/bin/sh
-make html
+make html && \
+rm ../doc/* -rf && \
+mv  build/html/* ../doc/ && \
+make clean && \
+echo done
+

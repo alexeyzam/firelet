@@ -1,0 +1,277 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title><no title> &mdash; Firelet source code</title>
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.4',
+        COLLAPSE_MODINDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="Firelet source code" href="index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="modindex.html" title="Global Module Index"
+             accesskey="M">modules</a> |</li>
+        <li><a href="index.html">Firelet</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <span class="target" id="module-flssh"></span><dl class="class">
+<dt id="flssh.Forker">
+<em class="property">class </em><tt class="descclassname">flssh.</tt><tt class="descname">Forker</tt><big>(</big><em>target</em>, <em>args_list</em><big>)</big><a class="headerlink" href="#flssh.Forker" title="Permalink to this definition">¶</a></dt>
+<dd>Fork a set of threads and wait for their completion</dd></dl>
+
+<dl class="class">
+<dt id="flssh.MockSSHConnector">
+<em class="property">class </em><tt class="descclassname">flssh.</tt><tt class="descname">MockSSHConnector</tt><big>(</big><em>targets=None</em>, <em>username='firelet'</em>, <em>ssh_key_autoadd=True</em>, <em>password=None</em><big>)</big><a class="headerlink" href="#flssh.MockSSHConnector" title="Permalink to this definition">¶</a></dt>
+<dd><p>Used in Demo mode and during unit testing to prevent network interactions.
+Only some methods from SSHConnector are redefined.</p>
+<p>SSHConnector init</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><em>targets</em> (dict.) &#8211; targets {hostname: [management ipaddr list ], ... }</li>
+<li><em>username</em> (str.) &#8211; SSH username (defaults to &#8216;firelet&#8217;)</li>
+<li><em>ssh_key_autoadd</em> (bool.) &#8211; ssh key autoadd (defaults to True)</li>
+<li><em>password</em> (str.) &#8211; SSH password, used only in assimilation (defaults to None)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="flssh.MockSSHConnector.apply_remote_confs">
+<tt class="descname">apply_remote_confs</tt><big>(</big><em>*args</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#flssh.MockSSHConnector.apply_remote_confs" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="flssh.MockSSHConnector.cancel_auto_rollbacks">
+<tt class="descname">cancel_auto_rollbacks</tt><big>(</big><em>*args</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#flssh.MockSSHConnector.cancel_auto_rollbacks" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="flssh.MockSSHConnector.deliver_confs">
+<tt class="descname">deliver_confs</tt><big>(</big><em>*args</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#flssh.MockSSHConnector.deliver_confs" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="flssh.MockSSHConnector.get_confs">
+<tt class="descname">get_confs</tt><big>(</big><em>*args</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#flssh.MockSSHConnector.get_confs" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="flssh.MockSSHConnector.log_ping">
+<tt class="descname">log_ping</tt><big>(</big><em>*args</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#flssh.MockSSHConnector.log_ping" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="flssh.MockSSHConnector.parse_ip_addr_show">
+<tt class="descname">parse_ip_addr_show</tt><big>(</big><em>s</em><big>)</big><a class="headerlink" href="#flssh.MockSSHConnector.parse_ip_addr_show" title="Permalink to this definition">¶</a></dt>
+<dd>Parse the output of &#8216;ip addr show&#8217; and returns a dict:
+{&#8216;iface&#8217;: (ip_addr_v4, ip_addr_v6)}</dd></dl>
+
+<dl class="method">
+<dt id="flssh.MockSSHConnector.parse_iptables_save">
+<tt class="descname">parse_iptables_save</tt><big>(</big><em>li</em>, <em>hostname=None</em><big>)</big><a class="headerlink" href="#flssh.MockSSHConnector.parse_iptables_save" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse iptables-save output and returns a dict:
+{&#8216;filter&#8217;: [rule, rule, ... ], &#8216;nat&#8217;: [] }</p>
+<p>Input example:
+# Generated by iptables-save v1.4.9 on Sun Feb 20 15:17:57 2011
+<a href="#id1"><span class="problematic" id="id2">*</span></a>nat
+:PREROUTING ACCEPT [0:0]
+:POSTROUTING ACCEPT [2:120]
+:OUTPUT ACCEPT [2:120]
+-A PREROUTING -d 3.3.3.3/32 -p tcp -m tcp &#8211;dport 44 -j ACCEPT
+COMMIT
+# Completed on Sun Feb 20 15:17:57 2011
+# Generated by iptables-save v1.4.9 on Sun Feb 20 15:17:57 2011
+<a href="#id3"><span class="problematic" id="id4">*</span></a>filter
+:INPUT ACCEPT [18151:2581032]
+:FORWARD ACCEPT [0:0]
+:OUTPUT ACCEPT [18246:2409446]
+-A INPUT -s 3.3.3.3/32 -j ACCEPT
+-A INPUT -d 3.3.3.3/32 -j ACCEPT
+-A INPUT -d 3.3.3.3/32 -p tcp -m tcp &#8211;dport 44 -j ACCEPT
+COMMIT
+# Completed on Sun Feb 20 15:17:57 2011</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="flssh.MockSSHConnector.save_existing_confs">
+<tt class="descname">save_existing_confs</tt><big>(</big><em>*args</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#flssh.MockSSHConnector.save_existing_confs" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="flssh.MockSSHConnector.setup_auto_rollbacks">
+<tt class="descname">setup_auto_rollbacks</tt><big>(</big><em>*args</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#flssh.MockSSHConnector.setup_auto_rollbacks" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="flssh.SSHConnector">
+<em class="property">class </em><tt class="descclassname">flssh.</tt><tt class="descname">SSHConnector</tt><big>(</big><em>targets=None</em>, <em>username='firelet'</em>, <em>ssh_key_autoadd=True</em>, <em>password=None</em><big>)</big><a class="headerlink" href="#flssh.SSHConnector" title="Permalink to this definition">¶</a></dt>
+<dd><p>Manage a pool of pxssh connections to the firewalls. Get the running
+configuation and deploy new configurations.</p>
+<p>SSHConnector init</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><em>targets</em> (dict.) &#8211; targets {hostname: [management ipaddr list ], ... }</li>
+<li><em>username</em> (str.) &#8211; SSH username (defaults to &#8216;firelet&#8217;)</li>
+<li><em>ssh_key_autoadd</em> (bool.) &#8211; ssh key autoadd (defaults to True)</li>
+<li><em>password</em> (str.) &#8211; SSH password, used only in assimilation (defaults to None)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="flssh.SSHConnector.apply_remote_confs">
+<tt class="descname">apply_remote_confs</tt><big>(</big><em>*args</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#flssh.SSHConnector.apply_remote_confs" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="flssh.SSHConnector.cancel_auto_rollbacks">
+<tt class="descname">cancel_auto_rollbacks</tt><big>(</big><em>*args</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#flssh.SSHConnector.cancel_auto_rollbacks" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="flssh.SSHConnector.deliver_confs">
+<tt class="descname">deliver_confs</tt><big>(</big><em>*args</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#flssh.SSHConnector.deliver_confs" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="flssh.SSHConnector.get_confs">
+<tt class="descname">get_confs</tt><big>(</big><em>*args</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#flssh.SSHConnector.get_confs" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="flssh.SSHConnector.log_ping">
+<tt class="descname">log_ping</tt><big>(</big><em>*args</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#flssh.SSHConnector.log_ping" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="flssh.SSHConnector.parse_ip_addr_show">
+<tt class="descname">parse_ip_addr_show</tt><big>(</big><em>s</em><big>)</big><a class="headerlink" href="#flssh.SSHConnector.parse_ip_addr_show" title="Permalink to this definition">¶</a></dt>
+<dd>Parse the output of &#8216;ip addr show&#8217; and returns a dict:
+{&#8216;iface&#8217;: (ip_addr_v4, ip_addr_v6)}</dd></dl>
+
+<dl class="method">
+<dt id="flssh.SSHConnector.parse_iptables_save">
+<tt class="descname">parse_iptables_save</tt><big>(</big><em>li</em>, <em>hostname=None</em><big>)</big><a class="headerlink" href="#flssh.SSHConnector.parse_iptables_save" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse iptables-save output and returns a dict:
+{&#8216;filter&#8217;: [rule, rule, ... ], &#8216;nat&#8217;: [] }</p>
+<p>Input example:
+# Generated by iptables-save v1.4.9 on Sun Feb 20 15:17:57 2011
+<a href="#id5"><span class="problematic" id="id6">*</span></a>nat
+:PREROUTING ACCEPT [0:0]
+:POSTROUTING ACCEPT [2:120]
+:OUTPUT ACCEPT [2:120]
+-A PREROUTING -d 3.3.3.3/32 -p tcp -m tcp &#8211;dport 44 -j ACCEPT
+COMMIT
+# Completed on Sun Feb 20 15:17:57 2011
+# Generated by iptables-save v1.4.9 on Sun Feb 20 15:17:57 2011
+<a href="#id7"><span class="problematic" id="id8">*</span></a>filter
+:INPUT ACCEPT [18151:2581032]
+:FORWARD ACCEPT [0:0]
+:OUTPUT ACCEPT [18246:2409446]
+-A INPUT -s 3.3.3.3/32 -j ACCEPT
+-A INPUT -d 3.3.3.3/32 -j ACCEPT
+-A INPUT -d 3.3.3.3/32 -p tcp -m tcp &#8211;dport 44 -j ACCEPT
+COMMIT
+# Completed on Sun Feb 20 15:17:57 2011</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="flssh.SSHConnector.save_existing_confs">
+<tt class="descname">save_existing_confs</tt><big>(</big><em>*args</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#flssh.SSHConnector.save_existing_confs" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="flssh.SSHConnector.setup_auto_rollbacks">
+<tt class="descname">setup_auto_rollbacks</tt><big>(</big><em>*args</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#flssh.SSHConnector.setup_auto_rollbacks" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="flssh.timeit">
+<tt class="descclassname">flssh.</tt><tt class="descname">timeit</tt><big>(</big><em>method</em><big>)</big><a class="headerlink" href="#flssh.timeit" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <h3>This Page</h3>
+            <ul class="this-page-menu">
+              <li><a href="_sources/flssh.txt"
+                     rel="nofollow">Show Source</a></li>
+            </ul>
+          <div id="searchbox" style="display: none">
+            <h3>Quick search</h3>
+              <form class="search" action="search.html" method="get">
+                <input type="text" name="q" size="18" />
+                <input type="submit" value="Go" />
+                <input type="hidden" name="check_keywords" value="yes" />
+                <input type="hidden" name="area" value="default" />
+              </form>
+              <p class="searchtip" style="font-size: 90%">
+              Enter search terms or a module, class or function name.
+              </p>
+          </div>
+          <script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="modindex.html" title="Global Module Index"
+             >modules</a> |</li>
+        <li><a href="index.html">Firelet</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+      &copy; Copyright 2011, Federico Ceratto.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 0.6.6.
+    </div>
+  </body>
+</html>

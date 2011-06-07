@@ -1,0 +1,1067 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title><no title> &mdash; Firelet source code</title>
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.4',
+        COLLAPSE_MODINDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="Firelet source code" href="index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="modindex.html" title="Global Module Index"
+             accesskey="M">modules</a> |</li>
+        <li><a href="index.html">Firelet</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <span class="target" id="module-flcore"></span><dl class="class">
+<dt id="flcore.DemoGitFireSet">
+<em class="property">class </em><tt class="descclassname">flcore.</tt><tt class="descname">DemoGitFireSet</tt><big>(</big><em>repodir</em><big>)</big><a class="headerlink" href="#flcore.DemoGitFireSet" title="Permalink to this definition">¶</a></dt>
+<dd><p>Based on GitFireSet. Provide a demo version without real network interaction.
+The status of the simulated remote hosts is kept on files.</p>
+<dl class="method">
+<dt id="flcore.DemoGitFireSet.assimilate">
+<tt class="descname">assimilate</tt><big>(</big><em>target</em>, <em>rsa_pub_key</em>, <em>username</em>, <em>password</em><big>)</big><a class="headerlink" href="#flcore.DemoGitFireSet.assimilate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Configure a new firewall node interactively.
+Test SSH connectivity, sets up certificates</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><em>target</em> (str.) &#8211; firewall IP address or hostname</li>
+<li><em>rsa_pub_key</em> (str.) &#8211; RSA public key</li>
+<li><em>password</em> (str.) &#8211; SSH password</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="flcore.DemoGitFireSet.check">
+<tt class="descname">check</tt><big>(</big><em>stop_on_extra_interfaces=False</em><big>)</big><a class="headerlink" href="#flcore.DemoGitFireSet.check" title="Permalink to this definition">¶</a></dt>
+<dd>Check the configuration on the firewalls.</dd></dl>
+
+<dl class="method">
+<dt id="flcore.DemoGitFireSet.compile_rules">
+<tt class="descname">compile_rules</tt><big>(</big><big>)</big><a class="headerlink" href="#flcore.DemoGitFireSet.compile_rules" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compile iptables rules to be deployed in a dict:
+{ &#8216;firewall_name&#8217;: {&#8216;INPUT&#8217;,[rules...]},{&#8216;OUTPUT&#8217;,[rules...]},{&#8216;FORWARD&#8217;,[rules...]}, ... }</p>
+<p>During the compilation many checks are performed.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="flcore.DemoGitFireSet.delete">
+<tt class="descname">delete</tt><big>(</big><em>table</em>, <em>rid</em><big>)</big><a class="headerlink" href="#flcore.DemoGitFireSet.delete" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="flcore.DemoGitFireSet.deploy">
+<tt class="descname">deploy</tt><big>(</big><em>ignore_unreachables=False</em>, <em>replace_ruleset=False</em>, <em>stop_on_extra_interfaces=False</em><big>)</big><a class="headerlink" href="#flcore.DemoGitFireSet.deploy" title="Permalink to this definition">¶</a></dt>
+<dd>Check and then deploy the configuration to the firewalls.
+Some ignore flags can be set to force the deployment even in case of errors.</dd></dl>
+
+<dl class="method">
+<dt id="flcore.DemoGitFireSet.fetch">
+<tt class="descname">fetch</tt><big>(</big><em>table</em>, <em>rid</em><big>)</big><a class="headerlink" href="#flcore.DemoGitFireSet.fetch" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="flcore.DemoGitFireSet.generate_otp">
+<tt class="descname">generate_otp</tt><big>(</big><big>)</big><a class="headerlink" href="#flcore.DemoGitFireSet.generate_otp" title="Permalink to this definition">¶</a></dt>
+<dd>Generate one-time password used to configure new firewalls</dd></dl>
+
+<dl class="method">
+<dt id="flcore.DemoGitFireSet.get_rsa_pub">
+<tt class="descname">get_rsa_pub</tt><big>(</big><big>)</big><a class="headerlink" href="#flcore.DemoGitFireSet.get_rsa_pub" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read RSA public key from ~/.ssh/id_rsa.pub</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Returns:</th><td class="field-body">Key (str)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="flcore.DemoGitFireSet.list_sibling_names">
+<tt class="descname">list_sibling_names</tt><big>(</big><big>)</big><a class="headerlink" href="#flcore.DemoGitFireSet.list_sibling_names" title="Permalink to this definition">¶</a></dt>
+<dd>Return a list of all the possible siblings for a hostgroup
+being created or edited.</dd></dl>
+
+<dl class="method">
+<dt id="flcore.DemoGitFireSet.reset">
+<tt class="descname">reset</tt><big>(</big><big>)</big><a class="headerlink" href="#flcore.DemoGitFireSet.reset" title="Permalink to this definition">¶</a></dt>
+<dd>Reset Git to last commit.</dd></dl>
+
+<dl class="method">
+<dt id="flcore.DemoGitFireSet.rollback">
+<tt class="descname">rollback</tt><big>(</big><em>n=None</em>, <em>commit_id=None</em><big>)</big><a class="headerlink" href="#flcore.DemoGitFireSet.rollback" title="Permalink to this definition">¶</a></dt>
+<dd>Rollback to n commits ago or given a specific commit_id</dd></dl>
+
+<dl class="method">
+<dt id="flcore.DemoGitFireSet.save">
+<tt class="descname">save</tt><big>(</big><em>msg</em><big>)</big><a class="headerlink" href="#flcore.DemoGitFireSet.save" title="Permalink to this definition">¶</a></dt>
+<dd>Commit changes if needed.</dd></dl>
+
+<dl class="method">
+<dt id="flcore.DemoGitFireSet.save_needed">
+<tt class="descname">save_needed</tt><big>(</big><big>)</big><a class="headerlink" href="#flcore.DemoGitFireSet.save_needed" title="Permalink to this definition">¶</a></dt>
+<dd>True if commit is required: files has been changed</dd></dl>
+
+<dl class="method">
+<dt id="flcore.DemoGitFireSet.version_diff">
+<tt class="descname">version_diff</tt><big>(</big><em>commit_id</em><big>)</big><a class="headerlink" href="#flcore.DemoGitFireSet.version_diff" title="Permalink to this definition">¶</a></dt>
+<dd>Parse git diff &lt;commit_id&gt;
+Returns a list of (line, tag), the tag being &#8216;title&#8217;, &#8216;add&#8217;,
+&#8216;del,&#8217; or empty</dd></dl>
+
+<dl class="method">
+<dt id="flcore.DemoGitFireSet.version_list">
+<tt class="descname">version_list</tt><big>(</big><big>)</big><a class="headerlink" href="#flcore.DemoGitFireSet.version_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse git log &#8211;date=iso</p>
+<dl class="docutils">
+<dt>Returns:</dt>
+<dd>a list of lists: [ [author, date, [msg lines], commit_id ], ... ]</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="flcore.FireSet">
+<em class="property">class </em><tt class="descclassname">flcore.</tt><tt class="descname">FireSet</tt><big>(</big><em>repodir</em><big>)</big><a class="headerlink" href="#flcore.FireSet" title="Permalink to this definition">¶</a></dt>
+<dd><p>A container for the network objects.
+Upon instancing the objects are loaded.</p>
+<dl class="method">
+<dt id="flcore.FireSet.assimilate">
+<tt class="descname">assimilate</tt><big>(</big><em>target</em>, <em>rsa_pub_key</em>, <em>username</em>, <em>password</em><big>)</big><a class="headerlink" href="#flcore.FireSet.assimilate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Configure a new firewall node interactively.
+Test SSH connectivity, sets up certificates</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><em>target</em> (str.) &#8211; firewall IP address or hostname</li>
+<li><em>rsa_pub_key</em> (str.) &#8211; RSA public key</li>
+<li><em>password</em> (str.) &#8211; SSH password</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="flcore.FireSet.check">
+<tt class="descname">check</tt><big>(</big><em>stop_on_extra_interfaces=False</em><big>)</big><a class="headerlink" href="#flcore.FireSet.check" title="Permalink to this definition">¶</a></dt>
+<dd>Check the configuration on the firewalls.</dd></dl>
+
+<dl class="method">
+<dt id="flcore.FireSet.compile_rules">
+<tt class="descname">compile_rules</tt><big>(</big><big>)</big><a class="headerlink" href="#flcore.FireSet.compile_rules" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compile iptables rules to be deployed in a dict:
+{ &#8216;firewall_name&#8217;: {&#8216;INPUT&#8217;,[rules...]},{&#8216;OUTPUT&#8217;,[rules...]},{&#8216;FORWARD&#8217;,[rules...]}, ... }</p>
+<p>During the compilation many checks are performed.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="flcore.FireSet.delete">
+<tt class="descname">delete</tt><big>(</big><em>table</em>, <em>rid</em><big>)</big><a class="headerlink" href="#flcore.FireSet.delete" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="flcore.FireSet.deploy">
+<tt class="descname">deploy</tt><big>(</big><em>ignore_unreachables=False</em>, <em>replace_ruleset=False</em>, <em>stop_on_extra_interfaces=False</em><big>)</big><a class="headerlink" href="#flcore.FireSet.deploy" title="Permalink to this definition">¶</a></dt>
+<dd>Check and then deploy the configuration to the firewalls.
+Some ignore flags can be set to force the deployment even in case of errors.</dd></dl>
+
+<dl class="method">
+<dt id="flcore.FireSet.fetch">
+<tt class="descname">fetch</tt><big>(</big><em>table</em>, <em>rid</em><big>)</big><a class="headerlink" href="#flcore.FireSet.fetch" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="flcore.FireSet.generate_otp">
+<tt class="descname">generate_otp</tt><big>(</big><big>)</big><a class="headerlink" href="#flcore.FireSet.generate_otp" title="Permalink to this definition">¶</a></dt>
+<dd>Generate one-time password used to configure new firewalls</dd></dl>
+
+<dl class="method">
+<dt id="flcore.FireSet.get_rsa_pub">
+<tt class="descname">get_rsa_pub</tt><big>(</big><big>)</big><a class="headerlink" href="#flcore.FireSet.get_rsa_pub" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read RSA public key from ~/.ssh/id_rsa.pub</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Returns:</th><td class="field-body">Key (str)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="flcore.FireSet.list_sibling_names">
+<tt class="descname">list_sibling_names</tt><big>(</big><big>)</big><a class="headerlink" href="#flcore.FireSet.list_sibling_names" title="Permalink to this definition">¶</a></dt>
+<dd>Return a list of all the possible siblings for a hostgroup
+being created or edited.</dd></dl>
+
+<dl class="method">
+<dt id="flcore.FireSet.reset">
+<tt class="descname">reset</tt><big>(</big><big>)</big><a class="headerlink" href="#flcore.FireSet.reset" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="flcore.FireSet.rollback">
+<tt class="descname">rollback</tt><big>(</big><em>n</em><big>)</big><a class="headerlink" href="#flcore.FireSet.rollback" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="flcore.FireSet.save">
+<tt class="descname">save</tt><big>(</big><big>)</big><a class="headerlink" href="#flcore.FireSet.save" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="flcore.FireSet.save_needed">
+<tt class="descname">save_needed</tt><big>(</big><big>)</big><a class="headerlink" href="#flcore.FireSet.save_needed" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="flcore.FireSet.version_list">
+<tt class="descname">version_list</tt><big>(</big><big>)</big><a class="headerlink" href="#flcore.FireSet.version_list" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="flcore.GitFireSet">
+<em class="property">class </em><tt class="descclassname">flcore.</tt><tt class="descname">GitFireSet</tt><big>(</big><em>repodir</em><big>)</big><a class="headerlink" href="#flcore.GitFireSet" title="Permalink to this definition">¶</a></dt>
+<dd><p>FireSet implementing Git to manage the configuration repository</p>
+<dl class="method">
+<dt id="flcore.GitFireSet.assimilate">
+<tt class="descname">assimilate</tt><big>(</big><em>target</em>, <em>rsa_pub_key</em>, <em>username</em>, <em>password</em><big>)</big><a class="headerlink" href="#flcore.GitFireSet.assimilate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Configure a new firewall node interactively.
+Test SSH connectivity, sets up certificates</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><em>target</em> (str.) &#8211; firewall IP address or hostname</li>
+<li><em>rsa_pub_key</em> (str.) &#8211; RSA public key</li>
+<li><em>password</em> (str.) &#8211; SSH password</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="flcore.GitFireSet.check">
+<tt class="descname">check</tt><big>(</big><em>stop_on_extra_interfaces=False</em><big>)</big><a class="headerlink" href="#flcore.GitFireSet.check" title="Permalink to this definition">¶</a></dt>
+<dd>Check the configuration on the firewalls.</dd></dl>
+
+<dl class="method">
+<dt id="flcore.GitFireSet.compile_rules">
+<tt class="descname">compile_rules</tt><big>(</big><big>)</big><a class="headerlink" href="#flcore.GitFireSet.compile_rules" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compile iptables rules to be deployed in a dict:
+{ &#8216;firewall_name&#8217;: {&#8216;INPUT&#8217;,[rules...]},{&#8216;OUTPUT&#8217;,[rules...]},{&#8216;FORWARD&#8217;,[rules...]}, ... }</p>
+<p>During the compilation many checks are performed.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="flcore.GitFireSet.delete">
+<tt class="descname">delete</tt><big>(</big><em>table</em>, <em>rid</em><big>)</big><a class="headerlink" href="#flcore.GitFireSet.delete" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="flcore.GitFireSet.deploy">
+<tt class="descname">deploy</tt><big>(</big><em>ignore_unreachables=False</em>, <em>replace_ruleset=False</em>, <em>stop_on_extra_interfaces=False</em><big>)</big><a class="headerlink" href="#flcore.GitFireSet.deploy" title="Permalink to this definition">¶</a></dt>
+<dd>Check and then deploy the configuration to the firewalls.
+Some ignore flags can be set to force the deployment even in case of errors.</dd></dl>
+
+<dl class="method">
+<dt id="flcore.GitFireSet.fetch">
+<tt class="descname">fetch</tt><big>(</big><em>table</em>, <em>rid</em><big>)</big><a class="headerlink" href="#flcore.GitFireSet.fetch" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="flcore.GitFireSet.generate_otp">
+<tt class="descname">generate_otp</tt><big>(</big><big>)</big><a class="headerlink" href="#flcore.GitFireSet.generate_otp" title="Permalink to this definition">¶</a></dt>
+<dd>Generate one-time password used to configure new firewalls</dd></dl>
+
+<dl class="method">
+<dt id="flcore.GitFireSet.get_rsa_pub">
+<tt class="descname">get_rsa_pub</tt><big>(</big><big>)</big><a class="headerlink" href="#flcore.GitFireSet.get_rsa_pub" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read RSA public key from ~/.ssh/id_rsa.pub</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Returns:</th><td class="field-body">Key (str)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="flcore.GitFireSet.list_sibling_names">
+<tt class="descname">list_sibling_names</tt><big>(</big><big>)</big><a class="headerlink" href="#flcore.GitFireSet.list_sibling_names" title="Permalink to this definition">¶</a></dt>
+<dd>Return a list of all the possible siblings for a hostgroup
+being created or edited.</dd></dl>
+
+<dl class="method">
+<dt id="flcore.GitFireSet.reset">
+<tt class="descname">reset</tt><big>(</big><big>)</big><a class="headerlink" href="#flcore.GitFireSet.reset" title="Permalink to this definition">¶</a></dt>
+<dd>Reset Git to last commit.</dd></dl>
+
+<dl class="method">
+<dt id="flcore.GitFireSet.rollback">
+<tt class="descname">rollback</tt><big>(</big><em>n=None</em>, <em>commit_id=None</em><big>)</big><a class="headerlink" href="#flcore.GitFireSet.rollback" title="Permalink to this definition">¶</a></dt>
+<dd>Rollback to n commits ago or given a specific commit_id</dd></dl>
+
+<dl class="method">
+<dt id="flcore.GitFireSet.save">
+<tt class="descname">save</tt><big>(</big><em>msg</em><big>)</big><a class="headerlink" href="#flcore.GitFireSet.save" title="Permalink to this definition">¶</a></dt>
+<dd>Commit changes if needed.</dd></dl>
+
+<dl class="method">
+<dt id="flcore.GitFireSet.save_needed">
+<tt class="descname">save_needed</tt><big>(</big><big>)</big><a class="headerlink" href="#flcore.GitFireSet.save_needed" title="Permalink to this definition">¶</a></dt>
+<dd>True if commit is required: files has been changed</dd></dl>
+
+<dl class="method">
+<dt id="flcore.GitFireSet.version_diff">
+<tt class="descname">version_diff</tt><big>(</big><em>commit_id</em><big>)</big><a class="headerlink" href="#flcore.GitFireSet.version_diff" title="Permalink to this definition">¶</a></dt>
+<dd>Parse git diff &lt;commit_id&gt;
+Returns a list of (line, tag), the tag being &#8216;title&#8217;, &#8216;add&#8217;,
+&#8216;del,&#8217; or empty</dd></dl>
+
+<dl class="method">
+<dt id="flcore.GitFireSet.version_list">
+<tt class="descname">version_list</tt><big>(</big><big>)</big><a class="headerlink" href="#flcore.GitFireSet.version_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse git log &#8211;date=iso</p>
+<dl class="docutils">
+<dt>Returns:</dt>
+<dd>a list of lists: [ [author, date, [msg lines], commit_id ], ... ]</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="flcore.Host">
+<em class="property">class </em><tt class="descclassname">flcore.</tt><tt class="descname">Host</tt><big>(</big><em>r</em><big>)</big><a class="headerlink" href="#flcore.Host" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a Host object</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd>r (list): Host attributes</dd>
+</dl>
+<dl class="method">
+<dt id="flcore.Host.attr_dict">
+<tt class="descname">attr_dict</tt><big>(</big><big>)</big><a class="headerlink" href="#flcore.Host.attr_dict" title="Permalink to this definition">¶</a></dt>
+<dd>Provide a copy of the internal dict, with a token</dd></dl>
+
+<dl class="method">
+<dt id="flcore.Host.ipt">
+<tt class="descname">ipt</tt><big>(</big><big>)</big><a class="headerlink" href="#flcore.Host.ipt" title="Permalink to this definition">¶</a></dt>
+<dd>String representation for iptables</dd></dl>
+
+<dl class="method">
+<dt id="flcore.Host.keys">
+<tt class="descname">keys</tt><big>(</big><big>)</big><a class="headerlink" href="#flcore.Host.keys" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="flcore.Host.mynetwork">
+<tt class="descname">mynetwork</tt><big>(</big><big>)</big><a class="headerlink" href="#flcore.Host.mynetwork" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates an unnamed network directly connected to the host</p>
+<dl class="docutils">
+<dt>Ruturns:</dt>
+<dd>A Network instance</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="flcore.Host.update">
+<tt class="descname">update</tt><big>(</big><em>d</em><big>)</big><a class="headerlink" href="#flcore.Host.update" title="Permalink to this definition">¶</a></dt>
+<dd>Set/update the internal dictionary</dd></dl>
+
+<dl class="method">
+<dt id="flcore.Host.validate_token">
+<tt class="descname">validate_token</tt><big>(</big><em>t</em><big>)</big><a class="headerlink" href="#flcore.Host.validate_token" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="flcore.HostGroup">
+<em class="property">class </em><tt class="descclassname">flcore.</tt><tt class="descname">HostGroup</tt><big>(</big><em>li</em><big>)</big><a class="headerlink" href="#flcore.HostGroup" title="Permalink to this definition">¶</a></dt>
+<dd><p>A Host Group contains hosts, networks, and other host groups</p>
+<p>Creates a HostGroup object</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd>r (list): HostGroup attributes</dd>
+</dl>
+<dl class="method">
+<dt id="flcore.HostGroup.attr_dict">
+<tt class="descname">attr_dict</tt><big>(</big><big>)</big><a class="headerlink" href="#flcore.HostGroup.attr_dict" title="Permalink to this definition">¶</a></dt>
+<dd>Provide a copy of the internal dict, with a token</dd></dl>
+
+<dl class="method">
+<dt id="flcore.HostGroup.flat">
+<tt class="descname">flat</tt><big>(</big><em>host_by_name</em>, <em>net_by_name</em>, <em>hg_by_name</em><big>)</big><a class="headerlink" href="#flcore.HostGroup.flat" title="Permalink to this definition">¶</a></dt>
+<dd><p>Flatten the host groups hierarchy
+Returns:</p>
+<blockquote>
+Host or Network instances</blockquote>
+</dd></dl>
+
+<dl class="method">
+<dt id="flcore.HostGroup.keys">
+<tt class="descname">keys</tt><big>(</big><big>)</big><a class="headerlink" href="#flcore.HostGroup.keys" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="flcore.HostGroup.update">
+<tt class="descname">update</tt><big>(</big><em>d</em><big>)</big><a class="headerlink" href="#flcore.HostGroup.update" title="Permalink to this definition">¶</a></dt>
+<dd>Set/update the internal dictionary</dd></dl>
+
+<dl class="method">
+<dt id="flcore.HostGroup.validate_token">
+<tt class="descname">validate_token</tt><big>(</big><em>t</em><big>)</big><a class="headerlink" href="#flcore.HostGroup.validate_token" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="flcore.HostGroups">
+<em class="property">class </em><tt class="descclassname">flcore.</tt><tt class="descname">HostGroups</tt><big>(</big><em>d</em><big>)</big><a class="headerlink" href="#flcore.HostGroups" title="Permalink to this definition">¶</a></dt>
+<dd><p>A list of Bunch instances</p>
+<dl class="method">
+<dt id="flcore.HostGroups._simpleflatten">
+<tt class="descname">_simpleflatten</tt><big>(</big><em>node</em><big>)</big><a class="headerlink" href="#flcore.HostGroups._simpleflatten" title="Permalink to this definition">¶</a></dt>
+<dd><p>Flatten a tree of hostgroups starting from a node</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameter:</th><td class="field-body"><em>node</em> (str.) &#8211; node to start from</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="flcore.HostGroups.add">
+<tt class="descname">add</tt><big>(</big><em>f</em><big>)</big><a class="headerlink" href="#flcore.HostGroups.add" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a new hostgroup based and saves to disk.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameter:</th><td class="field-body"><em>f</em> (dict.) &#8211; New hg&#8217;s fields</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="flcore.HostGroups.pop">
+<tt class="descname">pop</tt><big>(</big><em>i</em><big>)</big><a class="headerlink" href="#flcore.HostGroups.pop" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="flcore.HostGroups.save">
+<tt class="descname">save</tt><big>(</big><big>)</big><a class="headerlink" href="#flcore.HostGroups.save" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="flcore.HostGroups.update">
+<tt class="descname">update</tt><big>(</big><em>d</em>, <em>rid=None</em>, <em>token=None</em><big>)</big><a class="headerlink" href="#flcore.HostGroups.update" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform loop checking before running the original &#8220;update&#8221; method.
+A loop happens when a HostGroup contains itself in one of its
+siblings (once flattened)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><em>d</em> (dict.) &#8211; Fields</li>
+<li><em>rid</em> (int.) &#8211; row ID (optional)</li>
+<li><em>token</em> (str.) &#8211; token (optional)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="flcore.Hosts">
+<em class="property">class </em><tt class="descclassname">flcore.</tt><tt class="descname">Hosts</tt><big>(</big><em>d</em><big>)</big><a class="headerlink" href="#flcore.Hosts" title="Permalink to this definition">¶</a></dt>
+<dd><p>A list of Bunch instances</p>
+<dl class="method">
+<dt id="flcore.Hosts.add">
+<tt class="descname">add</tt><big>(</big><em>f</em><big>)</big><a class="headerlink" href="#flcore.Hosts.add" title="Permalink to this definition">¶</a></dt>
+<dd>Add a new item based on a dict of fields</dd></dl>
+
+<dl class="method">
+<dt id="flcore.Hosts.pop">
+<tt class="descname">pop</tt><big>(</big><em>i</em><big>)</big><a class="headerlink" href="#flcore.Hosts.pop" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="flcore.Hosts.save">
+<tt class="descname">save</tt><big>(</big><big>)</big><a class="headerlink" href="#flcore.Hosts.save" title="Permalink to this definition">¶</a></dt>
+<dd>Flatten the routed network list and save</dd></dl>
+
+<dl class="method">
+<dt id="flcore.Hosts.update">
+<tt class="descname">update</tt><big>(</big><em>d</em>, <em>rid=None</em>, <em>token=None</em><big>)</big><a class="headerlink" href="#flcore.Hosts.update" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update internal dictionary based on d</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><em>d</em> (dict.) &#8211; Fields</li>
+<li><em>rid</em> (int.) &#8211; row ID (optional)</li>
+<li><em>token</em> (str.) &#8211; token (optional)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="flcore.Network">
+<em class="property">class </em><tt class="descclassname">flcore.</tt><tt class="descname">Network</tt><big>(</big><em>r</em><big>)</big><a class="headerlink" href="#flcore.Network" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a Host object</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd>r (list): Network attributes</dd>
+</dl>
+<dl class="method">
+<dt id="flcore.Network.attr_dict">
+<tt class="descname">attr_dict</tt><big>(</big><big>)</big><a class="headerlink" href="#flcore.Network.attr_dict" title="Permalink to this definition">¶</a></dt>
+<dd>Provide a copy of the internal dict, with a token</dd></dl>
+
+<dl class="method">
+<dt id="flcore.Network.ipt">
+<tt class="descname">ipt</tt><big>(</big><big>)</big><a class="headerlink" href="#flcore.Network.ipt" title="Permalink to this definition">¶</a></dt>
+<dd>String representation for iptables</dd></dl>
+
+<dl class="method">
+<dt id="flcore.Network.keys">
+<tt class="descname">keys</tt><big>(</big><big>)</big><a class="headerlink" href="#flcore.Network.keys" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="flcore.Network.update">
+<tt class="descname">update</tt><big>(</big><em>d</em><big>)</big><a class="headerlink" href="#flcore.Network.update" title="Permalink to this definition">¶</a></dt>
+<dd>Get the correct network address and update attributes</dd></dl>
+
+<dl class="method">
+<dt id="flcore.Network.validate_token">
+<tt class="descname">validate_token</tt><big>(</big><em>t</em><big>)</big><a class="headerlink" href="#flcore.Network.validate_token" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="flcore.NetworkObjTable">
+<em class="property">class </em><tt class="descclassname">flcore.</tt><tt class="descname">NetworkObjTable</tt><a class="headerlink" href="#flcore.NetworkObjTable" title="Permalink to this definition">¶</a></dt>
+<dd><p>Contains a set of hosts or networks or hostgroups.
+They are stored as self._objdict where the key is the object name</p>
+<dl class="method">
+<dt id="flcore.NetworkObjTable.get">
+<tt class="descname">get</tt><big>(</big><em>id=None</em>, <em>name=None</em><big>)</big><a class="headerlink" href="#flcore.NetworkObjTable.get" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="flcore.NetworkObjTable.len">
+<tt class="descname">len</tt><big>(</big><big>)</big><a class="headerlink" href="#flcore.NetworkObjTable.len" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="flcore.Networks">
+<em class="property">class </em><tt class="descclassname">flcore.</tt><tt class="descname">Networks</tt><big>(</big><em>d</em><big>)</big><a class="headerlink" href="#flcore.Networks" title="Permalink to this definition">¶</a></dt>
+<dd><p>A list of Bunch instances</p>
+<dl class="method">
+<dt id="flcore.Networks.add">
+<tt class="descname">add</tt><big>(</big><em>f</em><big>)</big><a class="headerlink" href="#flcore.Networks.add" title="Permalink to this definition">¶</a></dt>
+<dd>Add a new item based on a dict of fields</dd></dl>
+
+<dl class="method">
+<dt id="flcore.Networks.pop">
+<tt class="descname">pop</tt><big>(</big><em>i</em><big>)</big><a class="headerlink" href="#flcore.Networks.pop" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="flcore.Networks.save">
+<tt class="descname">save</tt><big>(</big><big>)</big><a class="headerlink" href="#flcore.Networks.save" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="flcore.Networks.update">
+<tt class="descname">update</tt><big>(</big><em>d</em>, <em>rid=None</em>, <em>token=None</em><big>)</big><a class="headerlink" href="#flcore.Networks.update" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update internal dictionary based on d</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><em>d</em> (dict.) &#8211; Fields</li>
+<li><em>rid</em> (int.) &#8211; row ID (optional)</li>
+<li><em>token</em> (str.) &#8211; token (optional)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="flcore.Rules">
+<em class="property">class </em><tt class="descclassname">flcore.</tt><tt class="descname">Rules</tt><big>(</big><em>d</em><big>)</big><a class="headerlink" href="#flcore.Rules" title="Permalink to this definition">¶</a></dt>
+<dd><p>A list of Bunch instances</p>
+<p>Creates a Rules object</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd>d (string): data directory</dd>
+</dl>
+<dl class="method">
+<dt id="flcore.Rules.disable">
+<tt class="descname">disable</tt><big>(</big><em>rid</em><big>)</big><a class="headerlink" href="#flcore.Rules.disable" title="Permalink to this definition">¶</a></dt>
+<dd><p>Disable a rule</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameter:</th><td class="field-body"><em>rid</em> (int.) &#8211; Rule ID</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="flcore.Rules.enable">
+<tt class="descname">enable</tt><big>(</big><em>rid</em><big>)</big><a class="headerlink" href="#flcore.Rules.enable" title="Permalink to this definition">¶</a></dt>
+<dd><p>Enable a rule</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameter:</th><td class="field-body"><em>rid</em> (int.) &#8211; Rule ID</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="flcore.Rules.movedown">
+<tt class="descname">movedown</tt><big>(</big><em>rid</em><big>)</big><a class="headerlink" href="#flcore.Rules.movedown" title="Permalink to this definition">¶</a></dt>
+<dd>Move a rule down</dd></dl>
+
+<dl class="method">
+<dt id="flcore.Rules.moveup">
+<tt class="descname">moveup</tt><big>(</big><em>rid</em><big>)</big><a class="headerlink" href="#flcore.Rules.moveup" title="Permalink to this definition">¶</a></dt>
+<dd>Move a rule up</dd></dl>
+
+<dl class="method">
+<dt id="flcore.Rules.pop">
+<tt class="descname">pop</tt><big>(</big><em>i</em><big>)</big><a class="headerlink" href="#flcore.Rules.pop" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="flcore.Rules.save">
+<tt class="descname">save</tt><big>(</big><big>)</big><a class="headerlink" href="#flcore.Rules.save" title="Permalink to this definition">¶</a></dt>
+<dd>Save the ruleset</dd></dl>
+
+<dl class="method">
+<dt id="flcore.Rules.update">
+<tt class="descname">update</tt><big>(</big><em>d</em>, <em>rid=None</em>, <em>token=None</em><big>)</big><a class="headerlink" href="#flcore.Rules.update" title="Permalink to this definition">¶</a></dt>
+<dd>Update internal dictionary based on d</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="flcore.Service">
+<em class="property">class </em><tt class="descclassname">flcore.</tt><tt class="descname">Service</tt><big>(</big><em>**kw</em><big>)</big><a class="headerlink" href="#flcore.Service" title="Permalink to this definition">¶</a></dt>
+<dd><p>A network service using one protocol and one, many or no ports</p>
+<dl class="method">
+<dt id="flcore.Service.attr_dict">
+<tt class="descname">attr_dict</tt><big>(</big><big>)</big><a class="headerlink" href="#flcore.Service.attr_dict" title="Permalink to this definition">¶</a></dt>
+<dd>Provide a copy of the internal dict, with a token</dd></dl>
+
+<dl class="method">
+<dt id="flcore.Service.keys">
+<tt class="descname">keys</tt><big>(</big><big>)</big><a class="headerlink" href="#flcore.Service.keys" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="flcore.Service.update">
+<tt class="descname">update</tt><big>(</big><em>d</em><big>)</big><a class="headerlink" href="#flcore.Service.update" title="Permalink to this definition">¶</a></dt>
+<dd>Validate, then set/update the internal dictionary</dd></dl>
+
+<dl class="method">
+<dt id="flcore.Service.validate_token">
+<tt class="descname">validate_token</tt><big>(</big><em>t</em><big>)</big><a class="headerlink" href="#flcore.Service.validate_token" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="flcore.Services">
+<em class="property">class </em><tt class="descclassname">flcore.</tt><tt class="descname">Services</tt><big>(</big><em>d</em><big>)</big><a class="headerlink" href="#flcore.Services" title="Permalink to this definition">¶</a></dt>
+<dd><p>A list of Bunch instances</p>
+<dl class="method">
+<dt id="flcore.Services.add">
+<tt class="descname">add</tt><big>(</big><em>f</em><big>)</big><a class="headerlink" href="#flcore.Services.add" title="Permalink to this definition">¶</a></dt>
+<dd>Add a new item based on a dict of fields</dd></dl>
+
+<dl class="method">
+<dt id="flcore.Services.pop">
+<tt class="descname">pop</tt><big>(</big><em>i</em><big>)</big><a class="headerlink" href="#flcore.Services.pop" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="flcore.Services.save">
+<tt class="descname">save</tt><big>(</big><big>)</big><a class="headerlink" href="#flcore.Services.save" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="flcore.Services.update">
+<tt class="descname">update</tt><big>(</big><em>d</em>, <em>rid=None</em>, <em>token=None</em><big>)</big><a class="headerlink" href="#flcore.Services.update" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update internal dictionary based on d</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><em>d</em> (dict.) &#8211; Fields</li>
+<li><em>rid</em> (int.) &#8211; row ID (optional)</li>
+<li><em>token</em> (str.) &#8211; token (optional)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="flcore.SmartTable">
+<em class="property">class </em><tt class="descclassname">flcore.</tt><tt class="descname">SmartTable</tt><big>(</big><em>d</em><big>)</big><a class="headerlink" href="#flcore.SmartTable" title="Permalink to this definition">¶</a></dt>
+<dd><p>A list of Bunch instances. Each subclass is responsible to load and save files.</p>
+<dl class="method">
+<dt id="flcore.SmartTable.pop">
+<tt class="descname">pop</tt><big>(</big><em>i</em><big>)</big><a class="headerlink" href="#flcore.SmartTable.pop" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="flcore.SmartTable.update">
+<tt class="descname">update</tt><big>(</big><em>d</em>, <em>rid=None</em>, <em>token=None</em><big>)</big><a class="headerlink" href="#flcore.SmartTable.update" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update internal dictionary based on d</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><em>d</em> (dict.) &#8211; Fields</li>
+<li><em>rid</em> (int.) &#8211; row ID (optional)</li>
+<li><em>token</em> (str.) &#8211; token (optional)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="flcore.Sys">
+<em class="property">class </em><tt class="descclassname">flcore.</tt><tt class="descname">Sys</tt><big>(</big><em>name</em>, <em>ifaces={}</em><big>)</big><a class="headerlink" href="#flcore.Sys" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="flcore.Sys.attr_dict">
+<tt class="descname">attr_dict</tt><big>(</big><big>)</big><a class="headerlink" href="#flcore.Sys.attr_dict" title="Permalink to this definition">¶</a></dt>
+<dd>Provide a copy of the internal dict, with a token</dd></dl>
+
+<dl class="method">
+<dt id="flcore.Sys.keys">
+<tt class="descname">keys</tt><big>(</big><big>)</big><a class="headerlink" href="#flcore.Sys.keys" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="flcore.Sys.update">
+<tt class="descname">update</tt><big>(</big><em>d</em><big>)</big><a class="headerlink" href="#flcore.Sys.update" title="Permalink to this definition">¶</a></dt>
+<dd>Set/update the internal dictionary</dd></dl>
+
+<dl class="method">
+<dt id="flcore.Sys.validate_token">
+<tt class="descname">validate_token</tt><big>(</big><em>t</em><big>)</big><a class="headerlink" href="#flcore.Sys.validate_token" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="flcore.Table">
+<em class="property">class </em><tt class="descclassname">flcore.</tt><tt class="descname">Table</tt><a class="headerlink" href="#flcore.Table" title="Permalink to this definition">¶</a></dt>
+<dd><p>A list with pretty-print methods</p>
+<dl class="attribute">
+<dt id="flcore.Table.append">
+<tt class="descname">append</tt><a class="headerlink" href="#flcore.Table.append" title="Permalink to this definition">¶</a></dt>
+<dd>L.append(object) &#8211; append object to end</dd></dl>
+
+<dl class="attribute">
+<dt id="flcore.Table.count">
+<tt class="descname">count</tt><a class="headerlink" href="#flcore.Table.count" title="Permalink to this definition">¶</a></dt>
+<dd>L.count(value) -&gt; integer &#8211; return number of occurrences of value</dd></dl>
+
+<dl class="attribute">
+<dt id="flcore.Table.extend">
+<tt class="descname">extend</tt><a class="headerlink" href="#flcore.Table.extend" title="Permalink to this definition">¶</a></dt>
+<dd>L.extend(iterable) &#8211; extend list by appending elements from the iterable</dd></dl>
+
+<dl class="attribute">
+<dt id="flcore.Table.index">
+<tt class="descname">index</tt><a class="headerlink" href="#flcore.Table.index" title="Permalink to this definition">¶</a></dt>
+<dd>L.index(value, [start, [stop]]) -&gt; integer &#8211; return first index of value.
+Raises ValueError if the value is not present.</dd></dl>
+
+<dl class="attribute">
+<dt id="flcore.Table.insert">
+<tt class="descname">insert</tt><a class="headerlink" href="#flcore.Table.insert" title="Permalink to this definition">¶</a></dt>
+<dd>L.insert(index, object) &#8211; insert object before index</dd></dl>
+
+<dl class="method">
+<dt id="flcore.Table.len">
+<tt class="descname">len</tt><big>(</big><big>)</big><a class="headerlink" href="#flcore.Table.len" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="flcore.Table.pop">
+<tt class="descname">pop</tt><a class="headerlink" href="#flcore.Table.pop" title="Permalink to this definition">¶</a></dt>
+<dd>L.pop([index]) -&gt; item &#8211; remove and return item at index (default last).
+Raises IndexError if list is empty or index is out of range.</dd></dl>
+
+<dl class="attribute">
+<dt id="flcore.Table.remove">
+<tt class="descname">remove</tt><a class="headerlink" href="#flcore.Table.remove" title="Permalink to this definition">¶</a></dt>
+<dd>L.remove(value) &#8211; remove first occurrence of value.
+Raises ValueError if the value is not present.</dd></dl>
+
+<dl class="attribute">
+<dt id="flcore.Table.reverse">
+<tt class="descname">reverse</tt><a class="headerlink" href="#flcore.Table.reverse" title="Permalink to this definition">¶</a></dt>
+<dd>L.reverse() &#8211; reverse <em>IN PLACE</em></dd></dl>
+
+<dl class="attribute">
+<dt id="flcore.Table.sort">
+<tt class="descname">sort</tt><a class="headerlink" href="#flcore.Table.sort" title="Permalink to this definition">¶</a></dt>
+<dd>L.sort(cmp=None, key=None, reverse=False) &#8211; stable sort <em>IN PLACE</em>;
+cmp(x, y) -&gt; -1, 0, 1</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="flcore.Users">
+<em class="property">class </em><tt class="descclassname">flcore.</tt><tt class="descname">Users</tt><big>(</big><em>d</em><big>)</big><a class="headerlink" href="#flcore.Users" title="Permalink to this definition">¶</a></dt>
+<dd><p>User management, with password hashing.
+users = {&#8216;username&#8217;: [&#8216;role&#8217;,&#8217;pwdhash&#8217;,&#8217;email&#8217;], ... }</p>
+<dl class="method">
+<dt id="flcore.Users.create">
+<tt class="descname">create</tt><big>(</big><em>username</em>, <em>role</em>, <em>pwd</em>, <em>email=None</em><big>)</big><a class="headerlink" href="#flcore.Users.create" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a new user</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd>username (string): the username
+role (string): user role
+pwd (string): user password</dd>
+<dt>Kwargs:</dt>
+<dd>email (string): optional</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="flcore.Users.delete">
+<tt class="descname">delete</tt><big>(</big><em>username</em><big>)</big><a class="headerlink" href="#flcore.Users.delete" title="Permalink to this definition">¶</a></dt>
+<dd>Delete an username</dd></dl>
+
+<dl class="method">
+<dt id="flcore.Users.list">
+<tt class="descname">list</tt><big>(</big><big>)</big><a class="headerlink" href="#flcore.Users.list" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="flcore.Users.update">
+<tt class="descname">update</tt><big>(</big><em>username</em>, <em>role=None</em>, <em>pwd=None</em>, <em>email=None</em><big>)</big><a class="headerlink" href="#flcore.Users.update" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update an user</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd>username (string): the username</dd>
+<dt>Kwargs:</dt>
+<dd>role (string): user role
+pwd (string): user password
+email (string): user email</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="flcore.Users.validate">
+<tt class="descname">validate</tt><big>(</big><em>username</em>, <em>pwd</em><big>)</big><a class="headerlink" href="#flcore.Users.validate" title="Permalink to this definition">¶</a></dt>
+<dd>Validate an username and password</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="flcore.clean">
+<tt class="descclassname">flcore.</tt><tt class="descname">clean</tt><big>(</big><em>s</em><big>)</big><a class="headerlink" href="#flcore.clean" title="Permalink to this definition">¶</a></dt>
+<dd>Remove dangerous characters.
+&gt;&gt;&gt; clean(&#8216; !&#8221;#$%&amp;&#8217;()*+,-./0123456789:;&lt;=&gt;?&#64;ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_&#8217;)
+&#8216; !#$%&amp;()*+,-./0123456789:;=?&#64;ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_&#8217;</dd></dl>
+
+<dl class="function">
+<dt id="flcore.load_hosts_csv">
+<tt class="descclassname">flcore.</tt><tt class="descname">load_hosts_csv</tt><big>(</big><em>n</em>, <em>d</em><big>)</big><a class="headerlink" href="#flcore.load_hosts_csv" title="Permalink to this definition">¶</a></dt>
+<dd>Read the hosts csv file, group the routed networks as a list</dd></dl>
+
+<dl class="function">
+<dt id="flcore.loadcsv">
+<tt class="descclassname">flcore.</tt><tt class="descname">loadcsv</tt><big>(</big><em>fname</em>, <em>d</em><big>)</big><a class="headerlink" href="#flcore.loadcsv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load a CSV file</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd>n (string): filename, without .csv
+d (string): directory</dd>
+<dt>Returns:</dt>
+<dd>a Table instance</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="flcore.loadjson">
+<tt class="descclassname">flcore.</tt><tt class="descname">loadjson</tt><big>(</big><em>n</em>, <em>d</em><big>)</big><a class="headerlink" href="#flcore.loadjson" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="flcore.net_addr">
+<tt class="descclassname">flcore.</tt><tt class="descname">net_addr</tt><big>(</big><em>a</em>, <em>n</em><big>)</big><a class="headerlink" href="#flcore.net_addr" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="flcore.readcsv">
+<tt class="descclassname">flcore.</tt><tt class="descname">readcsv</tt><big>(</big><em>n</em>, <em>d</em><big>)</big><a class="headerlink" href="#flcore.readcsv" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="flcore.savecsv">
+<tt class="descclassname">flcore.</tt><tt class="descname">savecsv</tt><big>(</big><em>n</em>, <em>stuff</em>, <em>d</em><big>)</big><a class="headerlink" href="#flcore.savecsv" title="Permalink to this definition">¶</a></dt>
+<dd>Save CSV file safely, preserving comments</dd></dl>
+
+<dl class="function">
+<dt id="flcore.savejson">
+<tt class="descclassname">flcore.</tt><tt class="descname">savejson</tt><big>(</big><em>n</em>, <em>obj</em>, <em>d</em><big>)</big><a class="headerlink" href="#flcore.savejson" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="flcore.timeit">
+<tt class="descclassname">flcore.</tt><tt class="descname">timeit</tt><big>(</big><em>method</em><big>)</big><a class="headerlink" href="#flcore.timeit" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="flcore.validc">
+<tt class="descclassname">flcore.</tt><tt class="descname">validc</tt><big>(</big><em>c</em><big>)</big><a class="headerlink" href="#flcore.validc" title="Permalink to this definition">¶</a></dt>
+<dd>Validate character in rule name</dd></dl>
+
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <h3>This Page</h3>
+            <ul class="this-page-menu">
+              <li><a href="_sources/flcore.txt"
+                     rel="nofollow">Show Source</a></li>
+            </ul>
+          <div id="searchbox" style="display: none">
+            <h3>Quick search</h3>
+              <form class="search" action="search.html" method="get">
+                <input type="text" name="q" size="18" />
+                <input type="submit" value="Go" />
+                <input type="hidden" name="check_keywords" value="yes" />
+                <input type="hidden" name="area" value="default" />
+              </form>
+              <p class="searchtip" style="font-size: 90%">
+              Enter search terms or a module, class or function name.
+              </p>
+          </div>
+          <script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="modindex.html" title="Global Module Index"
+             >modules</a> |</li>
+        <li><a href="index.html">Firelet</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+      &copy; Copyright 2011, Federico Ceratto.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 0.6.6.
+    </div>
+  </body>
+</html>
