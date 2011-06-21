@@ -20,6 +20,7 @@ from copy import deepcopy
 import csv
 from hashlib import sha512
 from collections import defaultdict
+import logging
 from netaddr import IPAddress, IPNetwork
 from os import fsync, rename, unlink, getenv
 from random import choice
