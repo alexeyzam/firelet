@@ -1,7 +1,7 @@
 #!/bin/bash
 
 D=$(mktemp -d)
-
+echo "Using $D as temporary directory..."
 while true
     do
     /bin/cp test/*.csv "$D"

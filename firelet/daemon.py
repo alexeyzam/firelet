@@ -28,7 +28,7 @@ from sys import exit
 from time import time, sleep, localtime
 
 from confreader import ConfReader
-import mailer
+from mailer import Mailer
 from flcore import Alert, GitFireSet, DemoGitFireSet, Users, clean
 from flmap import draw_png_map, draw_svg_map
 from flutils import flag, extract_all, get_rss_channels
@@ -637,7 +637,10 @@ def rss_channels(channel=None):
     return get_rss_channels(channel, url, msg_list=msg_list)
 
 
-
+@bottle.route('/testemail')
+def te():
+    mailer.send_diff(diff={'items':[['one', 'add'], ['two', 'del']]})
+    bottle.redirect('/')
 
 def main():
     global conf
@@ -689,8 +692,12 @@ def main():
         say("Firelet started.", level="success")
 
     globals()['users'] = Users(d=conf.data_dir)
+    globals()['mailer'] = Mailer(
+        sender = conf.email_sender,
+        recipients = conf.email_recipients,
+        smtp_server = conf.email_smtp_server,
+    )
 
-    print repr(conf.demo_mode)
     if conf.demo_mode:
         globals()['fs'] = DemoGitFireSet(conf.data_dir)
         say("Configuration loaded. Demo mode.")
@@ -715,6 +722,8 @@ def main():
         port=conf.listen_port,
         reloader=reload
     )
+
+    mailer.join()
 
 
 if __name__ == "__main__":

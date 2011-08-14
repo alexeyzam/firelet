@@ -19,118 +19,77 @@ from smtplib import SMTP
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
-def send(conf, log, sbj='', body=''):
-    smtp_srv, emailsrc, emaildests, title = conf
-    if smtp_srv:
+from logging import getLogger
+log = getLogger(__name__)
+
+from threading import Thread 
+
+from bottle import template
+
+class Mailer(object):
+    """Email sender
+    """
+    def __init__(self, sender='firelet@localhost.local',
+        recipients='root@localhost.local', smtp_server='localhost'):
+        """Initialize email sender
+        :param sender: Sender email address
+        :type sender: str.
+        :param recipients: Recipient email addresses, comma+space separated
+        :type recipients: str.
+        :param smtp_server: SMTP server
+        :type smtp_server: str.
+        """
+        self._sender = sender
+        self._recipients = recipients
+        self._smtp_server = smtp_server
+        self._threads = []
+
+    def send_diff(self, sbj='[Firelet] Diff', body=None, diff={}):
+        """Send HTML diff email
+        :param sbj: Subject
+        :type sbj: str.
+        """
+
+        self.send_html(sbj=sbj, tpl='email_diff', d=diff)
+
+
+    def send_html(self, sbj='Firelet', body=None, tpl=None, d=None):
+        """Send an HTML email by forking a dedicated thread.
+        
+        :param sbj: Subject
+        :type sbj: str.
+        """
+
+        html = template(tpl, d=d)
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = sbj
+        msg['From'] = self._sender
+        msg['To'] = self._recipients
+        part = MIMEText(html, 'html')
+        msg.attach(part)
+
+        log.debug("Sending email using %s" % self._smtp_server)
+        thread = Thread(None, self._send, '', 
+            (self._sender, self._recipients, self._smtp_server, msg.as_string())
+        )
+        self._threads.append(thread)
+        thread.start()
+
+
+    def _send(self, sender, recipients, smtp_server, msg):
+        """Deliver an email using SMTP
+        """
         try:
-            session = SMTP(smtp_srv)
-            session.sendmail(emailsrc, emaildests, "Subject: [%s]: %s\n%s" % (title, sbj, body))
+            session = SMTP(smtp_server)
+            session.sendmail(sender, recipients, msg)
             session.close()
-        except Exception,  e:
-            log.error("Unable to deliver email: %s", e)
+            log.debug('Email sent')
+        except Exception, e:
+            log.error("Error sending email: %s" % e)
 
+    def join(self):
+        """Flush email queue by waiting the completion of the existing threads
+        """
+        for t in self._threads:
+            t.join(5)
 
-def send_html_and_text(sbj='Hello', body=''):
-
-    me = ""
-    you = ""
-
-    # Create message container - the correct MIME type is multipart/alternative.
-    msg = MIMEMultipart('alternative')
-    msg['Subject'] = sbj
-    msg['From'] = me
-    msg['To'] = you
-
-    # Create the body of the message (a plain-text and an HTML version).
-    text = "Hi!\nHow are you?\nHere is the link you wanted:\nhttp://www.python.org"
-    html = """\
-    <html>
-      <head></head>
-      <body>
-        <p>Hi!<br>
-           How are you?<br>
-           Here is the <a href="http://www.python.org">link</a> you wanted.
-        </p>
-      </body>
-    </html>
-    """
-
-    # Record the MIME types of both parts - text/plain and text/html.
-    part1 = MIMEText(text, 'plain')
-    part2 = MIMEText(html, 'html')
-
-    # Attach parts into message container.
-    # According to RFC 2046, the last part of a multipart message, in this case
-    # the HTML message, is best and preferred.
-    msg.attach(part1)
-    msg.attach(part2)
-
-    try:
-        session = SMTP('localhost')
-        session.sendmail(me, you, msg.as_string())
-#        session.sendmail(emailsrc, emaildests, "Subject: [%s]: %s\n%s" % (title, sbj, body))
-        session.close()
-    except Exception,  e:
-        log.error("Unable to deliver email: %s", e)
-
-
-def send_html(sbj='Hello', body=''):
-
-    me = ""
-    you = ""
-
-    # Create message container - the correct MIME type is multipart/alternative.
-    msg = MIMEMultipart('alternative')
-    msg['Subject'] = sbj
-    msg['From'] = me
-    msg['To'] = you
-
-    # Create the body of the message (a plain-text and an HTML version).
-    html = """\
-    <html>
-      <head></head>
-      <style>
-
-        table td {
-            border: 1px solid #c0c0c0;
-            padding: 2px;
-        }
-        table tr td.add {
-            background-color: #f0fff0;
-        }
-        table tr td.del {
-            background-color: #fff0f0;
-        }
-        </style>
-      <body>
-        <p>
-            Automated email from Firelet
-        </p>
-        <table class="diff">
-            <tr><td class="add"> added item </td></tr>
-            <tr><td class="del"> deleted item </td></tr>
-            <tr><td class="add"> added item </td></tr>
-            <tr><td class="add"> added item </td></tr>
-        </table>
-      </body>
-    </html>
-    """
-
-    # Record the MIME types of both parts - text/plain and text/html.
-    part = MIMEText(html, 'html')
-
-    # Attach parts into message container.
-    # According to RFC 2046, the last part of a multipart message, in this case
-    # the HTML message, is best and preferred.
-    msg.attach(part)
-
-    try:
-        session = SMTP('localhost')
-        session.sendmail(me, you, msg.as_string())
-#        session.sendmail(emailsrc, emaildests, "Subject: [%s]: %s\n%s" % (title, sbj, body))
-        session.close()
-    except Exception,  e:
-        log.error("Unable to deliver email: %s", e)
-
-
-#send_html()

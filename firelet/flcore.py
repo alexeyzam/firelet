@@ -18,8 +18,8 @@ from __future__ import with_statement
 
 from copy import deepcopy
 import csv
-from hashlib import sha512
 from collections import defaultdict
+from hashlib import sha512
 import logging
 from netaddr import IPAddress, IPNetwork
 from os import fsync, rename, unlink, getenv
