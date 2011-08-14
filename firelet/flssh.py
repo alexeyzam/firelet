@@ -121,7 +121,7 @@ class SSHConnector(object):
 
         c = paramiko.SSHClient()
         c.load_system_host_keys()
-        #TODO: make this configurable
+        #TODO: test ssh_key_autoadd configuration parameter
         if self._ssh_key_autoadd:
             c.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
