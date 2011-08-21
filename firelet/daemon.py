@@ -501,6 +501,12 @@ def savebtn():
     say("Commit msg: \"%s\". Saving configuration..." % msg)
     saved = fs.save(msg)
     ack("Configuration saved: \"%s\"" % msg)
+    s = bottle.request.environ.get('beaker.session')
+    username = s.get('username', None)
+    mailer.send_msg(
+        sbj="Configuration saved by %s" % username,
+        body_txt="Commit msg: %s" % msg
+    )
 
 @bottle.route('/reset', method='POST')
 def resetbtn():
@@ -535,9 +541,15 @@ def deploybtn():
     say('Compiling firewall rules...')
     try:
         fs.deploy(stop_on_extra_interfaces=conf.stop_on_extra_interfaces)
+        ack('Configuration deployed.')
+        s = bottle.request.environ.get('beaker.session')
+        username = s.get('username', None)
+        mailer.send_msg(
+            sbj="Configuration deployed by %s" % username,
+            body_txt="Configuration deployed by %s" % username
+        )
     except Alert, e:
         ret_alert("Compilation failed: %s" % e)
-    ack('Configuration deployed.')
 
 @bottle.route('/version_list')
 @view('version_list')
