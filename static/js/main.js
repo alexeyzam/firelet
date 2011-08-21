@@ -8,10 +8,15 @@ var selected_row = -1;
 function refresh_msg()
 {
     setTimeout("refresh_msg()",2000);
-    t = $("div#msgslot").scrollTop();
+    pos_top = $("div#msgslot").scrollTop();
     th = $("table#msgs").height();
-    delta = th - t - 100;
-    if (delta < 10) { $("table#msgs").load("/messages"); }
+    pos_bottom = th - pos_top - 100;
+    // Refresh messages if needed
+    if (pos_bottom < 10) {
+        $("table#msgs").load("/messages", function() {
+            $("div#msgslot").animate({scrollTop: '100px'}, 10);
+        });
+    }
     $.getJSON("save_needed", function(json){
         if (json.sn === true) $("div#savereset").show();
         else $("div#savereset").hide();
