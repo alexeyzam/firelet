@@ -22,7 +22,7 @@ from email.mime.text import MIMEText
 from logging import getLogger
 log = getLogger(__name__)
 
-from threading import Thread 
+from threading import Thread
 
 from bottle import template
 
@@ -44,25 +44,39 @@ class Mailer(object):
         self._smtp_server = smtp_server
         self._threads = []
 
-    def send_diff(self, sbj='[Firelet] Diff', body=None, diff={}):
+    def send_msg(self, sbj='Message', body_txt=''):
+        """Send generic HTML email
+        :param sbj: Subject
+        :type sbj: str.
+        :param body_txt: Body text
+        :type body_txt: str.
+        """
+        body = {'text': body_txt}
+        self.send_html(sbj=sbj, tpl='email_generic', body=body)
+
+    def send_diff(self, diff, sbj='Diff'):
         """Send HTML diff email
         :param sbj: Subject
         :type sbj: str.
+        :param diff: Diff
+        :type diff: dict.
         """
 
-        self.send_html(sbj=sbj, tpl='email_diff', d=diff)
+        self.send_html(sbj=sbj, tpl='email_diff', body=diff)
 
-
-    def send_html(self, sbj='Firelet', body=None, tpl=None, d=None):
+    def send_html(self, sbj='', body=None, tpl=None):
         """Send an HTML email by forking a dedicated thread.
-        
         :param sbj: Subject
         :type sbj: str.
+        :param body: Body contents
+        :type body: dict.
+        :param tpl: Body template
+        :type tpl: str.
         """
 
-        html = template(tpl, d=d)
+        html = template(tpl, body=body)
         msg = MIMEMultipart('alternative')
-        msg['Subject'] = sbj
+        msg['Subject'] = "[Firelet] %s" % sbj
         msg['From'] = self._sender
         msg['To'] = self._recipients
         part = MIMEText(html, 'html')

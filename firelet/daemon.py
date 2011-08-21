@@ -637,9 +637,12 @@ def rss_channels(channel=None):
     return get_rss_channels(channel, url, msg_list=msg_list)
 
 
-@bottle.route('/testemail')
-def te():
-    mailer.send_diff(diff={'items':[['one', 'add'], ['two', 'del']]})
+@bottle.route('/test_email_delivery')
+def test_email_delivery():
+    """Send a test email
+    """
+    mailer.send_msg(body_txt='Email delivery test - please ignore this message.')
+    say('Test email sent.')
     bottle.redirect('/')
 
 def main():

@@ -10,7 +10,7 @@ div.bu {
     </head>
     <body leftmargin="0" marginwidth="0" topmargin="0" marginheight="0" offset="0">
         
-        %for item, added in d['items']:
+        %for item, added in body['items']:
             %if added=='add':
         <div style="border:1px solid green;border-left:3px solid
         green;margin:1px;padding:2px;background:#f0fff0; width:auto;">{{item}}</div>
