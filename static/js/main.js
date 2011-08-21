@@ -116,15 +116,18 @@ function on_tab_load() {
     // Reset selected row
     selected_row = -1;
 
+    /* Temporarily disabled: tooltips not disappearing
+    
     // Setup tooltips and hovering
     $("table#items tr td img[title]").tooltip({
         tip: '.tooltip',
         effect: 'fade',
         fadeOutSpeed: 100,
-        predelay: 800,
+        predelay: 2800,
         position: "bottom right",
         offset: [15, 15]
     });
+    */
 
     $("table#items tr td img").fadeTo(0, 0.6);
 
@@ -148,8 +151,6 @@ $(function() {
         }
     });
     //FIXME: history not updated by shortcuts
-
-    //FIXME: tooltips do not disappear sometimes
 
     // Start refreshing message pane
     refresh_msg();
