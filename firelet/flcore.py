@@ -52,15 +52,7 @@ except ImportError:
 try:
     from itertools import product
 except ImportError:
-
-    def product(*args, **kwds):
-        """List cartesian product - not available in Python 2.5"""
-        pools = map(tuple, args) * kwds.get('repeat', 1)
-        result = [[]]
-        for pool in pools:
-            result = [x + [y] for x in result for y in pool]
-        for prod in result:
-            yield tuple(prod)
+    from flutils import product
 
 protocols = ['AH', 'ESP', 'ICMP', 'IP', 'TCP', 'UDP']
 # unsupported by iptables: 'IGMP','','OSPF', 'EIGRP','IPIP','VRRP','IS-IS', 'SCTP', 'AH', 'ESP'
@@ -126,12 +118,7 @@ def clean(s):
     :type s: str
     :rtype: str
     """
-    o = ''
-    for x in s:
-        n = ord(x)
-        if 31 < n < 127  and n not in (34, 39, 60, 62, 96):
-            o += x
-    return o
+    return filter(validc, s)
 
 # Network objects
 
@@ -161,7 +148,8 @@ class Host(Bunch):
         return "%s/32" % self.ip_addr
 
     def __contains__(self, other):
-        """A host is "contained" in another host only when they have the same address"""""
+        """A host is "contained" in another host only when they have the same address
+        """
         if isinstance(other, Host):
             return other.ip_addr == self.ip_addr
 

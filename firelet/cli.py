@@ -178,7 +178,7 @@ def open_fs(repodir):
     """Open Git FireSet"""
     return GitFireSet(repodir=repodir)
 
-def main(mockargs=None):
+def main(mockargs=None):    # pragma: no cover
     """Firelet command line interface"""
 
     opts, (a1, a2, a3, a4, a5, a6) = cli_args(mockargs=mockargs)

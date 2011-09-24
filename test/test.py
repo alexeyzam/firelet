@@ -61,6 +61,54 @@ def debug(s, o=None):
         log.debug("----- [end of %s] -----" % s)
 
 
+# #  Testing Confreader  # #
+
+@with_setup(setup_dir, teardown_dir)
+def test_confreader():
+    from firelet.confreader import ConfReader
+    conf = ConfReader('firelet.ini')
+    assert conf.title == 'Firelet'
+    assert conf.ssh_username == 'firelet'
+
+# #  Testing misc  # #
+
+def test_validc():
+    """Test invalid characters"""
+    for c in (30, 34, 39, 60, 62, 96, 128):
+        assert validc(chr(c)) == False
+
+# #  Testing Mailer  # #
+from firelet.mailer import Mailer
+from mock import Mock
+
+def test_send_msg():
+    m = Mailer()
+    m._send = Mock()
+    m.send_msg()
+    assert m._send.call_count == 1
+    msg = m._send.call_args[0][3] # 'msg' passed to _send()
+    assert 'Subject: [Firelet] Message' in msg
+    assert 'DOCTYPE html' in msg
+
+def test_send_diff():
+    m = Mailer()
+    m._send = Mock()
+    m.send_diff({'items':[]})
+    assert m._send.call_count == 1
+    msg = m._send.call_args[0][3] # 'msg' passed to _send()
+    assert 'Subject: [Firelet] Diff' in msg
+    assert 'DOCTYPE html' in msg
+
+#FIXME
+def disabledtest_send_html():
+    m = Mailer()
+    m._send = Mock()
+    m.send_html(sbj='sbj', body='body')
+    assert m._send.call_count == 1
+    msg = m._send.call_args[0][3] # 'msg' passed to _send()
+    assert 'Subject: [Firelet] Message' in msg
+    assert 'DOCTYPE html' in msg
+
 # #  Testing flssh module without network interaction # #
 
 #TODO: test SSHConnector instead of MockSSHConnector where possible
@@ -1168,15 +1216,7 @@ def test_product_2_6():
 
 
 def test_product_2_5():
-
-    def product(*args, **kwds):
-        """List cartesian product - not available in Python 2.5"""
-        pools = map(tuple, args) * kwds.get('repeat', 1)
-        result = [[]]
-        for pool in pools:
-            result = [x+[y] for x in result for y in pool]
-        for prod in result:
-            yield tuple(prod)
+    from firelet.flutils import product
 
     assert tuple(product([1,2,3,4,5,'O HI'],['a','b','c','d',42])) == (
         (1, 'a'), (1, 'b'), (1, 'c'), (1, 'd'), (1, 42), (2, 'a'), (2, 'b'), (2, 'c'), (2, 'd'), (2, 42),

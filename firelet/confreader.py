@@ -45,11 +45,11 @@ class ConfReader(object):
             value = config.get('global', name, default)
             try:
                 if caster == bool:
-                    value = True if value == 'True' else False
+                    value = (value == 'True')
                 else:
                     value = caster(value)
                 self.__dict__[name] = value
-            except:
+            except: # pragma: no cover
                 raise Exception("Unable to convert parameter '%s' having \
 value '%s' to %s in configuration file %s" % (name, value, caster, fn))
 
