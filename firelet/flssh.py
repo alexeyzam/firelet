@@ -83,7 +83,6 @@ class Forker(object):
             #map(Thread.join, threads)
 
 
-
 class SSHConnector(object):
     """Manage a pool of pxssh connections to the firewalls. Get the running
     configuation and deploy new configurations.

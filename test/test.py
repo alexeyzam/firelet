@@ -77,6 +77,11 @@ def test_validc():
     for c in (30, 34, 39, 60, 62, 96, 128):
         assert validc(chr(c)) == False
 
+def test_clean():
+    """Test user input cleanup"""
+    s = clean(' !"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_')
+    assert s == ' !#$%&()*+,-./0123456789:;=?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_'
+
 # #  Testing Mailer  # #
 from firelet.mailer import Mailer
 from mock import Mock
@@ -233,13 +238,20 @@ def test_MockSSHConnector_get_confs():
 #    rd = fs.compile_dict(hosts=fs.hosts)
 
 
+from paramiko import SSHClient
+import mock
 
+# mock the paramiko.SSHClient.connect method to test _connect_one
+# _connect_one is normally running in a dedicated thread
+@mock.patch.object(SSHClient, 'connect')
+def test_flssh_connect_one(mocked_connect):
 
-
-def test_clean():
-    """Test user input cleanup"""
-    s = clean(' !"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_')
-    assert s == ' !#$%&()*+,-./0123456789:;=?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_'
+    sx = SSHConnector(targets={})
+    sx._connect_one('bogusfirewall', (
+        '0.0.0.1',
+        '0.0.0.2',
+    ))
+    assert sx._pool['bogusfirewall'].ip_addr == '0.0.0.1'
 
 
 # #  User management testing  # #

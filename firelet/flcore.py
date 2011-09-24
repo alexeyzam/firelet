@@ -46,12 +46,12 @@ log = getLogger(__name__)
 
 try:
     import json
-except ImportError:
+except ImportError: # pragma: no cover
     import simplejson as json
 
 try:
     from itertools import product
-except ImportError:
+except ImportError: # pragma: no cover
     from flutils import product
 
 protocols = ['AH', 'ESP', 'ICMP', 'IP', 'TCP', 'UDP']
@@ -121,11 +121,6 @@ def clean(s):
     return filter(validc, s)
 
 # Network objects
-
-class Sys(Bunch):
-    def __init__(self, name, ifaces={}):
-        self.ifaces = ifaces
-
 
 class Host(Bunch):
     def __init__(self, r):
@@ -668,18 +663,6 @@ def savecsv(n, stuff, d):
     f.close()
     rename(fullname + ".tmp", fullname)
 
-def load_hosts_csv(n, d):
-    """Read the hosts csv file, group the routed networks as a list"""
-    li = loadcsv(n, d)
-
-    mu = [[x[0], x[1], x[2], x[3], x[4], x[5], x[6], x[7:]] for x in li]
-    for x in mu:
-        assert len(x) == 8, "Wrong lenght '%s'" % repr(x)
-        assert isinstance(x[7], list), 'Wrong %s'% repr(x)
-        if x[7]:
-            assert isinstance(x[7][0], str), 'Wrong %s'% repr(x)
-    return mu
-
 def loadjson(n, d):
     try:
         f = open("%s/%s.json" % (d, n))
@@ -874,23 +857,6 @@ class FireSet(object):
                 raise Alert, s
 
         log.debug("self._check_ifaces successful")
-
-    def _forwarded(self, remote, routed_nets, local_addr, local_masklen):
-        """Tell if a remote net or ipaddr has to be routed through
-        the local host
-        All params are strings
-        """
-        if not remote: return True
-        remote_IPN = IPNetwork(remote)
-        if remote_IPN in IPNetwork(local_addr + '/' + local_masklen) and \
-            remote_IPN != IPNetwork(local_addr + '/32'):
-                # that is input or output traffic, not forw.
-                return True  # remote is in a directly conn. network
-        else:
-            ns = [ IPNetwork(y+'/'+w) for y, w in routed_nets]
-            if sum((remote_IPN in _ for _ in ns)):
-                return True
-        return False
 
     def _oo_forwarded(self, src, dst, me, routed_nets, other_ifaces):
         """Tell if a src network or ipaddr has to be routed through the local host.
@@ -1239,11 +1205,6 @@ class FireSet(object):
         else:
             log.debug('Deployment completed.')
 
-    #TODO: remove this?
-    def _check_remote_confs(self):
-        pass
-
-
     def get_rsa_pub(self):
         """Read RSA public key from ~/.ssh/id_rsa.pub
 
@@ -1288,20 +1249,8 @@ in %s does not look valid" % id_rsa_fn
             "EOF" \
         )
 
-
-
-
-
         log.info("out %s" % out)
-
-        #
-
-
-        #ssh copy id
-        # cat ${HOME}/.ssh/id_rsa.pub
-
-
-
+        #TODO: test assimilation process
 
 
 class GitFireSet(FireSet):
