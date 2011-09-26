@@ -122,6 +122,15 @@ def clean(s):
 
 # Network objects
 
+class Rule(Bunch):
+
+    def enable():
+        self.enabled = '1'
+
+    def disable():
+        self.enabled = '0'
+
+
 class Host(Bunch):
     def __init__(self, r):
         """Creates a Host object
@@ -409,7 +418,7 @@ class Rules(SmartTable):
         """
         self._dir = d
         li = readcsv('rules', d)
-        self._list = [Bunch(enabled=r[0], name=r[1], src=r[2], src_serv=r[3],
+        self._list = [Rule(enabled=r[0], name=r[1], src=r[2], src_serv=r[3],
             dst=r[4], dst_serv=r[5], action=r[6], log_level=r[7], desc=r[8])
             for r in li ]
 
@@ -448,7 +457,7 @@ class Rules(SmartTable):
         :param rid: Rule ID
         :type rid: int.
         """
-        self._list[rid].enabled = '0'
+        self._list[rid].disable()
         self.save()
 
     def enable(self, rid):
@@ -457,19 +466,31 @@ class Rules(SmartTable):
         :param rid: Rule ID
         :type rid: int.
         """
-        self._list[rid].enabled = '1'
+        self._list[rid].enable()
         self.save()
 
     def update(self, d, rid=None, token=None):
         """Update internal dictionary based on d"""
         assert rid != None, "Malformed input row ID is missing."
         try:
-            item = self.__getitem__(int(rid))
+            rule = self.__getitem__(int(rid))
         except IndexError:
-            raise Alert, "Item to be updated not found: one or more items has been modified in the meantime."
+            raise Alert, "Rule to be updated not found: one or more items has been modified in the meantime."
         if token:
             self.validate_token(token)
-        item.update(d)
+        rule.update(d)
+        self.save()
+
+    def add(self, d, rid=0): #TODO: unit testing
+        """Add a new item based on a dict of fields"""
+        assert isinstance(rid, int)
+        assert isinstance(d, dict)
+        if d == {}:
+            d = dict(enabled='0', name='new', src='*', src_serv='*',
+                dst='*', dst_serv='*', action='ACCEPT', log_level=0, desc='')
+        if d['name'] in (rule.name for rule in self._list):
+            raise Alert, "Another rule with the same name '%s' exists." % d['name']
+        self._list.insert(rid, Rule(**d))
         self.save()
 
 

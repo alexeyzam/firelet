@@ -28,7 +28,6 @@
             <img class="action" src="/static/enable.png" title="Enable rule" action="enable">
             %end
             <img class="action" src="/static/delete.png" title="Delete rule" action="delete">
-            <!--<img src="/static/edit.png" title="Edit rule" id="{{rid}}" rel="#editing_form" class="edit">-->
         </td>
         <td>
                 % if rule.enabled =='1':
@@ -47,60 +46,6 @@
     % end
 </table>
 
-<!-- Item editing or creation form -->
-<div id="editing_form">
-    <form id="editing_form">
-       <fieldset>
-          <h3>Rule editing</h3>
-          <p> Enter values and press the submit button. </p>
-
-          <p>
-             <label>hostname *</label>
-             <input type="text" name="hostname" pattern="[a-zA-Z0-9_]{2,512}" maxlength="30" />
-          </p>
-          <p>
-             <label>interface *</label>
-             <input type="text" name="iface" pattern="[a-zA-Z0-9]{2,32}" maxlength="30" />
-          </p>
-          <p>
-             <label>IP address *</label>
-             <input type="text" name="ip_addr" pattern="[0-9.:]{7,}" maxlength="30" />
-          </p>
-          <p>
-             <label>Netmask length *</label>
-             <input type="text" name="masklen" pattern="[0-9]{1,2}" maxlength="2" />
-          </p>
-          <p>
-            <label>Local firewall</label>
-            <input type="checkbox" name="local_fw" value="local_fw" />
-          </p>
-          <p>
-            <label>Network firewall</label>
-            <input type="checkbox" name="network_fw" value="network_fw" />
-          </p>
-          <p>
-            <label>Management interface</label>
-            <input type="checkbox" name="mng" value="mng" />
-          </p>
-          <div id="multisel">
-            <p>Routed networks</p>
-            <div id="selected">
-                <p></p>
-            </div>
-            <select id="multisel">
-                <option></option>
-            </select>
-          </div>
-          </br>
-          <button type="submit">Submit</button>
-          <button type="reset">Reset</button>
-          <input type="hidden" name="action" value="save" />
-          <input type="hidden" name="rid" value="" />
-          <input type="hidden" name="token" value="" />
-       </fieldset>
-    </form>
-    <p>Enter and Esc keys are supported.</p>
-</div>
 
 
 <script>
@@ -116,52 +61,31 @@ $(function() {
         $('.tooltip').hide();
         $.post("ruleset", { action: action, token: token, rid: rid},
             function(data){
-                $('div.tabpane div').load('/ruleset');
+                $('div.tabpane div').load('/ruleset', function() {
+                    if (action == "newabove") {
+                        tr.load('ruleset_form', {rid: rid});
+                    }
+                });
             });
     });
 
 
+    function insert_net_names() {
+        $.post("net_names",{}, function(json){
+            s = $("select#multisel");
+            s.html("<option></option>");
+            for (i in json.net_names)
+                s.append("<option>"+json.net_names[i]+"</option>")
+        })
+    }
 
 
     /// Editing form ///
-    /*
-    $("table#items tr td").dblclick(function() {
-
-        $(this).parent().children().each(function(i) {
-            content = $(this).html()
-            switch (i) {
-                case 1:
-                $(this).html('<input type="checkbox" name="'+i+'" checked="" />');
-                break;
-                case 2:
-                $(this).html('<input type="text" name="'+i+'" value="'+content+'" />');
-                break;
-                case  7:
-                $(this).html('<select name="action"><option>Accept</option><option>Drop</option></select>');
-                $(this).value = content
-                break;
-                case  8:
-                $(this).html('<select name="log"><option>0</option><option>1</option><option>2</option></select>');
-                $(this).value = content
-                break;
-                case  9:
-                $(this).html('<input type="text" name="'+i+'" value="'+content+'" />');
-                break;
-                case  10:
-                $(this).html('<input type="hidden" token="'+i+'" value="'+content+'" /><img src="">');
-                break;
-
-            }
-        });
-    })
-    */
 
     $("table#items tr td").dblclick(function() {
         rid = $(this).parent().attr('id');
         $(this).parent().load('ruleset_form', {rid: rid}, function() {
-            console.log();
         });
-
     })
 
     function set_form_trig() {
@@ -187,32 +111,6 @@ $(function() {
                 insert_net_names();
             },
             closeOnClick: false
-    });
-
-    // If the form is being used to edit an existing item,
-    // load the actual values
-    $("img.edit[rel]").overlay({
-        mask: { loadSpeed: 200, opacity: 0.9 },
-        onBeforeLoad: function(event, tabIndex) {
-            reset_form();
-            rid = this.getTrigger()[0].id;
-            $("form#editing_form input[name=rid]").get(0).value = rid;
-            $.post("hosts",{'action':'fetch','rid':rid}, function(json){
-                $("form#editing_form input[type=text]").each(function(n,f) {
-                    f.value = json[f.name];
-                });
-                $("form#editing_form input[type=checkbox]").each(function(n,f) {
-                    f.checked = Boolean(json[f.name]);
-                });
-                $("form#editing_form input[name=token]").get(0).value = json['token'];
-                ds = $("div#selected").text('');
-                for (i in json.routed)
-                    ds.append('<p>'+json.routed[i]+'</p>');
-                set_form_trig();
-            }, "json");
-            insert_net_names();
-        },
-        closeOnClick: false
     });
 
 

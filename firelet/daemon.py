@@ -159,6 +159,7 @@ def _require(role='readonly'):
     raise Exception
 
 
+@bottle.route('/login')
 @bottle.route('/login', method='POST')
 def login():
     """Log user in if authorized"""
@@ -271,6 +272,14 @@ def ruleset():
             d['action'] = pg('rule_action')
             d['log_level'] = pg('log')
             fs.rules.update(d, rid=pg('rid'), token=pg('token'))
+        elif action == "newabove":
+            action = "create new rule above"
+            d = {}
+            fs.rules.add(d, rid=rid)
+        elif action == "newbelow":
+            action = "create new rule below"
+            d = {}
+            fs.rules.add(d, rid=rid+1)
         else:
             log.error('Unknown action requested: "%s"' % action)
     except Exception, e:
