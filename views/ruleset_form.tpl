@@ -69,7 +69,8 @@
 
 <script>
 $(function() {
-    // FIXME: disable shortcuts while typing in the form
+    // disable shortcuts while typing in the form
+    remove_main_keybindings();
 
     // Perform cancel or deleto or send the form contents upon save
     $('img#formsave').click(function() {
@@ -80,6 +81,7 @@ $(function() {
         $('.tooltip').hide();
         $.post("ruleset", ff,
             function(data){
+                setup_main_keybindings();
                 $('div.tabpane div').load('/ruleset');
             });
     });
@@ -91,6 +93,7 @@ $(function() {
         $('.tooltip').hide();
         $.post("ruleset", { action: action, token: token, rid: rid}, function(data){
             $('div.tabpane div').load('/ruleset', function() {
+                setup_main_keybindings();
                 if (action == "newabove") {
                     tr.load('ruleset_form', {rid: rid});
                 }
@@ -99,10 +102,12 @@ $(function() {
     }
 
     $('img#formback').click(function() {
+        setup_main_keybindings();
         $('div.tabpane div').load('/ruleset');
     });
 
     $('img#formdel').click(function() {
+        setup_main_keybindings();
         tr = $(this).parents('tr');
         run_action(tr, 'delete')
     });
