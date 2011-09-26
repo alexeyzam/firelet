@@ -53,20 +53,32 @@ $(function() {
 
     on_tab_load();
 
+    function run_action(tr, action) {
+        rid = tr.attr('id');
+        token = tr.children().eq(10).innerText;
+        $('.tooltip').hide();
+        $.post("ruleset", { action: action, token: token, rid: rid}, function(data){
+            $('div.tabpane div').load('/ruleset', function() {
+                if (action == "newabove") {
+                    tr.load('ruleset_form', {rid: rid});
+                }
+            });
+        });
+    }
+
     $('img.action').click(function() {
+        action = $(this).attr('action');
         tr = $(this).parents('tr');
         rid = tr.attr('id');
         token = tr.children().eq(10).innerText;
-        action = $(this).attr('action');
         $('.tooltip').hide();
-        $.post("ruleset", { action: action, token: token, rid: rid},
-            function(data){
-                $('div.tabpane div').load('/ruleset', function() {
-                    if (action == "newabove") {
-                        tr.load('ruleset_form', {rid: rid});
-                    }
-                });
+        $.post("ruleset", { action: action, token: token, rid: rid}, function(data){
+            $('div.tabpane div').load('/ruleset', function() {
+                if (action == "newabove") {
+                    tr.load('ruleset_form', {rid: rid});
+                }
             });
+        });
     });
 
 

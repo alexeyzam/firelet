@@ -124,10 +124,10 @@ def clean(s):
 
 class Rule(Bunch):
 
-    def enable():
+    def enable(self):
         self.enabled = '1'
 
-    def disable():
+    def disable(self):
         self.enabled = '0'
 
 
