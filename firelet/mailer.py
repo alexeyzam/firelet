@@ -90,7 +90,7 @@ class Mailer(object):
         thread.start()
 
 
-    def _send(self, sender, recipients, smtp_server, msg):
+    def _send(self, sender, recipients, smtp_server, msg): # pragma: no cover
         """Deliver an email using SMTP
         """
         try:

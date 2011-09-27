@@ -156,11 +156,8 @@ class Host(Bunch):
         """
         if isinstance(other, Host):
             return other.ip_addr == self.ip_addr
-
-        elif isinstance(other, Network):
-            addr_ok = net_addr(other.ip_addr, self.masklen) == self.ip_addr
-            net_ok = other.masklen >= self.masklen
-            return addr_ok and net_ok
+        
+        raise Exception, "__contains__ called as: %s in Host" % type(other)
 
     def mynetwork(self):
         """Creates an unnamed network directly connected to the host

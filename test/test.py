@@ -1125,7 +1125,7 @@ def test_network_update():
     assert Network(['','255.255.255.255',30]).ip_addr == '255.255.255.252'
 
 
-def test_contains_nets():
+def test_network_contains_networks():
     assert Network(['', '255.255.255.255', 16]) in Network(['', '255.255.255.255', 8])
     assert Network(['', '255.255.255.255', 16]) in Network(['', '255.255.255.255', 16])
     assert Network(['', '255.255.255.255', 8]) not in Network(['', '255.255.255.255', 16])
@@ -1136,7 +1136,7 @@ def test_contains_nets():
     assert Network(['', '42.42.42.42', 16]) in Network(['','42.42.42.42', 16])
     assert Network(['', '42.42.42.42', 17]) in Network(['','42.42.42.42', 16])
 
-def test_contain_hosts():
+def test_network_contains_hosts():
     assert Host(['h', 'eth0', '1.1.1.1', 24, '1', '1', '1', [] ]) \
         in Network(['h', '1.1.1.0', 28])
     assert Host(['h', 'eth0', '1.1.1.15',24, '1', '1', '1', [] ]) \
@@ -1151,6 +1151,17 @@ def test_contain_hosts():
         not in Network(['h', '1.1.2.0', 24])
     assert Host(['h', 'eth0', '1.1.1.1',24, '1', '1', '1', [] ]) \
         not in Network(['h', '10.1.1.0', 8])
+
+def test_host_contains_host():
+    assert Host(['h', 'eth0', '1.1.1.1', 24, '1', '1', '1', [] ]) \
+        in Host(['h', 'eth0', '1.1.1.1', 24, '1', '1', '1', [] ])
+
+def test_host_contains_network():
+    # only an Host can be in a Host, otherwise raise an Exception
+    def tester():
+        Network(['h', '1.1.1.0', 8]) in \
+        Host(['h', 'eth0', '1.1.1.1', 24, '1', '1', '1', [] ])
+    assert_raises(Exception, tester)
 
 def test_compare():
     from netaddr import IPNetwork
