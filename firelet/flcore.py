@@ -466,6 +466,15 @@ class Rules(SmartTable):
         self._list[rid].enable()
         self.save()
 
+    def enabled(self, rid):
+        """Check if a rule is enabled
+
+        :param rid: Rule ID
+        :type rid: int.
+        :returns: bool
+        """
+        return self._list[rid].enabled == '1'
+
     def update(self, d, rid=None, token=None):
         """Update internal dictionary based on d"""
         assert rid != None, "Malformed input row ID is missing."

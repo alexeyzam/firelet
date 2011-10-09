@@ -326,6 +326,10 @@ def test_gitfireset_long():
         assert fs.save_needed() == False
 
     # Perform changes
+    fs.rules.disable(2)
+    assert not fs.rules.enabled(2), "Rule 2 should be flagged as disabled"
+    fs.rules.enable(2)
+    assert fs.rules.enabled(2), "Rule 2 should be flagged as enabled"
     fs.rules.moveup(2)
     assert fs.save_needed() == True
     fs.rules.movedown(1)
