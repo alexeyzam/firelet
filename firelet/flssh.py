@@ -103,6 +103,7 @@ class SSHConnector(object):
         """
 
         self._pool = {} # connections pool: {'hostname': pxssh session, ... }
+        self._pool_status = {} # connections status: {'hostname': 'status', ... }
         self._targets = targets   # {hostname: [management ip address list ], ... }
         assert isinstance(targets, dict), "targets must be a dict"
         self._username = username
@@ -198,6 +199,7 @@ class SSHConnector(object):
 #            assert hostname in self._pool, "EWW" #TODO:
 
         c = self._pool[hostname]
+        self._pool_status[hostname] = ''
         assert not isinstance(c, str), repr(c)
 
         if hostname not in self._pool:
@@ -208,10 +210,10 @@ class SSHConnector(object):
             try:
                 stdin, stdout, stderr = c.exec_command(cmd)
                 out = stdout.readlines()
+                self._pool_status[hostname] = 'ok'
                 return map(str.rstrip, out)
-            except:
-                pass #TODO: handle errors
-            #FIXME: raise exception?
+            except Exception, e:
+                self._pool_status[hostname] = "%s" % e
             return None
 
         else:
