@@ -51,7 +51,7 @@ def timeit(method):
 class Forker(object):
     """Fork a set of threads and wait for their completion
     """
-    def __init__(self, target, args_list):
+    def __init__(self, target, args_list, timeout=5):
         """Setup Forker instance
 
         :param target: function
@@ -75,7 +75,7 @@ class Forker(object):
             thread.setDaemon(True)
             thread.start()
         for t in threads:
-            t.join(5)
+            t.join(timeout)
         timed_out = filter(Thread.isAlive, threads)
         if timed_out:
             log.error("Some threads timed out: %s" % repr(timed_out))
@@ -213,6 +213,7 @@ class SSHConnector(object):
                 self._pool_status[hostname] = 'ok'
                 return map(str.rstrip, out)
             except Exception, e:
+                #TODO: handle failed executions.
                 self._pool_status[hostname] = "%s" % e
             return None
 
@@ -477,7 +478,6 @@ class SSHConnector(object):
         else:
             log.warn("killing auto-rollback output on %s %s" % (hostname, out))
 
-    #TODO: rewrite threading wrappers to include status handling
     @timeit
     def cancel_auto_rollbacks(self, keep_sessions=False):
         """Kill the auto-rollback script running on the firewalls
