@@ -30,7 +30,7 @@ from struct import pack, unpack
 from flssh import SSHConnector, MockSSHConnector
 from flutils import Alert, Bunch, flag, extract_all
 
-__version__ = '0.4.3'
+__version__ = '0.4.4'
 
 from logging import getLogger
 log = getLogger(__name__)
