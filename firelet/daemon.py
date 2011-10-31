@@ -23,6 +23,7 @@ from bottle import abort, route, static_file, run, view, request
 from bottle import debug as bottle_debug
 from collections import defaultdict
 from datetime import datetime
+from logging.handlers import TimedRotatingFileHandler
 from setproctitle import setproctitle
 from sys import exit
 from time import time, sleep, localtime
@@ -688,15 +689,10 @@ def main():
         conf.data_dir = args.repodir
 
 
-    # logging
+    # setup logging
     if args.debug:
-        #TODO: fix this comments
-#        log.basicConfig(level=log.DEBUG,
-#                        format='%(asctime)s %(levelname)-8s %(message)s',
-#                        datefmt='%a, %d %b %Y %H:%M:%S')
         logging.basicConfig(
             level=logging.DEBUG,
-#            format='%(asctime)s [%(process)d] %(levelname)s %(name)s %(message)s',
             format='%(asctime)s [%(process)d] %(levelname)s %(name)s (%(funcName)s) %(message)s',
             datefmt = '%Y-%m-%d %H:%M:%S' # %z for timezone
         )
@@ -704,15 +700,18 @@ def main():
         log.debug("Configuration file: '%s'" % args.cf)
         say("Firelet started in debug mode.", level="success")
         bottle_debug(True)
-        reload = True
     else:
         logging.basicConfig(
-            level=logging.DEBUG,
+            level=logging.INFO,
             format='%(asctime)s [%(process)d] %(levelname)s %(name)s %(message)s',
             datefmt = '%Y-%m-%d %H:%M:%S' # %z for timezone
-            #TODO: add filename=conf.logfile
         )
-        reload = False
+        fh = logging.handlers.TimedRotatingFileHandler(
+            conf.logfile,
+            when='midnight',
+            utc=True,
+        )
+        log.addHandler(fh)
         say("Firelet started.", level="success")
 
     globals()['users'] = Users(d=conf.data_dir)
@@ -741,10 +740,10 @@ def main():
 
     run(
         app=app,
-        quiet=not reload,
+        quiet=not args.debug,
         host=conf.listen_address,
         port=conf.listen_port,
-        reloader=reload
+        reloader=args.debug
     )
 
     mailer.join()

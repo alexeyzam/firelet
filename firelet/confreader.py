@@ -23,7 +23,7 @@ class ConfReader(object):
             'title': 'Firelet',
             'listen_address': 'localhost',
             'listen_port': 8082,
-            'logfile': 'firelet.log',
+            'logfile': '/var/log/firelet.log',
             'data_dir': '/var/lib/firelet',
             'demo_mode': False,
             'smtp_server_addr': '',
@@ -50,6 +50,7 @@ class ConfReader(object):
                     value = caster(value)
                 self.__dict__[name] = value
             except: # pragma: no cover
-                raise Exception("Unable to convert parameter '%s' having \
-value '%s' to %s in configuration file %s" % (name, value, caster, fn))
+                raise Exception("Unable to convert parameter '%s' having" \
+                    " value '%s' to %s in configuration file %s" % \
+                    (name, value, caster, fn))
 
