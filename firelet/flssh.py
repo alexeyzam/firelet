@@ -76,11 +76,11 @@ class Forker(object):
             thread.start()
         for t in threads:
             t.join(timeout)
+            #TODO: implement a global timeout, rather that waiting for every
+            # thread in a loop
         timed_out = filter(Thread.isAlive, threads)
         if timed_out:
             log.error("Some threads timed out: %s" % repr(timed_out))
-            #FIXME: do something with timed out threads
-            #map(Thread.join, threads)
 
 
 class SSHConnector(object):
