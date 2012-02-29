@@ -12,7 +12,7 @@ while true; do
     /bin/cp test/iptables-save-* "$D"
     /bin/cp test/ip-addr-show-* "$D"
     /bin/cp firelet_demo.ini "$D"/
-    ./firelet/daemon.py -d --cf "$D"/firelet_demo.ini --repodir "$D"
+    ./firelet/fireletd.py -d --cf "$D"/firelet_demo.ini --repodir "$D"
     rm -rf "$D"
     sleep 1
 done

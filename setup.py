@@ -35,7 +35,7 @@ setup(
     entry_points = {
         'console_scripts': [
             'firelet_c = firelet.cli:main',
-            'fireletd = firelet.daemon:main',
+            'fireletd = firelet.fireletd:main',
         ],
     },
     scripts = ([]),

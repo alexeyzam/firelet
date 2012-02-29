@@ -7,7 +7,7 @@ while true
     /bin/cp test/*.csv "$D"
     /bin/cp test/*.json "$D"
     /bin/cp firelet.ini "$D"/
-    ./firelet/daemon.py -d --cf "$D"/firelet.ini --repodir "$D"
+    ./firelet/fireletd.py -d --cf "$D"/firelet.ini --repodir "$D"
     sleep 1
 done
 

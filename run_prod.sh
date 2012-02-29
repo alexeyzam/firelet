@@ -6,6 +6,6 @@ sudo chmod a+rw repodir/debug
 while true; do
  /bin/cp test/*.csv repodir/debug/
  /bin/cp test/*.json repodir/debug/
- ./firelet/daemon.py -D
+ ./firelet/fireletd.py -D
  sleep 1
 done
