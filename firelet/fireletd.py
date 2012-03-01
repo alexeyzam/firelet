@@ -17,6 +17,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from argparse import ArgumentParser
+import daemon
 from beaker.middleware import SessionMiddleware
 import bottle
 from bottle import abort, route, static_file, run, view, request
@@ -674,9 +675,15 @@ def main():
     parser = ArgumentParser(description='Firelet daemon')
     parser.add_argument('-d', '--debug', action='store_true', help='debug mode')
     parser.add_argument('-c', '--cf',  nargs='?',
-        default = 'firelet.ini', help='configuration file')
+                        default = 'firelet.ini', help='configuration file')
     parser.add_argument('-r', '--repodir',  nargs='?',
-        help='repository directory')
+                        help='repository directory')
+    parser.add_argument('-o', '--rootdir',  nargs='?',
+                        help='root directory')
+    parser.add_argument('-l', '--logfile',  nargs='?',
+                        help='log file name')
+    parser.add_argument('-b', '--daemonize', action='store_true', default=False,
+                        help='run as a daemon')
     args = parser.parse_args()
 
     try:
@@ -687,7 +694,17 @@ def main():
 
     if args.repodir:
         conf.data_dir = args.repodir
+    logfile = args.logfile if args.logfile else conf.logfile
 
+    # daemonize if needed
+    daemoncontext = daemon.DaemonContext()
+    if args.daemonize:
+        if args.rootdir:
+            daemoncontext.working_directory = args.rootdir
+        daemoncontext.umask = 66
+        daemoncontext.stdout = open(logfile, 'a')
+        daemoncontext.stderr = open(logfile, 'a')
+        daemoncontext.open()
 
     # setup logging
     if args.debug:
@@ -698,6 +715,7 @@ def main():
         )
         log.debug("Debug mode")
         log.debug("Configuration file: '%s'" % args.cf)
+        log.debug("Logfile (unused in debug mode): '%s'" % logfile)
         say("Firelet started in debug mode.", level="success")
         bottle_debug(True)
     else:
@@ -707,7 +725,7 @@ def main():
             datefmt = '%Y-%m-%d %H:%M:%S' # %z for timezone
         )
         fh = logging.handlers.TimedRotatingFileHandler(
-            conf.logfile,
+            logfile,
             when='midnight',
             utc=True,
         )
@@ -738,15 +756,21 @@ def main():
     app = bottle.default_app()
     app = SessionMiddleware(app, session_opts)
 
-    run(
-        app=app,
-        quiet=not args.debug,
-        host=conf.listen_address,
-        port=conf.listen_port,
-        reloader=args.debug
-    )
+    try:
+        run(
+            app=app,
+            quiet=not args.debug,
+            host=conf.listen_address,
+            port=conf.listen_port,
+            reloader=args.debug and not args.daemonize
+        )
+    except:
+        logging.error("Unhandled exception", exc_info=True)
+        raise #TODO: wrap this around main() ?
 
+    # Run until terminated by SIGKILL or SIGTERM
     mailer.join()
+    daemoncontext.close()
 
 
 if __name__ == "__main__":
