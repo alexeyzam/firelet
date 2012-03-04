@@ -17,13 +17,14 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from argparse import ArgumentParser
-import daemon
+#import daemon
 from beaker.middleware import SessionMiddleware
 import bottle
 from bottle import abort, route, static_file, run, view, request
 from bottle import debug as bottle_debug
 from collections import defaultdict
 from datetime import datetime
+#import lockfile
 from logging.handlers import TimedRotatingFileHandler
 from setproctitle import setproctitle
 from sys import exit
@@ -677,15 +678,17 @@ def main():
     parser = ArgumentParser(description='Firelet daemon')
     parser.add_argument('-d', '--debug', action='store_true', help='debug mode')
     parser.add_argument('-c', '--cf',  nargs='?',
-                        default = 'firelet.ini', help='configuration file')
+                        default = '/etc/firelet/firelet.ini', help='configuration file')
     parser.add_argument('-r', '--repodir',  nargs='?',
                         help='repository directory')
     parser.add_argument('-o', '--rootdir',  nargs='?',
                         help='root directory')
     parser.add_argument('-l', '--logfile',  nargs='?',
                         help='log file name')
-    parser.add_argument('-b', '--daemonize', action='store_true', default=False,
-                        help='run as a daemon')
+    #parser.add_argument('-b', '--daemonize', action='store_true', default=False,
+    #                    help='run as a daemon')
+    #parser.add_argument('-p', '--pidfile',  nargs='?',
+    #                    default='/var/run/firelet.pid', help='pid file name')
     args = parser.parse_args()
 
     try:
@@ -698,15 +701,18 @@ def main():
         conf.data_dir = args.repodir
     logfile = args.logfile if args.logfile else conf.logfile
 
-    # daemonize if needed
-    daemoncontext = daemon.DaemonContext()
-    if args.daemonize:
-        if args.rootdir:
-            daemoncontext.working_directory = args.rootdir
-        daemoncontext.umask = 66
-        daemoncontext.stdout = open(logfile, 'a')
-        daemoncontext.stderr = open(logfile, 'a')
-        daemoncontext.open()
+    # daemonization is handled externally by start-stop-daemon
+    # daemoncontext = daemon.DaemonContext()
+    #if args.daemonize:
+    #    if args.rootdir:
+    #        daemoncontext.working_directory = args.rootdir
+    #    daemoncontext.umask = 66
+    #    daemoncontext.stdout = open(logfile, 'a')
+    #    daemoncontext.stderr = open(logfile, 'a')
+    #    print args.pidfile
+    #    #daemoncontext.pidfile = lockfile.FileLock(args.pidfile)
+    #    daemoncontext.pidfile = lockfile.FileLock('/tmp/foo')
+    #    daemoncontext.open()
 
     # setup logging
     if args.debug:
@@ -775,7 +781,7 @@ def main():
 
     # Run until terminated by SIGKILL or SIGTERM
     mailer.join()
-    daemoncontext.close()
+    #daemoncontext.close()
 
 
 if __name__ == "__main__":
