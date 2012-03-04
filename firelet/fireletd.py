@@ -55,6 +55,8 @@ log = logging.getLogger(__name__)
 #FIXME: Reset not working
 #FIXME: enable back button on Manage>Check
 
+#TODO: localhost and local networks autosetup
+
 
 
 # Setup Python error logging
@@ -720,15 +722,16 @@ def main():
         bottle_debug(True)
     else:
         logging.basicConfig(
-            level=logging.INFO,
-            format='%(asctime)s [%(process)d] %(levelname)s %(name)s %(message)s',
-            datefmt = '%Y-%m-%d %H:%M:%S' # %z for timezone
+            level=logging.DEBUG,
         )
         fh = logging.handlers.TimedRotatingFileHandler(
             logfile,
             when='midnight',
             utc=True,
         )
+        fh.setLevel(logging.DEBUG)
+        fh.setFormatter(logging.Formatter(
+            '%(asctime)s [%(process)d] %(levelname)s %(name)s (%(funcName)s) %(message)s'))
         log.addHandler(fh)
         say("Firelet started.", level="success")
 
@@ -746,8 +749,9 @@ def main():
         globals()['fs'] = GitFireSet(conf.data_dir)
         say("Configuration loaded.")
 
-    say("%d hosts, %d rules, %d networks loaded." % (len(fs.hosts), len(fs.rules),
-        len(fs.networks)))
+    say("%d users, %d hosts, %d rules, %d networks loaded." %
+        tuple(map(len, (users, fs.hosts, fs.rules, fs.networks)))
+    )
 
     session_opts = {
         'session.type': 'cookie',
@@ -767,6 +771,7 @@ def main():
     except:
         logging.error("Unhandled exception", exc_info=True)
         raise #TODO: wrap this around main() ?
+              #is it a duplicate of HTTPError logging?
 
     # Run until terminated by SIGKILL or SIGTERM
     mailer.join()

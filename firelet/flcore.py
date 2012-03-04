@@ -30,7 +30,7 @@ from struct import pack, unpack
 from flssh import SSHConnector, MockSSHConnector
 from flutils import Alert, Bunch, flag, extract_all
 
-__version__ = '0.4.5a1'
+__version__ = '0.4.5a2'
 
 from logging import getLogger
 log = getLogger(__name__)
@@ -1507,6 +1507,10 @@ class Users(object):
         assert username in self._users, "Incorrect user or password."
         assert self._hash(username, pwd) == self._users[username][1], \
             "Incorrect user or password."
+
+    def __len__(self):
+        """Count users"""
+        return len(self._users)
 
 
 
