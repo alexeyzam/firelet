@@ -7,7 +7,7 @@ PACKAGING_DIR=~/projects/packaging/firelet
 PACKAGING_OUT_DIR=~/projects/packaging/build-area
 
 function ask() {
-    echo -ne "\n$1 [y/n]? "; read ANS
+    echo -ne "\n$1 [y/N]? "; read ANS
     [[ $ANS == "y" ]] && return 0;
     return 1;
 }
