@@ -60,7 +60,7 @@ def cli_args(mockargs=None):
     parser = ArgumentParser(description='Firelet daemon')
 
     parser.add_argument("-c", "--conffile", nargs='?',
-        default='firelet.ini', help="configuration file", metavar="FILE")
+        default='/etc/firelet/firelet.ini', help="configuration file", metavar="FILE")
     parser.add_argument("-r", "--repodir", nargs='?',
         help="configuration repository dir")
     parser.add_argument("-D", "--debug",
