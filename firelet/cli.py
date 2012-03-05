@@ -320,6 +320,8 @@ def main(mockargs=None):    # pragma: no cover
                 help("Missing username.")
             if not a4:
                 help("Missing role.")
+            if a4 not in ('admin', 'editor', 'readonly'):
+                help("Valid roles are: admin, editor, readonly")
             if not a5:
                 help("Missing email.")
             pwd = getpass('Enter new password: ')
