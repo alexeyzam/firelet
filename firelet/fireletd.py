@@ -182,11 +182,11 @@ def login():
         s['role'] = role
         s = bottle.request.environ.get('beaker.session')
         s.save()
-        bottle.redirect('')
+        bottle.redirect('/')
     except (Alert, AssertionError), e:
         say("Login denied for \"%s\": %s" % (user, e), level="warning")
         log.debug("Login denied for \"%s\": %s" % (user, e))
-        bottle.redirect('')
+        bottle.redirect('/')
 
 @bottle.route('/logout')
 def logout():
@@ -197,7 +197,7 @@ def logout():
     if u:
         say('User %s logged out.' % u)
     s.delete()
-    bottle.redirect('')
+    bottle.redirect('/')
 
 #
 #class WebApp(object):
