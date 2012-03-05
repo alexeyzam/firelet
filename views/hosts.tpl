@@ -151,8 +151,13 @@ $(function() {
     $("img.new[rel]").overlay({
             mask: { loadSpeed: 200, opacity: 0.9 },
             onBeforeLoad: function() {
+                // disable shortcuts while typing in the form
+                remove_main_keybindings();
                 reset_form();
                 insert_net_names();
+            },
+            onClose: function() {
+                setup_main_keybindings();
             },
             closeOnClick: false
     });

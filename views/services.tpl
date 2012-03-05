@@ -118,7 +118,12 @@ $(function() {
     $("img.new[rel]").overlay({
             mask: { loadSpeed: 200, opacity: 0.9 },
             onBeforeLoad: function() {
+                // disable shortcuts while typing in the form
+                remove_main_keybindings();
                 reset_form();
+            },
+            onClose: function() {
+                setup_main_keybindings();
             },
             closeOnClick: false
     });
@@ -128,6 +133,8 @@ $(function() {
     $("img.edit[rel]").overlay({
         mask: { loadSpeed: 200, opacity: 0.9 },
         onBeforeLoad: function(event, tabIndex) {
+                // disable shortcuts while typing in the form
+                remove_main_keybindings();
             reset_form();
             rid = this.getTrigger()[0].id;
             $("form#editing_form input[name=rid]").get(0).value = rid;
@@ -142,6 +149,9 @@ $(function() {
                  $("form#editing_form select[name=protocol]").change();
                 set_form_trig();
             }, "json");
+        },
+        onClose: function() {
+            setup_main_keybindings();
         },
         closeOnClick: false
     });
