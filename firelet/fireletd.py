@@ -180,7 +180,6 @@ def login():
         say("User %s with role %s logged in." % (user, role), level="success")
         s['username'] = user
         s['role'] = role
-        s = bottle.request.environ.get('beaker.session')
         s.save()
         bottle.redirect('/')
     except (Alert, AssertionError), e:
@@ -671,10 +670,11 @@ def test_email_delivery():
     say('Test email sent.')
     bottle.redirect('/')
 
-def main():
-    global conf
-    setproctitle('firelet')
 
+def parse_args():
+    """Parse CLI arguments
+    :returns: args instance
+    """
     parser = ArgumentParser(description='Firelet daemon')
     parser.add_argument('-d', '--debug', action='store_true', help='debug mode')
     parser.add_argument('-c', '--cf',  nargs='?',
@@ -690,6 +690,12 @@ def main():
     #parser.add_argument('-p', '--pidfile',  nargs='?',
     #                    default='/var/run/firelet.pid', help='pid file name')
     args = parser.parse_args()
+    return args
+
+def main():
+    global conf
+    setproctitle('firelet')
+    args = parse_args()
 
     try:
         conf = ConfReader(fn=args.cf)
@@ -772,7 +778,7 @@ def main():
             quiet=not args.debug,
             host=conf.listen_address,
             port=conf.listen_port,
-            reloader=args.debug and not args.daemonize
+            reloader=args.debug
         )
     except:
         logging.error("Unhandled exception", exc_info=True)
