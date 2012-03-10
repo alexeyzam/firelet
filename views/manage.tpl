@@ -41,7 +41,7 @@
     <br />
 </div>
 
-<!-- version diff overaly -->
+<!-- version diff overlay -->
 <div class="ovl" id="version_diff_ovr">
     <h2>Version diff</h2>
     <div id="version_diff">

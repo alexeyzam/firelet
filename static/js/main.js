@@ -14,7 +14,7 @@ function refresh_msg()
     // Refresh messages if needed
     if (pos_bottom < 10) {
         $("table#msgs").load("/messages", function() {
-            $("div#msgslot").animate({scrollTop: '100px'}, 10);
+            $("div#msgslot").animate({scrollTop: '120px'}, 10);
         });
     }
     $.getJSON("save_needed", function(json){
