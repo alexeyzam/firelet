@@ -19,7 +19,9 @@
 </div>
 
 
-<button id="save" rel="#prompt"><img src="static/save.png"  title="Save"> Save</button>
+<button id="save" rel="#savediag">
+    <img id="save" src="static/save.png" title="Save"> Save
+</button>
 <br/>
 <button id="check" rel="#prompt" rel="#check_ovr"><img id="check" src="static/check.png" rel="#check_ovr" title="Check"> Check</button>
 <br/>
@@ -165,19 +167,33 @@ $(function() {
     on_tab_load();
 
     $('button#save').click(function() {
-        $.post("save",
-            function(data){            });
+    });
+
+    var triggers = $("button#save").overlay({
+        mask: {
+            color: '#ebecff',
+            loadSpeed: 200,
+            opacity: 0.9
+        },
+        closeOnClick: false,
+        onLoad: function() {
+            remove_main_keybindings();
+            $("div#savediag form input").focus();
+        },
+        onClose: function() {
+            setup_main_keybindings();
+        },
     });
 
     $('button#check').click(function() {
         $.post("check", function(json) {
-            });
+            }); //FIXME
     });
 
     $('button#deploy').click(function() {
         $.post("deploy",
             function(data){            });
-    });
+    }); //FIXME
 
     // Version list pane
     $('div#version_list table').load('version_list', function() {
