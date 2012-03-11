@@ -1168,16 +1168,16 @@ class FireSet(object):
         existing_rules = self._extract_ipt_filter_rules(self._remote_confs)
         return self._diff(existing_rules, new_rules)
 
-    def check(self, stop_on_extra_interfaces=False):
+    def check(self, stop_on_extra_interfaces=False, logger=log):
         """Check the configuration on the firewalls.
         """
         if self.save_needed():
             raise Alert, "Configuration must be saved before check."
         comp_rules = self.compile_rules()
-        log.debug('Rules compiled. Getting configurations.')
+        logger.info('Rules compiled. Getting configurations.')
         self._get_confs()
-        log.debug('Remote confs repr: %s' % repr(self._remote_confs)[:300])
-        log.debug('Checking interfaces.')
+        logger.debug('Remote confs repr: %s' % repr(self._remote_confs)[:300])
+        logger.debug('Checking interfaces.')
         self._check_ifaces(stop_on_extra_interfaces=stop_on_extra_interfaces)
         log.debug('Interface check complete.')
         log.debug('Comparing...')

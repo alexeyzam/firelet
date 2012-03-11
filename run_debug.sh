@@ -4,6 +4,7 @@ D=$(mktemp -d)
 echo "Using $D as temporary directory..."
 while true
     do
+    pkill firelet
     /bin/cp test/*.csv "$D"
     /bin/cp test/*.json "$D"
     /bin/cp firelet.ini "$D"/

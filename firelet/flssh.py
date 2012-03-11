@@ -51,7 +51,7 @@ def timeit(method):
 class Forker(object):
     """Fork a set of threads and wait for their completion
     """
-    def __init__(self, target, args_list, timeout=5):
+    def __init__(self, target, args_list, timeout=5, logger=log):
         """Setup Forker instance
 
         :param target: function
@@ -66,10 +66,10 @@ class Forker(object):
                 callable(*args, **kwargs)
             except BaseException:
                 pass
-#                self.exception = sys.exc_info()
         # Kick off thread
         threads = []
         for args in args_list:
+            log.debug(repr(args))
             thread = Thread(None, target, '', args)
             threads.append(thread)
             thread.setDaemon(True)
@@ -80,7 +80,7 @@ class Forker(object):
             # thread in a loop
         timed_out = filter(Thread.isAlive, threads)
         if timed_out:
-            log.error("Some threads timed out: %s" % repr(timed_out))
+            log.error("%s SSH connection threads timed out." % len(timed_out))
 
 
 class SSHConnector(object):
@@ -166,7 +166,6 @@ class SSHConnector(object):
         return unreachables
 
 
-    @timeit
     def __del__(self):
         """When destroyed, close existing SSH connections"""
         for c in self._pool.itervalues():
@@ -175,7 +174,6 @@ class SSHConnector(object):
             except:
                 pass # nothing useful can be done
 
-    @timeit
     def _disconnect(self):
         """Close existing SSH connections"""
         for hn, c in self._pool.items():
@@ -232,7 +230,7 @@ class SSHConnector(object):
         confs[hostname] = (iptables_save, ip_addr_show)
 
     @timeit
-    def get_confs(self, keep_sessions=False):
+    def get_confs(self, keep_sessions=False, logger=log):
         """Connects to the firewalls, get the configuration and
 
         :return: { hostname: Bunch of "session, ip_addr, iptables-save, interfaces", ... }
@@ -243,14 +241,14 @@ class SSHConnector(object):
         threads = []
 
         args = [(confs, hn, 'firelet') for hn in self._targets ]
-        Forker(self._get_conf, args)
+        Forker(self._get_conf, args, logger=logger)
 
         # parse the configurations
         for hostname in self._targets:
             if hostname not in confs:
                 raise Exception, "No configuration received from %s" % hostname
             iptables_save, ip_addr_show = confs[hostname]
-            logging.debug("iptables_save:" + repr(iptables_save))
+            log.debug("iptables_save:" + repr(iptables_save))
             iptables_p = self.parse_iptables_save(iptables_save, hostname=hostname)
             #FIXME: iptables-save can be very slow when a firewall cannot resolve localhost
             #log.debug("iptables_p %s" % repr(iptables_p))

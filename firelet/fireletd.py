@@ -28,7 +28,7 @@ from datetime import datetime
 from logging.handlers import TimedRotatingFileHandler
 from setproctitle import setproctitle
 from sys import exit
-from time import time, sleep, localtime
+import time
 
 from confreader import ConfReader
 from mailer import Mailer
@@ -39,10 +39,10 @@ from flutils import flag, extract_all, get_rss_channels
 from bottle import HTTPResponse, HTTPError
 
 import logging
-log = logging.getLogger(__name__)
+log = logging.getLogger()
+log.success = log.info
 
 #TODO: add API version number
-#TODO: rewrite say() as a custom log target
 #TODO: full rule checking upon Save
 #TODO: move fireset editing in flcore
 #TODO: setup three roles
@@ -78,36 +78,67 @@ bottle.HTTPError = LoggedHTTPError
 
 # Global variables
 
-msg_list = []
+def success(s):
+    """Bound method for the "log" instance, used to display success messages
+    to the user
+    """
+    log.info(s, extra={'web_log_level': 'success'})
+
+log.success = success
+
+class WebLogHandler(logging.Handler):
+    """Log messages and store them to be displayed to the user
+    Inherits from logging.Handler
+    """
+    def __init__(self):
+        logging.Handler.__init__(self)
+        self._msg_buffer = []
+
+    def emit(self, record):
+        """Add a log message to the internal circular buffer"""
+        lvl = record.levelname.lower()
+        if lvl == 'debug':
+            return
+        elif lvl in ('error', 'critical'):
+            lvl = 'alert'
+        elif getattr(record, 'web_log_level', None) == 'success':
+            lvl = 'success'
+
+        text = record.msg
+        if len(text) > 200:
+            text = "%s [...see logfile]" % text[:200]
+
+        tstamp = time.strftime("%H:%M:%S", time.gmtime(record.created))
+        msg = (lvl, tstamp, text)
+
+        self._msg_buffer.append(msg)
+        if len(self._msg_buffer) > 20:
+            self._msg_buffer.pop(0)
+
+    def get_msgs(self):
+        return self._msg_buffer
+
+
+web_log_handler = WebLogHandler()
 
 # Miscellaneous functions
-
-def say(s, level='info'):
-    """Generate a message. level can be: info, warning, alert"""
-    if level == 'error':
-        level = 'alert'
-    log.debug(s)
-    ts = datetime.now()
-    msg_list.append((level, ts, s))
-    if len(msg_list) > 10:
-        msg_list.pop(0)
 
 def ack(s=None):
     """Acknowledge successful processing and returns ajax confirmation."""
     if s:
-        say(s, level="success")
+        log.success(s)
     return {'ok': True}
 
 def ret_warn(s=None):
     """Generate warn message and returns ajax 'ok: False'."""
     if s:
-        say(s, level="warning")
+        log.warn(s)
     return {'ok': False}
 
 def ret_alert(s=None):
     """Generate alert message and returns ajax 'ok: False'."""
     if s:
-        say(s, level="alert")
+        log.error(s)
     return {'ok': False}
 
 def pg(name, default=''):
@@ -152,7 +183,7 @@ def _require(role='readonly'):
     m = {'admin': 15, 'editor': 10, 'readonly': 5}
     s = bottle.request.environ.get('beaker.session')
     if not s:
-        say("User needs to be authenticated.", level="warning")
+        log.warn("User needs to be authenticated.")
         #TODO: not really explanatory in a multiuser session.
         raise Alert, "User needs to be authenticated."
     myrole = s.get('role', None)
@@ -160,7 +191,7 @@ def _require(role='readonly'):
         raise Alert, "User needs to be authenticated."
     if m[myrole] >= m[role]:
         return
-    say("An account with '%s' level or higher is required." % repr(role))
+    log.info("An account with '%s' level or higher is required." % repr(role))
     raise Exception
 
 
@@ -170,20 +201,20 @@ def login():
     """Log user in if authorized"""
     s = bottle.request.environ.get('beaker.session')
     if 'username' in s:  # user is authenticated <--> username is set
-        say("Already logged in as \"%s\"." % s['username'])
+        log.info("Already logged in as \"%s\"." % s['username'])
         return {'logged_in': True}
     user = pg('user', '')
     pwd = pg('pwd', '')
     try:
         users.validate(user, pwd)
         role = users._users[user][0]
-        say("User %s with role %s logged in." % (user, role), level="success")
+        log.success("User %s with role %s logged in." % (user, role))
         s['username'] = user
         s['role'] = role
         s.save()
         bottle.redirect('/')
     except (Alert, AssertionError), e:
-        say("Login denied for \"%s\": %s" % (user, e), level="warning")
+        log.warn("Login denied for \"%s\": %s" % (user, e))
         log.debug("Login denied for \"%s\": %s" % (user, e))
         bottle.redirect('/')
 
@@ -194,7 +225,7 @@ def logout():
     s = bottle.request.environ.get('beaker.session')
     u = s.get('username', None)
     if u:
-        say('User %s logged out.' % u)
+        log.info('User %s logged out.' % u)
     s.delete()
     bottle.redirect('/')
 
@@ -210,8 +241,7 @@ def logout():
 def messages():
     """Populate log message pane"""
     _require()
-    messages = [ (lvl, ts.strftime("%H:%M:%S"), msg) for lvl, ts, msg in msg_list]
-    return dict(messages=messages)
+    return dict(messages=web_log_handler.get_msgs())
 
 @bottle.route('/')
 @view('index')
@@ -287,7 +317,7 @@ def ruleset():
         else:
             log.error('Unknown action requested: "%s"' % action)
     except Exception, e:
-        say("Unable to %s rule n. %s - %s" % (action, rid, e), level="alert")
+        log.error("Unable to %s rule n. %s - %s" % (action, rid, e))
         abort(500)
 
 @bottle.route('/ruleset_form', method='POST')
@@ -346,7 +376,7 @@ def hostgroups():
         else:
             log.error('Unknown action requested: "%s"' % action)
     except Exception, e:
-        say("Unable to %s hostgroup n. %s - %s" % (action, rid, e), level="alert")
+        log.error("Unable to %s hostgroup n. %s - %s" % (action, rid, e))
         abort(500)
 
 @bottle.route('/hosts')
@@ -367,7 +397,7 @@ def hosts():
             h = fs.fetch('hosts', rid)
             name = h.hostname
             fs.delete('hosts', rid)
-            say("Host %s deleted." % name, level="success")
+            log.success("Host %s deleted." % name)
         elif action == 'save':
             d = {}
             for f in ('hostname', 'iface', 'ip_addr', 'masklen'):
@@ -390,7 +420,7 @@ def hosts():
         else:
             raise Exception, 'Unknown action requested: "%s"' % action
     except Exception, e:
-        say("Unable to %s host n. %s - %s" % (action, rid, e), level="alert")
+        log.error("Unable to %s host n. %s - %s" % (action, rid, e))
         abort(500)
 
 
@@ -420,7 +450,7 @@ def networks():
             item = fs.fetch('networks', rid)
             name = item.name
             fs.delete('networks', rid)
-            say("Network %s deleted." % name, level="success")
+            log.success("Network %s deleted." % name)
         elif action == 'save':
             d = {}
             for f in ('name', 'ip_addr', 'masklen'):
@@ -437,7 +467,7 @@ def networks():
         else:
             log.error('Unknown action requested: "%s"' % action)
     except Exception, e:
-        say("Unable to %s network n. %s - %s" % (action, rid, e), level="alert")
+        log.error("Unable to %s network n. %s - %s" % (action, rid, e))
         abort(500)
 
 
@@ -460,7 +490,7 @@ def services():
             item = fs.fetch('services', rid)
             name = item.name
             fs.delete('services', rid)
-            say("service %s deleted." % name, level="success")
+            log.success("service %s deleted." % name)
         elif action == 'save':
             d = {'name': pg('name'),
                     'protocol': pg('protocol')}
@@ -482,7 +512,7 @@ def services():
         else:
             log.error('Unknown action requested: "%s"' % action)
     except Exception, e:
-        say("Unable to %s service n. %s - %s" % (action, rid, e), level="alert")
+        log.error("Unable to %s service n. %s - %s" % (action, rid, e))
         abort(500)
 
 
@@ -511,7 +541,7 @@ def savebtn():
     msg = pg('msg', '')
     if not fs.save_needed():
         ret_warn('Save not needed.')
-    say("Commit msg: \"%s\". Saving configuration..." % msg)
+    log.info("Commit msg: \"%s\". Saving configuration..." % msg)
     saved = fs.save(msg)
     ack("Configuration saved: \"%s\"" % msg)
     s = bottle.request.environ.get('beaker.session')
@@ -527,7 +557,7 @@ def resetbtn():
     _require()
     if not fs.save_needed():
         ret_warn('Reset not needed.')
-    say("Resetting configuration changes...")
+    log.info("Resetting configuration changes...")
     fs.reset()
     ack('Configuration reset.')
 
@@ -536,22 +566,21 @@ def resetbtn():
 def checkbtn():
     """Check configuration"""
     _require()
-    say('Configuration check started...')
+    log.info('Configuration check started...')
     try:
         diff_dict = fs.check(stop_on_extra_interfaces=conf.stop_on_extra_interfaces)
-        say('Configuration check successful.', level="success")
+        log.success('Configuration check successful.')
         return dict(diff_dict=diff_dict, error=None)
     except Alert, e:
-        say("Check failed: %s" % e,  level="alert")
+        log.error("Check failed: %s" % e,  level="alert")
         return dict(diff_dict={}, error="Check failed: %s" % e)
-
 
 @bottle.route('/deploy', method='POST')
 def deploybtn():
     """Deploy configuration"""
     _require('admin')
-    say('Configuration deployment started...')
-    say('Compiling firewall rules...')
+    log.info('Configuration deployment started...')
+    log.info('Compiling firewall rules...')
     try:
         fs.deploy(stop_on_extra_interfaces=conf.stop_on_extra_interfaces)
         ack('Configuration deployed.')
@@ -659,7 +688,7 @@ def rss_channels(channel=None):
     else:
         url = "https://%s:%s/rss" % (conf.listen_address, conf.listen_port)
 
-    return get_rss_channels(channel, url, msg_list=msg_list)
+    return get_rss_channels(channel, url, msg_list=web_log_handler._msg_buffer)
 
 
 @bottle.route('/test_email_delivery')
@@ -667,7 +696,7 @@ def test_email_delivery():
     """Send a test email
     """
     mailer.send_msg(body_txt='Email delivery test - please ignore this message.')
-    say('Test email sent.')
+    log.info('Test email sent.')
     bottle.redirect('/')
 
 
@@ -721,16 +750,16 @@ def main():
     #    daemoncontext.open()
 
     # setup logging
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format='%(asctime)s [%(process)d] %(levelname)s %(name)s (%(funcName)s) %(message)s',
+        datefmt = '%Y-%m-%d %H:%M:%S' # %z for timezone
+    )
+    log.addHandler(web_log_handler)
     if args.debug:
-        logging.basicConfig(
-            level=logging.DEBUG,
-            format='%(asctime)s [%(process)d] %(levelname)s %(name)s (%(funcName)s) %(message)s',
-            datefmt = '%Y-%m-%d %H:%M:%S' # %z for timezone
-        )
         log.debug("Debug mode")
         log.debug("Configuration file: '%s'" % args.cf)
         log.debug("Logfile (unused in debug mode): '%s'" % logfile)
-        say("Firelet started in debug mode.", level="success")
         bottle_debug(True)
     else:
         logging.basicConfig(
@@ -745,7 +774,8 @@ def main():
         fh.setFormatter(logging.Formatter(
             '%(asctime)s [%(process)d] %(levelname)s %(name)s (%(funcName)s) %(message)s'))
         log.addHandler(fh)
-        say("Firelet started.", level="success")
+
+    log.success("Firelet started.")
 
     globals()['users'] = Users(d=conf.data_dir)
     globals()['mailer'] = Mailer(
@@ -756,12 +786,12 @@ def main():
 
     if conf.demo_mode:
         globals()['fs'] = DemoGitFireSet(conf.data_dir)
-        say("Configuration loaded. Demo mode.")
+        log.info("Configuration loaded. Demo mode.")
     else:
         globals()['fs'] = GitFireSet(conf.data_dir)
-        say("Configuration loaded.")
+        log.info("Configuration loaded.")
 
-    say("%d users, %d hosts, %d rules, %d networks loaded." %
+    log.info("%d users, %d hosts, %d rules, %d networks loaded." %
         tuple(map(len, (users, fs.hosts, fs.rules, fs.networks)))
     )
 
@@ -772,13 +802,15 @@ def main():
     app = bottle.default_app()
     app = SessionMiddleware(app, session_opts)
 
+    #TODO: make HTTP server configurable, default to auto
     try:
         run(
             app=app,
-            quiet=not args.debug,
             host=conf.listen_address,
             port=conf.listen_port,
-            reloader=args.debug
+            quiet=not args.debug,
+            reloader=args.debug,
+            server='auto'
         )
     except:
         logging.error("Unhandled exception", exc_info=True)
