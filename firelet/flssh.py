@@ -116,6 +116,7 @@ class SSHConnector(object):
 
     def _connect_one(self, hostname, addrs):
         """Connect to a firewall
+        :returns: True on succesful connection, False otherwise
         """
         assert len(addrs), "No management IP address for %s, " % hostname
 
@@ -144,11 +145,13 @@ class SSHConnector(object):
                 log.debug("Connected to %s on %s" % (hostname, ip_addr))
                 # add the new connection to the connection pool
                 self._pool[hostname] = c
-                return
+                return True
             except Exception, e:
                 log.info("Unable to connect to %s on %s: %s" % (hostname, ip_addr, e))
+                return False
 
         raise Exception("Unable to connect to %s" % (hostname))
+        return False
 
 
     def _connect(self):
