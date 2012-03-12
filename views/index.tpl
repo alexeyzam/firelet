@@ -48,9 +48,11 @@ input:hover { background: #fefefe}
         <span>
             <img src="static/save.png"  rel="#savediag" title="Save" id="saveimg">
         </span>
+        <!--
         <span>
             <img src="static/reset.png" title="Reset" id="reset">
         </span>
+        -->
     </div>
 
     <ul class="css-tabs">
