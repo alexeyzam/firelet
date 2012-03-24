@@ -649,11 +649,14 @@ def readcsv(n, d):
     :type d: str
     :returns: list
     """
-    f = open("%s/%s.csv" % (d, n))
-    li = [x for x in f if not x.startswith('#') and x != '\n']
-    r = csv.reader(li, delimiter=' ')
-    f.close()
-    return r
+    with open("%s/%s.csv" % (d, n)) as f:
+        lines = map(str.rstrip, f)
+    if lines[0] != '# Format 0.1 - Do not edit this line':
+        raise Exception, "Data format not supported in %s/%s.csv" \
+            % (d, fname)
+    li = [x for x in lines if not x.startswith('#') and x]
+    return csv.reader(li, delimiter=' ')
+
 
 def loadcsv(fname, d):
     """Load a CSV file
