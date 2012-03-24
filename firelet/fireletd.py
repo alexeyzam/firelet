@@ -52,10 +52,8 @@ log.success = log.info
 
 #TODO: new rule creation
 
-#TODO: insert  change description in save message
-#FIXME: Reset not working
-#FIXME: enable back button on Manage>Check
-
+#TODO: Reset not working, temporily disabled - FireSet files must be read on
+# each client request
 #TODO: localhost and local networks autosetup
 
 
