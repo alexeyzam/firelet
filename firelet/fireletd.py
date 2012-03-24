@@ -578,7 +578,6 @@ def deploybtn():
     """Deploy configuration"""
     _require('admin')
     log.info('Configuration deployment started...')
-    log.info('Compiling firewall rules...')
     try:
         fs.deploy(stop_on_extra_interfaces=conf.stop_on_extra_interfaces)
         ack('Configuration deployed.')
@@ -589,7 +588,21 @@ def deploybtn():
             body_txt="Configuration deployed by %s" % username
         )
     except Alert, e:
-        ret_alert("Compilation failed: %s" % e)
+        ret_alert("Deployment failed: %s" % e)
+
+@bottle.route('/api/1/get_compiled_rules')
+def get_compiled_rules():
+    """Compile rules and return them to the requester"""
+    _require('admin')
+    log.info('Compiling firewall rules...')
+    try:
+        comp_rules = fs.get_compiled_rules()
+        ack('Rules compiled')
+        return dict(rules=comp_rules, ok=True)
+    except Alert, e:
+        return ret_alert("Compilation failed: %s" % e)
+
+
 
 @bottle.route('/version_list')
 @view('version_list')

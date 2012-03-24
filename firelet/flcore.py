@@ -1185,6 +1185,10 @@ class FireSet(object):
         log.debug('Diff completed.')
         return diff
 
+    def get_compiled_rules(self):
+        """Return the compiled rules"""
+        return self.compile_rules()
+
     def deploy(self, ignore_unreachables=False, replace_ruleset=False,
         stop_on_extra_interfaces=False):
         """Check and then deploy the configuration to the firewalls.
