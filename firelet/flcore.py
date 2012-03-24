@@ -26,6 +26,7 @@ from os import fsync, rename, unlink, getenv
 from random import choice
 from socket import inet_ntoa, inet_aton
 from struct import pack, unpack
+from time import time
 
 from flssh import SSHConnector, MockSSHConnector
 from flutils import Alert, Bunch, flag, extract_all
@@ -55,7 +56,8 @@ except ImportError: # pragma: no cover
     from flutils import product
 
 protocols = ['AH', 'ESP', 'ICMP', 'IP', 'TCP', 'UDP']
-# unsupported by iptables: 'IGMP','','OSPF', 'EIGRP','IPIP','VRRP','IS-IS', 'SCTP', 'AH', 'ESP'
+# protocols unsupported by iptables: 'IGMP','','OSPF', 'EIGRP','IPIP','VRRP',
+#  'IS-IS', 'SCTP', 'AH', 'ESP'
 
 icmp_types = {
     '': 'all',
@@ -73,7 +75,6 @@ icmp_types = {
     17: 'address-mask-request',
     18: 'address-mask-reply'}
 
-from time import time
 def timeit(method):
     """Log function call and execution time
     Used for debugging
@@ -152,7 +153,8 @@ class Host(Bunch):
         return "%s/32" % self.ip_addr
 
     def __contains__(self, other):
-        """A host is "contained" in another host only when they have the same address
+        """A host is "contained" in another host only when they have the same
+        address
         """
         if isinstance(other, Host):
             return other.ip_addr == self.ip_addr
@@ -247,7 +249,7 @@ class HostGroup(Bunch):
 
     def flat(self, host_by_name, net_by_name, hg_by_name):
         """Flatten the host groups hierarchy
-        
+
         :arg host_by_name: hostname -> host
         :type host_by_name: dict
         :arg net_by_name: netname -> net
@@ -271,14 +273,14 @@ class HostGroup(Bunch):
 
         return map(res, li)
 
-##    def networks(self):
-##        """Flatten the hostgroup and return its networks"""
-##        return [n for n in self._flatten(self) if isinstance(n, Network)]
-##
-##    def hosts(self):
-##        """Flatten the hostgroup and return its hosts"""
-##        return filter(lambda i: type(i) == Host, self._flatten(self)) # better?
-##        return [n for n in self._flatten(self) if isinstance(n, Host)]
+#    def networks(self):
+#        """Flatten the hostgroup and return its networks"""
+#        return [n for n in self._flatten(self) if isinstance(n, Network)]
+#
+#    def hosts(self):
+#        """Flatten the hostgroup and return its hosts"""
+#        return filter(lambda i: type(i) == Host, self._flatten(self)) # better?
+#        return [n for n in self._flatten(self) if isinstance(n, Host)]
 
 class Service(Bunch):
     """A network service using one protocol and one, many or no ports"""
@@ -290,13 +292,16 @@ class Service(Bunch):
                 try:
                     int_li = [int(i) for i in block.split(':')]
                 except ValueError:
-                    raise Alert, "Incorrect syntax in port definition '%s'" % block
-                assert len(int_li) < 3, "Too many items in port range '%s'" % block
+                    raise Alert, "Incorrect syntax in port definition '%s'" \
+                        % block
+                assert len(int_li) < 3, "Too many items in port range '%s'" \
+                    % block
                 for i in int_li:
                     assert i >= 0, "Negative port number '%s'" % i
                     assert i < 65536, "Port number too high '%s'" % i
                 if len(int_li) == 2:
-                    assert int_li[0] <= int_li[1], "Reversed port range '%s'" % block
+                    assert int_li[0] <= int_li[1], \
+                        "Reversed port range '%s'" % block
         elif d['protocol'] == 'ICMP' and ports:
             try:
                 icmp_type = int(ports)
@@ -321,11 +326,8 @@ class NetworkObjTable(object):
     def __str__(self):
         """Pretty-print as a table"""
         cols = zip(*self)
-        cols_sizes = [(max(map(len, i))) for i in cols] # get the widest entry for each column
-
-        def j((n, li)):
-            return "%d  " % n + "  ".join((item.ljust(pad) for item, pad in zip(li, cols_sizes) ))
-        return '\n'.join(map(j, enumerate(self)))
+        # get the widest entry for each column
+        cols_sizes = [(max(map(len, i))) for i in cols]
 
     def len(self):
         return len(self._objdict())
@@ -346,19 +348,8 @@ class Table(list):
         cols = zip(*self)
         cols_sizes = [(max(map(len, i))) for i in cols] # get the widest entry for each column
 
-        def j((n, li)):
-            return "%d  " % n + "  ".join((item.ljust(pad) for item, pad in zip(li, cols_sizes) ))
-        return '\n'.join(map(j, enumerate(self)))
-
     def len(self):
         return len(self)
-
-def readcsv(n, d):
-    f = open("%s/%s.csv" % (d, n))
-    li = [x for x in f if not x.startswith('#') and x != '\n']
-    r = csv.reader(li, delimiter=' ')
-    f.close()
-    return r
 
 class SmartTable(object):
     """A list of Bunch instances. Each subclass is responsible to load and save files."""
@@ -649,6 +640,20 @@ class Services(SmartTable):
         self.save()
 
 # CSV files
+
+def readcsv(n, d):
+    """Read CSV file, ignore comments
+    :param n: filename (path and .csv)
+    :type n: str
+    :param d: directory name (without slashes)
+    :type d: str
+    :returns: list
+    """
+    f = open("%s/%s.csv" % (d, n))
+    li = [x for x in f if not x.startswith('#') and x != '\n']
+    r = csv.reader(li, delimiter=' ')
+    f.close()
+    return r
 
 def loadcsv(fname, d):
     """Load a CSV file
@@ -1373,8 +1378,10 @@ class GitFireSet(FireSet):
 
     def _git(self, cmd):
         from subprocess import Popen, PIPE
-#        log.debug('Executing "/usr/bin/git %s" in "%s"' % (cmd, self._git_repodir))
-        p = Popen('/usr/bin/git %s' % cmd, shell=True, cwd=self._git_repodir, stdout=PIPE, stderr=PIPE)
+        #log.debug('Executing "/usr/bin/git %s" in "%s"' % \
+        #    (cmd, self._git_repodir))
+        p = Popen('/usr/bin/git %s' % cmd, shell=True, cwd=self._git_repodir,
+            stdout=PIPE, stderr=PIPE)
         p.wait()
         return p.communicate()
 
@@ -1388,22 +1395,26 @@ class GitFireSet(FireSet):
     def reset(self):
         """Reset Git to last commit."""
         o, e = self._git('reset --hard')
-        assert 'HEAD is now at' in o, "Git reset --hard output: '%s' error: '%s'" % (o, e)
+        assert 'HEAD is now at' in o, \
+            "Git reset --hard output: '%s' error: '%s'" % (o, e)
 
     def rollback(self, n=None, commit_id=None):
-        """Rollback to n commits ago or given a specific commit_id"""
+        """Rollback to n commits ago or given a specific commit_id
+        """
+        assert n is not None or commit_id, "n or commit_id must be specified"
+        self.reset()
         if n:
             try:
                 n = int(n)
             except ValueError:
                 raise Alert, "rollback requires an integer"
-            self.reset()
             o, e = self._git("reset --hard HEAD~%d" % n)
-            assert 'HEAD is now at' in o, "Git reset --hard HEAD~%d output: '%s' error: '%s'" % (n, o, e)
-        elif commit_id:
-            self.reset()
+            assert 'HEAD is now at' in o, \
+                "Git reset --hard HEAD~%d output: '%s' error: '%s'" % (n, o, e)
+        else:
             o, e = self._git("reset --hard %s" % commit_id)
-            assert 'HEAD is now at' in o, "Git reset --hard %s output: '%s' error: '%s'" % (commit_id, o, e)
+            assert 'HEAD is now at' in o, "Git reset --hard " \
+                "%s output: '%s' error: '%s'" % (commit_id, o, e)
 
     def save_needed(self):
         """True if commit is required: files has been changed"""
