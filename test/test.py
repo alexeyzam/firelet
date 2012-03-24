@@ -292,10 +292,13 @@ def test_load_save_hosts():
 
 @with_setup(setup_dir, teardown_dir)
 def test_load_save_csv():
-    h = loadcsv('rules', d=testingutils.repodir)
+    h = readcsv('rules', d=testingutils.repodir)
+    h = tuple(h)
     savecsv('rules', h, d=testingutils.repodir)
-    h2 = loadcsv('rules', d=testingutils.repodir)
-    assert h == h2, "load/save hosts loop failed"
+    h2 = readcsv('rules', d=testingutils.repodir)
+    h2 = tuple(h2)
+    assert h == h2, "load/save hosts loop failed:\n%s\n!=\n%s" % \
+        (h, h2)
 
 # #  FireSet testing # #
 

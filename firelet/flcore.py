@@ -658,7 +658,7 @@ def readcsv(n, d):
     return csv.reader(li, delimiter=' ')
 
 
-def loadcsv(fname, d):
+def loadcsv_unused(fname, d):
     """Load a CSV file
 
     Args:
