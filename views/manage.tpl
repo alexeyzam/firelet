@@ -186,28 +186,28 @@ $(function() {
     });
 
     $('button#check').click(function() {
-        $.post("check", function(json) {
-            }); //FIXME
+        $.post("api/1/check", function(json) {
+            }); //TODO: use overlay?
     });
 
     $('button#deploy').click(function() {
-        $.post("deploy",
+        $.post("api/1/deploy",
             function(data){            });
-    }); //FIXME
+    }); //TODO: use overlay?
 
     // Version list pane
-    $('div#version_list table').load('version_list', function() {
+    $('div#version_list table').load('api/1/version_list', function() {
 
         $('img.rollback').click(function() {  // Setup rollback trigger
             cid = this.id;
             $.post("rollback", {commit_id: cid},
                 function(data){
-                    $('div#version_list table').load('version_list');
+                    $('div#version_list table').load('api/1/version_list');
                 });
         });
 
         $('img.view_ver_diff').click(function() {
-            $('div#version_list').load('version_diff', {commit_id: this.id});
+            $('div#version_list').load('api/1/version_diff', {commit_id: this.id});
         });
 
         /*
@@ -218,7 +218,7 @@ $(function() {
                 onLoad: function () {
                     d = $('div#view_ver_diff');
                     d.html('<p>Diff in progress...</p><p id="spinner"><img src="static/spinner_big.gif" /></p>');
-                    d.load('version_diff', {commit_id: this.id});
+                    d.load('api/1/version_diff', {commit_id: this.id});
                 }
             }
         });
@@ -239,7 +239,7 @@ $(function() {
             dt = $('div#diff_table');
             dt.html('<p>Check in progress...</p><p id="spinner"><img src="static/spinner_big.gif" /></p>')
                 // When loaded, run the check command using POST and display the output
-                dt.load("check", {});
+                dt.load("api/1/check", {});
             }
         },
         closeOnClick: false,

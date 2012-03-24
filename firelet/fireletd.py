@@ -559,7 +559,7 @@ def resetbtn():
     fs.reset()
     ack('Configuration reset.')
 
-@bottle.route('/check', method='POST')
+@bottle.route('/api/1/check', method='POST')
 @view('rules_diff_table')
 def checkbtn():
     """Check configuration"""
@@ -573,7 +573,7 @@ def checkbtn():
         log.error("Check failed: %s" % e,  level="alert")
         return dict(diff_dict={}, error="Check failed: %s" % e)
 
-@bottle.route('/deploy', method='POST')
+@bottle.route('/api/1/deploy', method='POST')
 def deploybtn():
     """Deploy configuration"""
     _require('admin')
@@ -604,7 +604,7 @@ def get_compiled_rules():
 
 
 
-@bottle.route('/version_list')
+@bottle.route('/api/1/version_list')
 @view('version_list')
 def version_list():
     """Serve version list"""
@@ -612,7 +612,7 @@ def version_list():
     li = fs.version_list()
     return dict(version_list=li)
 
-@bottle.route('/version_diff', method='POST')
+@bottle.route('/api/1/version_diff', method='POST')
 @view('version_diff')
 def version_diff():
     """Serve version diff"""
@@ -623,7 +623,7 @@ def version_diff():
         return dict(li=li)
     return dict(li=(('(No changes.)', 'title')))
 
-@bottle.route('/rollback', method='POST')
+@bottle.route('/api/1/rollback', method='POST')
 def rollback():
     """Rollback configuration"""
     _require('admin')
