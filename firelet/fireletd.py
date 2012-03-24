@@ -570,7 +570,7 @@ def checkbtn():
         log.success('Configuration check successful.')
         return dict(diff_dict=diff_dict, error=None)
     except Alert, e:
-        log.error("Check failed: %s" % e,  level="alert")
+        log.error("Check failed: %s" % e)
         return dict(diff_dict={}, error="Check failed: %s" % e)
 
 @bottle.route('/api/1/deploy', method='POST')
