@@ -146,11 +146,15 @@ def pg(name, default=''):
 
 def pg_list(name, default=''):
     """Retrieve a serialized (comma-separated) list from a POST request.
-    Duplicated elements are removed"""
+    Duplicated and empty elements are removed
+    """
     # FIXME: a hostgroup containing hundreds of hosts may exceed POST size
     s = request.POST.get(name, default)
     li = clean(s).strip().split(',')
-    return list(set(li))
+    item_set = set(li)
+    if '' in item_set:
+        item_set.remove('')
+    return list(item_set)
 
 def int_pg(name, default=None):
     """Retrieve an element from a POST request and returns it as an integer"""
