@@ -801,9 +801,11 @@ class FireSet(object):
     def delete(self, table, rid):
         """Delete item from table
         """
-        assert table in self._table_names, "Incorrect table name."
+        assert table in self._table_names, "Wrong table name for deletion: %s" % table
         try:
             self.__dict__[table].pop(rid)
+        except IndexError, e:
+            raise Alert, "The element n. %d is not present in table '%s'" % (rid, table)
         except Exception, e:
             Alert,  "Unable to delete item %d in table %s: %s" % (rid, table, e)
 
@@ -1429,14 +1431,19 @@ class GitFireSet(FireSet):
     def reload(self):
         """Reload all the tables from disk
         """
+        msg = ''
         for table_name in self._table_names:
-            self.__dict__[table_name].reload()
+            table = self.__dict__[table_name]
+            table.reload()
+            msg += "%d %s, " % (len(table), table_name)
+        log.debug("%s reloaded" % msg)
 
     def reset(self):
         """Reset Git to last commit."""
         o, e = self._git('reset --hard')
         assert 'HEAD is now at' in o, \
             "Git reset --hard output: '%s' error: '%s'" % (o, e)
+        self.reload()
 
     def rollback(self, n=None, commit_id=None):
         """Rollback to n commits ago or given a specific commit_id
@@ -1451,10 +1458,12 @@ class GitFireSet(FireSet):
             o, e = self._git("reset --hard HEAD~%d" % n)
             assert 'HEAD is now at' in o, \
                 "Git reset --hard HEAD~%d output: '%s' error: '%s'" % (n, o, e)
+            self.reload()
         else:
             o, e = self._git("reset --hard %s" % commit_id)
             assert 'HEAD is now at' in o, "Git reset --hard " \
                 "%s output: '%s' error: '%s'" % (commit_id, o, e)
+            self.reload()
 
     def save_needed(self):
         """True if commit is required: files has been changed"""
@@ -1485,12 +1494,9 @@ class GitFireSet(FireSet):
             raise Exception, "Table %s not existing" % table
 
     def delete(self, table, rid):
-        assert table in self._table_names, \
-            "Wrong table name for deletion: %s" % table
-        try:
-            self.__dict__[table].pop(rid)
-        except IndexError, e:
-            raise Alert, "The element n. %d is not present in table '%s'" % (rid, table)
+        """Delete item from table
+        """
+        super(GitFireSet, self).delete(table, rid)
         self._write(table)
 
 
