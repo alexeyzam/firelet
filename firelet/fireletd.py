@@ -628,7 +628,8 @@ def rollback():
     """Rollback configuration"""
     _require('admin')
     cid = pg('commit_id') #TODO validate cid?
-    fs.rollback(cid)
+    log.info("Rolling back to commit ID %s" % cid)
+    fs.rollback(commit_id=cid)
     ack("Configuration rolled back.")
 
 # serving static files
