@@ -405,10 +405,15 @@ class Rules(SmartTable):
             d (string): data directory
         """
         self._dir = d
-        li = readcsv('rules', d)
+        self.reload()
+
+    def reload(self):
+        """Load ruleset from file
+        """
+        li = readcsv('rules', self._dir)
         self._list = [Rule(enabled=r[0], name=r[1], src=r[2], src_serv=r[3],
             dst=r[4], dst_serv=r[5], action=r[6], log_level=r[7], desc=r[8])
-            for r in li ]
+            for r in li]
 
     def save(self):
         """Save the ruleset"""
@@ -495,7 +500,12 @@ class Hosts(SmartTable):
     """A list of Bunch instances"""
     def __init__(self, d):
         self._dir = d
-        li = readcsv('hosts', d)
+        self.reload()
+
+    def reload(self):
+        """Load hosts from file
+        """
+        li = readcsv('hosts', self._dir)
         self._list = []
         for r in li:
             q = r[0:7] + [r[7:]]
@@ -533,7 +543,12 @@ class HostGroups(SmartTable):
         .. automethod:: _simpleflatten
         """
         self._dir = d
-        li = readcsv('hostgroups', d)
+        self.reload()
+
+    def reload(self):
+        """Load hostgroups from file
+        """
+        li = readcsv('hostgroups', self._dir)
         self._list = [HostGroup(r) for r in li]
 
     def save(self):
@@ -604,7 +619,12 @@ class Networks(SmartTable):
     """A list of Bunch instances"""
     def __init__(self, d):
         self._dir = d
-        li = readcsv('networks', d)
+        self.reload()
+
+    def reload(self):
+        """Load networks from file
+        """
+        li = readcsv('networks', self._dir)
         self._list = [Network(r) for r in li]
 
     def save(self):
@@ -624,7 +644,12 @@ class Services(SmartTable):
     """A list of Bunch instances"""
     def __init__(self, d):
         self._dir = d
-        li = readcsv('services', d)
+        self.reload()
+
+    def reload(self):
+        """Load service from file
+        """
+        li = readcsv('services', self._dir)
         self._list = [ Service(name=r[0], protocol=r[1], ports=r[2]) for r in li ]
 
     def save(self):
@@ -735,9 +760,10 @@ class FireSet(object):
     """A container for the network objects.
     Upon instancing the objects are loaded.
     """
-    def __init__(self, repodir):
-        raise NotImplementedError
-        # self.SSHConnector needs to be created in the __init__ method
+    def __init__(self):
+        """Initialize FireSet"""
+        self.SSHConnector = SSHConnector
+        self._table_names = ('rules', 'hosts', 'hostgroups', 'services', 'networks')
 
     # FireSet management methods
     # They are redefined in each FireSet subclass
@@ -746,6 +772,9 @@ class FireSet(object):
         raise NotImplementedError
 
     def save(self):
+        raise NotImplementedError
+
+    def reload(self):
         raise NotImplementedError
 
     def reset(self):
@@ -760,8 +789,9 @@ class FireSet(object):
     # editing methods
 
     def fetch(self, table, rid):
-        assert table in ('rules', 'hosts', 'hostgroups', 'services',
-            'networks'),  "Incorrect table name."
+        """Get item from table
+        """
+        assert table in self._table_names, "Incorrect table name."
         try:
             return self.__dict__[table][rid]
         except Exception, e:
@@ -769,8 +799,9 @@ class FireSet(object):
 
 
     def delete(self, table, rid):
-        assert table in ('rules', 'hosts', 'hostgroups', 'services',
-            'networks'),  "Incorrect table name."
+        """Delete item from table
+        """
+        assert table in self._table_names, "Incorrect table name."
         try:
             self.__dict__[table].pop(rid)
         except Exception, e:
@@ -1311,7 +1342,6 @@ in %s does not look valid" % id_rsa_fn
 class GitFireSet(FireSet):
     """FireSet implementing Git to manage the configuration repository"""
     def __init__(self, repodir):
-        self.SSHConnector = SSHConnector
         self.rules = Rules(repodir)
         self.hosts = Hosts(repodir)
         self.hostgroups = HostGroups(repodir)
@@ -1323,6 +1353,7 @@ class GitFireSet(FireSet):
             self._git('init .')
             self._git('add *.csv *.json')
             self._git('commit -m "Configuration database created."')
+        super(GitFireSet, self).__init__()
 
     def version_list(self):
         """Parse git log --date=iso
@@ -1395,6 +1426,12 @@ class GitFireSet(FireSet):
         self._git("add *")
         self._git("commit -m '%s'" % msg)
 
+    def reload(self):
+        """Reload all the tables from disk
+        """
+        for table_name in self._table_names:
+            self.__dict__[table_name].reload()
+
     def reset(self):
         """Reset Git to last commit."""
         o, e = self._git('reset --hard')
@@ -1448,7 +1485,7 @@ class GitFireSet(FireSet):
             raise Exception, "Table %s not existing" % table
 
     def delete(self, table, rid):
-        assert table in ('rules', 'hosts', 'hostgroups', 'services', 'networks') , \
+        assert table in self._table_names, \
             "Wrong table name for deletion: %s" % table
         try:
             self.__dict__[table].pop(rid)
