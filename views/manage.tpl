@@ -200,7 +200,7 @@ $(function() {
 
         $('img.rollback').click(function() {  // Setup rollback trigger
             cid = this.id;
-            $.post("rollback", {commit_id: cid},
+            $.post("api/1/rollback", {commit_id: cid},
                 function(data){
                     $('div#version_list table').load('api/1/version_list');
                 });
