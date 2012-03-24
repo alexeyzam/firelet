@@ -1045,33 +1045,44 @@ class FireSet(object):
                     if log_val:
                         rd[h.hostname]['INPUT'].append(
                             '%s%s -i %s %s%s%s%s -j LOG --log-prefix "i_%s" --log-level %d' %
-                                (_src, _dst, h.iface, proto, modules, sports, dports, name, log_val))
+                                (_src, _dst, h.iface, proto, modules, sports,
+                                dports, name, log_val))
                     rd[h.hostname]['INPUT'].append(
                             "%s%s -i %s %s%s%s%s -j %s"
-                            % (_src, _dst, h.iface, proto, modules, sports, dports, action))
+                            % (_src, _dst, h.iface, proto, modules, sports,
+                              dports, action))
 
                 # Build OUTPUT rules: where the host is in the source
                 if src and h in src or not src:
                     if log_val:
                         rd[h.hostname]['OUTPUT'].append(
                             '%s%s -o %s %s%s%s%s -j LOG --log-prefix "o_%s" --log-level %d' %
-                            (_src, _dst, h.iface, proto, modules, sports, dports, name, log_val))
-                    rd[h.hostname]['OUTPUT'].append("%s%s -o %s %s%s%s%s -j %s"
-                            % (_src, _dst, h.iface, proto, modules, sports, dports, action))
+                            (_src, _dst, h.iface, proto, modules, sports,
+                            dports, name, log_val))
 
-                # Build FORWARD rules: where the source and destination are both in directly connected or routed networks
+                    rd[h.hostname]['OUTPUT'].append("%s%s -o %s %s%s%s%s -j %s"
+                            % (_src, _dst, h.iface, proto, modules, sports,
+                               dports, action))
+
+                # Build FORWARD rules: where the source and destination are
+                #  both in directly connected or routed networks
                 if h.network_fw in ('0', 0, False):
                     continue
-                resolved_routed = [net[r] for r in h.routed] # resolved routed nets [[addr,masklen],[addr,masklen]...]
-                nets = [ IPNetwork("%s/%s" %(y, w)) for y, w in resolved_routed ]
+                # resolved routed nets [[addr, masklen], [addr, masklen], ... ]
+                resolved_routed = [net[r] for r in h.routed]
+                nets = [IPNetwork("%s/%s" %(y, w)) for y, w in resolved_routed]
 
-                other_ifaces = [k for k in self.hosts if k.hostname == h.hostname and k.iface != h.iface]
+                other_ifaces = [k for k in self.hosts
+                    if k.hostname == h.hostname and k.iface != h.iface]
 
-                forw = self._oo_forwarded(src, dst, h, resolved_routed, other_ifaces)
+                forw = self._oo_forwarded(src, dst, h, resolved_routed,
+                                          other_ifaces)
 
                 if forw:
-                    rd[h.hostname]['FORWARD'].append('%s%s%s%s%s%s -j LOG  --log-prefix "f_%s" --log-level %d' %
-                                                     (_src, _dst, proto,  modules, sports, dports, name, log_val))
+                    rd[h.hostname]['FORWARD'].append(
+                        '%s%s%s%s%s%s -j LOG  --log-prefix "f_%s" --log-level %d' %
+                        (_src, _dst, proto,  modules, sports, dports, name,
+                         log_val))
                     rd[h.hostname]['FORWARD'].append("%s%s%s%s%s%s -j %s"
                         %  (_src, _dst, proto, modules, sports, dports, action))
 
