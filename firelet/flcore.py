@@ -914,6 +914,11 @@ class FireSet(object):
         addr = dict(((h.hostname + ":" + h.iface), h.ip_addr) for h in self.hosts) # host to ip_addr
         net = dict((n.name, (n.ip_addr, n.masklen)) for n in self.networks) # network name to addressing
 
+        for h in self.hosts:
+            for routed_net in h.routed:
+                assert routed_net in net, "Unknown network '%s' routed by %s" \
+                    % (routed_net, h.hostname)
+
         proto_port = dict((sr.name, (sr.protocol, sr.ports)) for sr in self.services) # protocol
         proto_port['*'] = (None, '') # special case for "any"      # port format: "2:4,5:10,10:33,40,50"
 
