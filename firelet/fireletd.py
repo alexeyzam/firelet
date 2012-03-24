@@ -569,7 +569,7 @@ def checkbtn():
         diff_dict = fs.check(stop_on_extra_interfaces=conf.stop_on_extra_interfaces)
         log.success('Configuration check successful.')
         return dict(diff_dict=diff_dict, error=None)
-    except Alert, e:
+    except (Alert, AssertionError), e:
         log.error("Check failed: %s" % e)
         return dict(diff_dict={}, error="Check failed: %s" % e)
 
@@ -587,7 +587,7 @@ def deploybtn():
             sbj="Configuration deployed by %s" % username,
             body_txt="Configuration deployed by %s" % username
         )
-    except Alert, e:
+    except (Alert, AssertionError), e:
         ret_alert("Deployment failed: %s" % e)
 
 @bottle.route('/api/1/get_compiled_rules')
