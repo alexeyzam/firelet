@@ -14,18 +14,17 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from nose.tools import assert_raises, with_setup
-
 from logging import getLogger
-from testingutils import show
+from nose.tools import raises, assert_raises, with_setup
+from webtest import TestApp, AppError
+import os
 
 log = getLogger(__name__)
 deb = log.debug
 
-from testingutils import *
-import testingutils
+from testingutils import setup_dir, teardown_dir
 
-import bottle
+from firelet import fireletd
 
 #@with_setup(setup_dir, teardown_dir)
 #def test_not_auth():
@@ -38,6 +37,35 @@ import bottle
 #    assert 'Please insert your credentials' in result
 
 #TODO: implement webapp testing
+REDIR = '302 Found'
+app = None
+tmpdir = None
+orig_dir = None
+
+def setup():
+    setup_dir()
+    # create global TestApp instance
+    global app
+    app = TestApp(fireletd.app)
+
+def teardown():
+    teardown_dir()
+    app = None
+
+@raises(AppError)
+def test_bogus_page():
+    app.get('/bogus_page')
+
+def test_index_page():
+    assert app.get('/').status == '200 OK'
+
+def login():
+    """run setup_app and log in"""
+    global app
+    setup_app()
+    p = app.post('/login', {'user': 'admin', 'pwd': 'admin'})
+
+
 
 
 

@@ -56,7 +56,7 @@ log.success = log.info
 # each client request
 #TODO: localhost and local networks autosetup
 
-
+app = bottle.app()
 
 # Setup Python error logging
 class LoggedHTTPError(bottle.HTTPResponse):
@@ -738,6 +738,7 @@ def parse_args():
     return args
 
 def main():
+    global app
     global conf
     setproctitle('firelet')
     args = parse_args()
@@ -800,22 +801,30 @@ def main():
         smtp_server = conf.email_smtp_server,
     )
 
+    session_opts = {
+        'session.type': 'cookie',
+        'session.validate_key': True,
+    }
+
     if conf.demo_mode:
         globals()['fs'] = DemoGitFireSet(conf.data_dir)
         log.info("Configuration loaded. Demo mode.")
+        session_opts['session.secure'] = True
+        session_opts['session.type'] = 'memory'
     else:
         globals()['fs'] = GitFireSet(conf.data_dir)
         log.info("Configuration loaded.")
+        # Instruct the browser to sever send the cookie over unencrypted
+        # connections
+        session_opts['session.secure'] = True
+        session_opts['session.type'] = 'memory'
 
     log.info("%d users, %d hosts, %d rules, %d networks loaded." %
         tuple(map(len, (users, fs.hosts, fs.rules, fs.networks)))
     )
 
-    session_opts = {
-        'session.type': 'cookie',
-        'session.validate_key': True,
-    }
-    app = bottle.default_app()
+    log.info(repr(session_opts));
+    #app = bottle.default_app()
     app = SessionMiddleware(app, session_opts)
 
     #TODO: make HTTP server configurable, default to auto
