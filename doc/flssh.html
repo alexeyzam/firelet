@@ -1,23 +1,29 @@
+
+
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title><no title> &mdash; Firelet source code</title>
+    <title>&lt;no title&gt; &mdash; Firelet source code</title>
+    
     <link rel="stylesheet" href="_static/default.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '',
         VERSION:     '0.4',
-        COLLAPSE_MODINDEX: false,
+        COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
       };
     </script>
     <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
     <link rel="top" title="Firelet source code" href="index.html" /> 
   </head>
@@ -29,8 +35,8 @@
           <a href="genindex.html" title="General Index"
              accesskey="I">index</a></li>
         <li class="right" >
-          <a href="modindex.html" title="Global Module Index"
-             accesskey="M">modules</a> |</li>
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
         <li><a href="index.html">Firelet</a> &raquo;</li> 
       </ul>
     </div>  
@@ -40,256 +46,66 @@
         <div class="bodywrapper">
           <div class="body">
             
-  <span class="target" id="module-flssh"></span><dl class="class">
+  <span class="target" id="module-flssh"></span><dl class="function">
+<dt id="flssh.timeit">
+<tt class="descclassname">flssh.</tt><tt class="descname">timeit</tt><big>(</big><em>method</em><big>)</big><a class="headerlink" href="#flssh.timeit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Log function call and execution time
+Used for debugging</p>
+</dd></dl>
+
+<dl class="class">
 <dt id="flssh.Forker">
-<em class="property">class </em><tt class="descclassname">flssh.</tt><tt class="descname">Forker</tt><big>(</big><em>target</em>, <em>args_list</em><big>)</big><a class="headerlink" href="#flssh.Forker" title="Permalink to this definition">¶</a></dt>
-<dd><p>Fork a set of threads and wait for their completion</p>
+<em class="property">class </em><tt class="descclassname">flssh.</tt><tt class="descname">Forker</tt><big>(</big><em>target</em>, <em>args_list</em>, <em>timeout=5</em>, <em>logger=&lt;logging.Logger object at 0x9a04d8c&gt;</em><big>)</big><a class="headerlink" href="#flssh.Forker" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+<p>Fork a set of threads and wait for their completion</p>
 <p>Setup Forker instance</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><em>target</em> (function.) &#8211; function</li>
-<li><em>args_list</em> (list.) &#8211; argument list</li>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>target</strong> (<em>function.</em>) &#8211; function</li>
+<li><strong>args_list</strong> (<em>list.</em>) &#8211; argument list</li>
 </ul>
 </td>
 </tr>
 </tbody>
 </table>
-</dd></dl>
-
-<dl class="class">
-<dt id="flssh.MockSSHConnector">
-<em class="property">class </em><tt class="descclassname">flssh.</tt><tt class="descname">MockSSHConnector</tt><big>(</big><em>targets=None</em>, <em>username='firelet'</em>, <em>ssh_key_autoadd=True</em>, <em>password=None</em><big>)</big><a class="headerlink" href="#flssh.MockSSHConnector" title="Permalink to this definition">¶</a></dt>
-<dd><p>Used in Demo mode and during unit testing to prevent network interactions.
-Only some methods from SSHConnector are redefined.</p>
-<p>SSHConnector init</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><em>targets</em> (dict.) &#8211; targets {hostname: [management ipaddr list ], ... }</li>
-<li><em>username</em> (str.) &#8211; SSH username (defaults to &#8216;firelet&#8217;)</li>
-<li><em>ssh_key_autoadd</em> (bool.) &#8211; ssh key autoadd (defaults to True)</li>
-<li><em>password</em> (str.) &#8211; SSH password, used only in assimilation (defaults to None)</li>
-</ul>
-</td>
-</tr>
-</tbody>
-</table>
-<dl class="method">
-<dt id="flssh.MockSSHConnector.apply_remote_confs">
-<tt class="descname">apply_remote_confs</tt><big>(</big><em>*args</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#flssh.MockSSHConnector.apply_remote_confs" title="Permalink to this definition">¶</a></dt>
-<dd>Load the deployed ruleset on the firewalls</dd></dl>
-
-<dl class="method">
-<dt id="flssh.MockSSHConnector.cancel_auto_rollbacks">
-<tt class="descname">cancel_auto_rollbacks</tt><big>(</big><em>*args</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#flssh.MockSSHConnector.cancel_auto_rollbacks" title="Permalink to this definition">¶</a></dt>
-<dd>Kill the auto-rollback script running on the firewalls
-:return: status
-:rtype: dict</dd></dl>
-
-<dl class="method">
-<dt id="flssh.MockSSHConnector.deliver_confs">
-<tt class="descname">deliver_confs</tt><big>(</big><em>*args</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#flssh.MockSSHConnector.deliver_confs" title="Permalink to this definition">¶</a></dt>
-<dd><p>Connects to firewalls and deliver the configuration
-using multiple threads.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field"><th class="field-name">Parameter:</th><td class="field-body"><em>newconfs_d</em> (dict) &#8211; configurations: {hostname: [rule, ... ], ... }</td>
-</tr>
-<tr class="field"><th class="field-name">Returns:</th><td class="field-body">status</td>
-</tr>
-<tr class="field"><th class="field-name">Return type:</th><td class="field-body">dict</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="method">
-<dt id="flssh.MockSSHConnector.get_confs">
-<tt class="descname">get_confs</tt><big>(</big><em>*args</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#flssh.MockSSHConnector.get_confs" title="Permalink to this definition">¶</a></dt>
-<dd><p>Connects to the firewalls, get the configuration and</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field"><th class="field-name">Returns:</th><td class="field-body">{ hostname: Bunch of &#8220;session, ip_addr, iptables-save, interfaces&#8221;, ... }</td>
-</tr>
-<tr class="field"><th class="field-name">Return type:</th><td class="field-body">dict</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="method">
-<dt id="flssh.MockSSHConnector.log_ping">
-<tt class="descname">log_ping</tt><big>(</big><em>*args</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#flssh.MockSSHConnector.log_ping" title="Permalink to this definition">¶</a></dt>
-<dd>Connect to the firewalls and log a &#8216;ping&#8217; message on syslog</dd></dl>
-
-<dl class="method">
-<dt id="flssh.MockSSHConnector.parse_ip_addr_show">
-<tt class="descname">parse_ip_addr_show</tt><big>(</big><em>s</em><big>)</big><a class="headerlink" href="#flssh.MockSSHConnector.parse_ip_addr_show" title="Permalink to this definition">¶</a></dt>
-<dd><p>Parse the output of &#8216;ip addr show&#8217; and returns a dict:</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field"><th class="field-name">Parameter:</th><td class="field-body"><em>s</em> (list.) &#8211; ip addr show output</td>
-</tr>
-<tr class="field"><th class="field-name">Return type:</th><td class="field-body">{&#8216;iface&#8217;: (ip_addr_v4, ip_addr_v6)}</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="method">
-<dt id="flssh.MockSSHConnector.parse_iptables_save">
-<tt class="descname">parse_iptables_save</tt><big>(</big><em>li</em>, <em>hostname=None</em><big>)</big><a class="headerlink" href="#flssh.MockSSHConnector.parse_iptables_save" title="Permalink to this definition">¶</a></dt>
-<dd><p>Parse iptables-save output and returns a dict:</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><em>li</em> (list.) &#8211; iptables-save output</li>
-<li><em>hostname</em> (str.) &#8211; hostname (optional)</li>
-</ul>
-</td>
-</tr>
-<tr class="field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">{&#8216;filter&#8217;: [rule, rule, ... ], &#8216;nat&#8217;: [] }</p>
-</td>
-</tr>
-<tr class="field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">dict of lists</p>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="method">
-<dt id="flssh.MockSSHConnector.save_existing_confs">
-<tt class="descname">save_existing_confs</tt><big>(</big><em>*args</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#flssh.MockSSHConnector.save_existing_confs" title="Permalink to this definition">¶</a></dt>
-<dd><p>Run _save_existing_conf on the firewalls</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field"><th class="field-name">Returns:</th><td class="field-body">status</td>
-</tr>
-<tr class="field"><th class="field-name">Return type:</th><td class="field-body">dict</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="method">
-<dt id="flssh.MockSSHConnector.setup_auto_rollbacks">
-<tt class="descname">setup_auto_rollbacks</tt><big>(</big><em>*args</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#flssh.MockSSHConnector.setup_auto_rollbacks" title="Permalink to this definition">¶</a></dt>
-<dd><p>Setup the auto-rollback script on the firewalls.
-Iptables-restore is ran automatically after a timeout,
-and the previously saved configuration is loaded.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field"><th class="field-name">Returns:</th><td class="field-body">status</td>
-</tr>
-<tr class="field"><th class="field-name">Return type:</th><td class="field-body">dict</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
 </dd></dl>
 
 <dl class="class">
 <dt id="flssh.SSHConnector">
 <em class="property">class </em><tt class="descclassname">flssh.</tt><tt class="descname">SSHConnector</tt><big>(</big><em>targets=None</em>, <em>username='firelet'</em>, <em>ssh_key_autoadd=True</em>, <em>password=None</em><big>)</big><a class="headerlink" href="#flssh.SSHConnector" title="Permalink to this definition">¶</a></dt>
-<dd><p>Manage a pool of pxssh connections to the firewalls. Get the running
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+<p>Manage a pool of pxssh connections to the firewalls. Get the running
 configuation and deploy new configurations.</p>
 <p>SSHConnector init</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><em>targets</em> (dict.) &#8211; targets {hostname: [management ipaddr list ], ... }</li>
-<li><em>username</em> (str.) &#8211; SSH username (defaults to &#8216;firelet&#8217;)</li>
-<li><em>ssh_key_autoadd</em> (bool.) &#8211; ssh key autoadd (defaults to True)</li>
-<li><em>password</em> (str.) &#8211; SSH password, used only in assimilation (defaults to None)</li>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>targets</strong> (<em>dict.</em>) &#8211; targets {hostname: [management ipaddr list ], ... }</li>
+<li><strong>username</strong> (<em>str.</em>) &#8211; SSH username (defaults to &#8216;firelet&#8217;)</li>
+<li><strong>ssh_key_autoadd</strong> (<em>bool.</em>) &#8211; ssh key autoadd (defaults to True)</li>
+<li><strong>password</strong> (<em>str.</em>) &#8211; SSH password, used only in assimilation (defaults to None)</li>
 </ul>
 </td>
 </tr>
 </tbody>
 </table>
 <dl class="method">
-<dt id="flssh.SSHConnector.apply_remote_confs">
-<tt class="descname">apply_remote_confs</tt><big>(</big><em>*args</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#flssh.SSHConnector.apply_remote_confs" title="Permalink to this definition">¶</a></dt>
-<dd>Load the deployed ruleset on the firewalls</dd></dl>
-
-<dl class="method">
-<dt id="flssh.SSHConnector.cancel_auto_rollbacks">
-<tt class="descname">cancel_auto_rollbacks</tt><big>(</big><em>*args</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#flssh.SSHConnector.cancel_auto_rollbacks" title="Permalink to this definition">¶</a></dt>
-<dd>Kill the auto-rollback script running on the firewalls
-:return: status
-:rtype: dict</dd></dl>
-
-<dl class="method">
-<dt id="flssh.SSHConnector.deliver_confs">
-<tt class="descname">deliver_confs</tt><big>(</big><em>*args</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#flssh.SSHConnector.deliver_confs" title="Permalink to this definition">¶</a></dt>
-<dd><p>Connects to firewalls and deliver the configuration
-using multiple threads.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field"><th class="field-name">Parameter:</th><td class="field-body"><em>newconfs_d</em> (dict) &#8211; configurations: {hostname: [rule, ... ], ... }</td>
-</tr>
-<tr class="field"><th class="field-name">Returns:</th><td class="field-body">status</td>
-</tr>
-<tr class="field"><th class="field-name">Return type:</th><td class="field-body">dict</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="method">
 <dt id="flssh.SSHConnector.get_confs">
-<tt class="descname">get_confs</tt><big>(</big><em>*args</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#flssh.SSHConnector.get_confs" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">get_confs</tt><big>(</big><em>keep_sessions=False</em>, <em>logger=&lt;logging.Logger object at 0x9a04d8c&gt;</em><big>)</big><a class="headerlink" href="#flssh.SSHConnector.get_confs" title="Permalink to this definition">¶</a></dt>
 <dd><p>Connects to the firewalls, get the configuration and</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field"><th class="field-name">Returns:</th><td class="field-body">{ hostname: Bunch of &#8220;session, ip_addr, iptables-save, interfaces&#8221;, ... }</td>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">{ hostname: Bunch of &#8220;session, ip_addr, iptables-save,
+interfaces&#8221;, ... }</td>
 </tr>
-<tr class="field"><th class="field-name">Return type:</th><td class="field-body">dict</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="method">
-<dt id="flssh.SSHConnector.log_ping">
-<tt class="descname">log_ping</tt><big>(</big><em>*args</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#flssh.SSHConnector.log_ping" title="Permalink to this definition">¶</a></dt>
-<dd>Connect to the firewalls and log a &#8216;ping&#8217; message on syslog</dd></dl>
-
-<dl class="method">
-<dt id="flssh.SSHConnector.parse_ip_addr_show">
-<tt class="descname">parse_ip_addr_show</tt><big>(</big><em>s</em><big>)</big><a class="headerlink" href="#flssh.SSHConnector.parse_ip_addr_show" title="Permalink to this definition">¶</a></dt>
-<dd><p>Parse the output of &#8216;ip addr show&#8217; and returns a dict:</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field"><th class="field-name">Parameter:</th><td class="field-body"><em>s</em> (list.) &#8211; ip addr show output</td>
-</tr>
-<tr class="field"><th class="field-name">Return type:</th><td class="field-body">{&#8216;iface&#8217;: (ip_addr_v4, ip_addr_v6)}</td>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">dict</td>
 </tr>
 </tbody>
 </table>
@@ -303,17 +119,52 @@ using multiple threads.</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><em>li</em> (list.) &#8211; iptables-save output</li>
-<li><em>hostname</em> (str.) &#8211; hostname (optional)</li>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>li</strong> (<em>list.</em>) &#8211; iptables-save output</li>
+<li><strong>hostname</strong> (<em>str.</em>) &#8211; hostname (optional)</li>
 </ul>
 </td>
 </tr>
-<tr class="field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">{&#8216;filter&#8217;: [rule, rule, ... ], &#8216;nat&#8217;: [] }</p>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">{&#8216;filter&#8217;: [rule, rule, ... ], &#8216;nat&#8217;: [] }</p>
 </td>
 </tr>
-<tr class="field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">dict of lists</p>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">dict of lists</p>
 </td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="flssh.SSHConnector.parse_ip_addr_show">
+<tt class="descname">parse_ip_addr_show</tt><big>(</big><em>s</em><big>)</big><a class="headerlink" href="#flssh.SSHConnector.parse_ip_addr_show" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse the output of &#8216;ip addr show&#8217; and returns a dict:</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>s</strong> (<em>list.</em>) &#8211; ip addr show output</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">{&#8216;iface&#8217;: (ip_addr_v4, ip_addr_v6)}</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="flssh.SSHConnector.deliver_confs">
+<tt class="descname">deliver_confs</tt><big>(</big><em>*args</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#flssh.SSHConnector.deliver_confs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Connects to firewalls and deliver the configuration
+using multiple threads.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>newconfs_d</strong> (<em>dict</em>) &#8211; configurations: {hostname: [rule, ... ], ... }</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">status</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">dict</td>
 </tr>
 </tbody>
 </table>
@@ -327,9 +178,9 @@ using multiple threads.</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field"><th class="field-name">Returns:</th><td class="field-body">status</td>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">status</td>
 </tr>
-<tr class="field"><th class="field-name">Return type:</th><td class="field-body">dict</td>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">dict</td>
 </tr>
 </tbody>
 </table>
@@ -345,21 +196,188 @@ and the previously saved configuration is loaded.</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field"><th class="field-name">Returns:</th><td class="field-body">status</td>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">status</td>
 </tr>
-<tr class="field"><th class="field-name">Return type:</th><td class="field-body">dict</td>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">dict</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="flssh.SSHConnector.cancel_auto_rollbacks">
+<tt class="descname">cancel_auto_rollbacks</tt><big>(</big><em>*args</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#flssh.SSHConnector.cancel_auto_rollbacks" title="Permalink to this definition">¶</a></dt>
+<dd><p>Kill the auto-rollback script running on the firewalls
+:return: status
+:rtype: dict</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="flssh.SSHConnector.apply_remote_confs">
+<tt class="descname">apply_remote_confs</tt><big>(</big><em>*args</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#flssh.SSHConnector.apply_remote_confs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load the deployed ruleset on the firewalls</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="flssh.SSHConnector.log_ping">
+<tt class="descname">log_ping</tt><big>(</big><em>*args</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#flssh.SSHConnector.log_ping" title="Permalink to this definition">¶</a></dt>
+<dd><p>Connect to the firewalls and log a &#8216;ping&#8217; message on syslog</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="flssh.MockSSHConnector">
+<em class="property">class </em><tt class="descclassname">flssh.</tt><tt class="descname">MockSSHConnector</tt><big>(</big><em>targets=None</em>, <em>username='firelet'</em>, <em>ssh_key_autoadd=True</em>, <em>password=None</em><big>)</big><a class="headerlink" href="#flssh.MockSSHConnector" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#flssh.SSHConnector" title="flssh.SSHConnector"><tt class="xref py py-class docutils literal"><span class="pre">flssh.SSHConnector</span></tt></a></p>
+<p>Used in Demo mode and during unit testing to prevent network interactions.
+Only some methods from SSHConnector are redefined.</p>
+<p>SSHConnector init</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>targets</strong> (<em>dict.</em>) &#8211; targets {hostname: [management ipaddr list ], ... }</li>
+<li><strong>username</strong> (<em>str.</em>) &#8211; SSH username (defaults to &#8216;firelet&#8217;)</li>
+<li><strong>ssh_key_autoadd</strong> (<em>bool.</em>) &#8211; ssh key autoadd (defaults to True)</li>
+<li><strong>password</strong> (<em>str.</em>) &#8211; SSH password, used only in assimilation (defaults to None)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="flssh.MockSSHConnector.apply_remote_confs">
+<tt class="descname">apply_remote_confs</tt><big>(</big><em>*args</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#flssh.MockSSHConnector.apply_remote_confs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load the deployed ruleset on the firewalls</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="flssh.MockSSHConnector.cancel_auto_rollbacks">
+<tt class="descname">cancel_auto_rollbacks</tt><big>(</big><em>*args</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#flssh.MockSSHConnector.cancel_auto_rollbacks" title="Permalink to this definition">¶</a></dt>
+<dd><p>Kill the auto-rollback script running on the firewalls
+:return: status
+:rtype: dict</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="flssh.MockSSHConnector.deliver_confs">
+<tt class="descname">deliver_confs</tt><big>(</big><em>*args</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#flssh.MockSSHConnector.deliver_confs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Connects to firewalls and deliver the configuration
+using multiple threads.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>newconfs_d</strong> (<em>dict</em>) &#8211; configurations: {hostname: [rule, ... ], ... }</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">status</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">dict</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="flssh.MockSSHConnector.get_confs">
+<tt class="descname">get_confs</tt><big>(</big><em>keep_sessions=False</em>, <em>logger=&lt;logging.Logger object at 0x9a04d8c&gt;</em><big>)</big><a class="headerlink" href="#flssh.MockSSHConnector.get_confs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Connects to the firewalls, get the configuration and</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">{ hostname: Bunch of &#8220;session, ip_addr, iptables-save,
+interfaces&#8221;, ... }</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">dict</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="flssh.MockSSHConnector.log_ping">
+<tt class="descname">log_ping</tt><big>(</big><em>*args</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#flssh.MockSSHConnector.log_ping" title="Permalink to this definition">¶</a></dt>
+<dd><p>Connect to the firewalls and log a &#8216;ping&#8217; message on syslog</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="flssh.MockSSHConnector.parse_ip_addr_show">
+<tt class="descname">parse_ip_addr_show</tt><big>(</big><em>s</em><big>)</big><a class="headerlink" href="#flssh.MockSSHConnector.parse_ip_addr_show" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse the output of &#8216;ip addr show&#8217; and returns a dict:</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>s</strong> (<em>list.</em>) &#8211; ip addr show output</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">{&#8216;iface&#8217;: (ip_addr_v4, ip_addr_v6)}</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="flssh.MockSSHConnector.parse_iptables_save">
+<tt class="descname">parse_iptables_save</tt><big>(</big><em>li</em>, <em>hostname=None</em><big>)</big><a class="headerlink" href="#flssh.MockSSHConnector.parse_iptables_save" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse iptables-save output and returns a dict:</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>li</strong> (<em>list.</em>) &#8211; iptables-save output</li>
+<li><strong>hostname</strong> (<em>str.</em>) &#8211; hostname (optional)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">{&#8216;filter&#8217;: [rule, rule, ... ], &#8216;nat&#8217;: [] }</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">dict of lists</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="flssh.MockSSHConnector.save_existing_confs">
+<tt class="descname">save_existing_confs</tt><big>(</big><em>*args</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#flssh.MockSSHConnector.save_existing_confs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run _save_existing_conf on the firewalls</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">status</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">dict</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="flssh.MockSSHConnector.setup_auto_rollbacks">
+<tt class="descname">setup_auto_rollbacks</tt><big>(</big><em>*args</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#flssh.MockSSHConnector.setup_auto_rollbacks" title="Permalink to this definition">¶</a></dt>
+<dd><p>Setup the auto-rollback script on the firewalls.
+Iptables-restore is ran automatically after a timeout,
+and the previously saved configuration is loaded.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">status</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">dict</td>
 </tr>
 </tbody>
 </table>
 </dd></dl>
 
 </dd></dl>
-
-<dl class="function">
-<dt id="flssh.timeit">
-<tt class="descclassname">flssh.</tt><tt class="descname">timeit</tt><big>(</big><em>method</em><big>)</big><a class="headerlink" href="#flssh.timeit" title="Permalink to this definition">¶</a></dt>
-<dd>Log function call and execution time
-Used for debugging</dd></dl>
 
 
 
@@ -368,24 +386,24 @@ Used for debugging</dd></dl>
       </div>
       <div class="sphinxsidebar">
         <div class="sphinxsidebarwrapper">
-            <h3>This Page</h3>
-            <ul class="this-page-menu">
-              <li><a href="_sources/flssh.txt"
-                     rel="nofollow">Show Source</a></li>
-            </ul>
-          <div id="searchbox" style="display: none">
-            <h3>Quick search</h3>
-              <form class="search" action="search.html" method="get">
-                <input type="text" name="q" size="18" />
-                <input type="submit" value="Go" />
-                <input type="hidden" name="check_keywords" value="yes" />
-                <input type="hidden" name="area" value="default" />
-              </form>
-              <p class="searchtip" style="font-size: 90%">
-              Enter search terms or a module, class or function name.
-              </p>
-          </div>
-          <script type="text/javascript">$('#searchbox').show(0);</script>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/flssh.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
         </div>
       </div>
       <div class="clearer"></div>
@@ -397,14 +415,14 @@ Used for debugging</dd></dl>
           <a href="genindex.html" title="General Index"
              >index</a></li>
         <li class="right" >
-          <a href="modindex.html" title="Global Module Index"
+          <a href="py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li><a href="index.html">Firelet</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">
-      &copy; Copyright 2011, Federico Ceratto.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 0.6.6.
+        &copy; Copyright 2011, Federico Ceratto.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
     </div>
   </body>
 </html>

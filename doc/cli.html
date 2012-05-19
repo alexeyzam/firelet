@@ -1,23 +1,29 @@
+
+
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title><no title> &mdash; Firelet source code</title>
+    <title>&lt;no title&gt; &mdash; Firelet source code</title>
+    
     <link rel="stylesheet" href="_static/default.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '',
         VERSION:     '0.4',
-        COLLAPSE_MODINDEX: false,
+        COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
       };
     </script>
     <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
     <link rel="top" title="Firelet source code" href="index.html" /> 
   </head>
@@ -29,8 +35,8 @@
           <a href="genindex.html" title="General Index"
              accesskey="I">index</a></li>
         <li class="right" >
-          <a href="modindex.html" title="Global Module Index"
-             accesskey="M">modules</a> |</li>
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
         <li><a href="index.html">Firelet</a> &raquo;</li> 
       </ul>
     </div>  
@@ -43,7 +49,26 @@
   <span class="target" id="module-cli"></span><dl class="function">
 <dt id="cli.cli_args">
 <tt class="descclassname">cli.</tt><tt class="descname">cli_args</tt><big>(</big><em>mockargs=None</em><big>)</big><a class="headerlink" href="#cli.cli_args" title="Permalink to this definition">¶</a></dt>
-<dd>Parse command line arguments</dd></dl>
+<dd><p>Parse command line arguments</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="cli.give_help">
+<tt class="descclassname">cli.</tt><tt class="descname">give_help</tt><big>(</big><big>)</big><a class="headerlink" href="#cli.give_help" title="Permalink to this definition">¶</a></dt>
+<dd><p>Print a help page</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="cli.help">
+<tt class="descclassname">cli.</tt><tt class="descname">help</tt><big>(</big><em>s=None</em><big>)</big><a class="headerlink" href="#cli.help" title="Permalink to this definition">¶</a></dt>
+<dd><p>Print help and exit</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="cli.to_int">
+<tt class="descclassname">cli.</tt><tt class="descname">to_int</tt><big>(</big><em>s</em><big>)</big><a class="headerlink" href="#cli.to_int" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert string to int, exit on failure</p>
+</dd></dl>
 
 <dl class="function">
 <dt id="cli.deletion">
@@ -51,44 +76,34 @@
 <dd></dd></dl>
 
 <dl class="function">
-<dt id="cli.give_help">
-<tt class="descclassname">cli.</tt><tt class="descname">give_help</tt><big>(</big><big>)</big><a class="headerlink" href="#cli.give_help" title="Permalink to this definition">¶</a></dt>
-<dd>Print a help page</dd></dl>
-
-<dl class="function">
-<dt id="cli.help">
-<tt class="descclassname">cli.</tt><tt class="descname">help</tt><big>(</big><em>s=None</em><big>)</big><a class="headerlink" href="#cli.help" title="Permalink to this definition">¶</a></dt>
-<dd>Print help and exit</dd></dl>
-
-<dl class="function">
-<dt id="cli.main">
-<tt class="descclassname">cli.</tt><tt class="descname">main</tt><big>(</big><em>mockargs=None</em><big>)</big><a class="headerlink" href="#cli.main" title="Permalink to this definition">¶</a></dt>
-<dd>Firelet command line interface</dd></dl>
-
-<dl class="function">
 <dt id="cli.max_len">
 <tt class="descclassname">cli.</tt><tt class="descname">max_len</tt><big>(</big><em>li</em><big>)</big><a class="headerlink" href="#cli.max_len" title="Permalink to this definition">¶</a></dt>
-<dd>Lenght of the longest item in a list</dd></dl>
-
-<dl class="function">
-<dt id="cli.open_fs">
-<tt class="descclassname">cli.</tt><tt class="descname">open_fs</tt><big>(</big><em>repodir</em><big>)</big><a class="headerlink" href="#cli.open_fs" title="Permalink to this definition">¶</a></dt>
-<dd>Open Git FireSet</dd></dl>
+<dd><p>Lenght of the longest item in a list</p>
+</dd></dl>
 
 <dl class="function">
 <dt id="cli.prettyprint">
 <tt class="descclassname">cli.</tt><tt class="descname">prettyprint</tt><big>(</big><em>li</em><big>)</big><a class="headerlink" href="#cli.prettyprint" title="Permalink to this definition">¶</a></dt>
-<dd>Pretty-print a list of dicts a table</dd></dl>
+<dd><p>Pretty-print a list of dicts a table</p>
+</dd></dl>
 
 <dl class="function">
 <dt id="cli.say">
 <tt class="descclassname">cli.</tt><tt class="descname">say</tt><big>(</big><em>s</em><big>)</big><a class="headerlink" href="#cli.say" title="Permalink to this definition">¶</a></dt>
-<dd>Print to stdout</dd></dl>
+<dd><p>Print to stdout</p>
+</dd></dl>
 
 <dl class="function">
-<dt id="cli.to_int">
-<tt class="descclassname">cli.</tt><tt class="descname">to_int</tt><big>(</big><em>s</em><big>)</big><a class="headerlink" href="#cli.to_int" title="Permalink to this definition">¶</a></dt>
-<dd>Convert string to int, exit on failure</dd></dl>
+<dt id="cli.open_fs">
+<tt class="descclassname">cli.</tt><tt class="descname">open_fs</tt><big>(</big><em>repodir</em><big>)</big><a class="headerlink" href="#cli.open_fs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Open Git FireSet</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="cli.main">
+<tt class="descclassname">cli.</tt><tt class="descname">main</tt><big>(</big><em>mockargs=None</em><big>)</big><a class="headerlink" href="#cli.main" title="Permalink to this definition">¶</a></dt>
+<dd><p>Firelet command line interface</p>
+</dd></dl>
 
 
 
@@ -97,24 +112,24 @@
       </div>
       <div class="sphinxsidebar">
         <div class="sphinxsidebarwrapper">
-            <h3>This Page</h3>
-            <ul class="this-page-menu">
-              <li><a href="_sources/cli.txt"
-                     rel="nofollow">Show Source</a></li>
-            </ul>
-          <div id="searchbox" style="display: none">
-            <h3>Quick search</h3>
-              <form class="search" action="search.html" method="get">
-                <input type="text" name="q" size="18" />
-                <input type="submit" value="Go" />
-                <input type="hidden" name="check_keywords" value="yes" />
-                <input type="hidden" name="area" value="default" />
-              </form>
-              <p class="searchtip" style="font-size: 90%">
-              Enter search terms or a module, class or function name.
-              </p>
-          </div>
-          <script type="text/javascript">$('#searchbox').show(0);</script>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/cli.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
         </div>
       </div>
       <div class="clearer"></div>
@@ -126,14 +141,14 @@
           <a href="genindex.html" title="General Index"
              >index</a></li>
         <li class="right" >
-          <a href="modindex.html" title="Global Module Index"
+          <a href="py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li><a href="index.html">Firelet</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">
-      &copy; Copyright 2011, Federico Ceratto.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 0.6.6.
+        &copy; Copyright 2011, Federico Ceratto.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
     </div>
   </body>
 </html>
