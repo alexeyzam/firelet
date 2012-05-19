@@ -4,13 +4,12 @@ from setuptools import setup
 from firelet.flcore import __version__
 
 CLASSIFIERS = map(str.strip,
-"""
-Environment :: Console
-License :: OSI Approved :: GNU General Public License (GPL)
-Natural Language :: English
+"""Environment :: Console
+Environment :: Web Environment
+License :: OSI Approved :: GNU General Public License v3 (GPLv3)
 Operating System :: POSIX :: Linux
 Programming Language :: Python
-Topic :: Internet :: WWW/HTTP :: WSGI
+Topic :: Security
 """.splitlines())
 
 setup(
