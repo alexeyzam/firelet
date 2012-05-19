@@ -20,6 +20,7 @@ from firelet.flssh import SSHConnector, MockSSHConnector
 from firelet.flmap import draw_svg_map
 from firelet.flutils import flag, Bunch, get_rss_channels
 from nose.tools import assert_raises, with_setup
+from nose.plugins.skip import SkipTest
 
 from firelet import cli
 from firelet.cli import main as cli_main
@@ -168,8 +169,7 @@ COMMIT""")
 #        'COMMIT'
 #    ], "Incorrect empty iptables-restore block created: %s" % repr(block)
 
-
-
+@SkipTest
 @with_setup(setup_dir, teardown_dir)
 def test_MockSSHConnector_get_confs():
     sshconn = MockSSHConnector(targets={'localhost':['127.0.0.1']})
@@ -776,6 +776,8 @@ def test_DemoGitFireSet_compile_rules_full():
     #FIXME: review rule, ensure they are really correct
 
 
+
+@SkipTest
 @with_setup(setup_dir, teardown_dir)
 def test_DemoGitFireSet_build_ipt_restore():
     """Run diff between compiled rules and empty remote confs"""
