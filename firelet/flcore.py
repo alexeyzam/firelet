@@ -411,9 +411,13 @@ class Rules(SmartTable):
         """Load ruleset from file
         """
         li = readcsv('rules', self._dir)
-        self._list = [Rule(enabled=r[0], name=r[1], src=r[2], src_serv=r[3],
-            dst=r[4], dst_serv=r[5], action=r[6], log_level=r[7], desc=r[8])
-            for r in li]
+        self._list = []
+        for r in li:
+            desc = r[8] if len(r) > 8 else ''
+            rule = Rule(enabled=r[0], name=r[1], src=r[2],
+                src_serv=r[3], dst=r[4], dst_serv=r[5], action=r[6],
+                log_level=r[7], desc=desc)
+            self._list.append(rule)
 
     def save(self):
         """Save the ruleset"""
@@ -867,7 +871,7 @@ class FireSet(object):
             ssh_key_autoadd=ssh_key_autoadd
         )
         log.debug("Running SSH.")
-        self._remote_confs = sx.get_confs()
+        self._remote_confs = sx.get_confs(logger=log)
         if keep_sessions:
             return sx
         sx._disconnect()
