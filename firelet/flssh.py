@@ -25,6 +25,7 @@ from flutils import Bunch
 
 log = logging.getLogger(__name__)
 
+
 def timeit(method):
     """Log function call and execution time
     Used for debugging
@@ -45,7 +46,6 @@ def timeit(method):
         return result
     timed.__doc__ = method.__doc__
     return timed
-
 
 
 class Forker(object):
@@ -108,11 +108,8 @@ class SSHConnector(object):
         assert isinstance(targets, dict), "targets must be a dict"
         self._username = username
         self._ssh_key_autoadd = ssh_key_autoadd
-        #FIXME: logging level for paramiko
-#        paramiko_logger = paramiko.util.logging.getLogger()
-#        paramiko_logger.setLevel(logging.WARN)
-#        log = logging.getLogger()
-#        log.setLevel(logging.DEBUG)
+        # limit paramiko logging verbosity
+        logging.getLogger('paramiko').setLevel(logging.WARN)
 
     def _connect_one(self, hostname, addrs):
         """Connect to a firewall
@@ -122,6 +119,7 @@ class SSHConnector(object):
 
         c = paramiko.SSHClient()
         c.load_system_host_keys()
+
         #TODO: test ssh_key_autoadd configuration parameter
         if self._ssh_key_autoadd:
             c.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -165,7 +163,7 @@ class SSHConnector(object):
         Forker(self._connect_one, args)
         missing = len(self._targets) - len(self._pool)
         if missing:
-            print "missing", missing
+            log.error("Unable to connect to %d firewalls." % missing)
         return unreachables
 
 
@@ -189,10 +187,15 @@ class SSHConnector(object):
     #TODO: refactor the use of _connect_one
     # do we have to connect to every firewall every time we run _execute? no
 
-    @timeit
+    #@timeit
     def _execute(self, hostname, cmd, get_output=True):
         """Execute remote command"""
         self._connect()
+        if hostname not in self._pool:
+            log.error("Unable to connect to %s" % hostname)
+            self._pool_status[hostname] = "Unable to connect"
+            return
+
 #        if hostname not in self._pool:
 #            log.info("Setting up connection to %s" % hostname)
 #            ip_addrs = self._targets[hostname]
@@ -202,10 +205,6 @@ class SSHConnector(object):
         c = self._pool[hostname]
         self._pool_status[hostname] = ''
         assert not isinstance(c, str), repr(c)
-
-        if hostname not in self._pool:
-            log.info("Not connected to %s" % hostname)
-            return
 
         if get_output:
             try:
@@ -226,39 +225,51 @@ class SSHConnector(object):
         """Connect to a firewall and get its configuration.
             Save the output in a dict inside the shared dict "confs"
         """
+        log.debug("[%s] Getting conf from" % hostname)
         self._execute(hostname, 'logger -t firelet "Fetching existing configuration %s"' % hostname)
         iptables_save = self._execute(hostname, 'sudo /sbin/iptables-save')
+        log.debug("[%s] Received IPT save : %s" % (hostname, repr(iptables_save)))
         ip_addr_show = self._execute(hostname, '/bin/ip addr show')
         #log.debug("iptables save on %s: %s..." % (hostname, repr(iptables_save)[:130]))
         confs[hostname] = (iptables_save, ip_addr_show)
 
-    @timeit
+    #@timeit
     def get_confs(self, keep_sessions=False, logger=log):
         """Connects to the firewalls, get the configuration and
 
-        :return: { hostname: Bunch of "session, ip_addr, iptables-save, interfaces", ... }
+        :return: { hostname: Bunch of "session, ip_addr, iptables-save,
+         interfaces", ... }
         :rtype: dict
         """
         self._connect()
         confs = {} # used by the threads to return the confs
         threads = []
 
+        self.log = logger
         args = [(confs, hn, 'firelet') for hn in self._targets ]
         Forker(self._get_conf, args, logger=logger)
 
         # parse the configurations
+        log.debug("Parsing configurations")
         for hostname in self._targets:
             if hostname not in confs:
-                raise Exception, "No configuration received from %s" % hostname
+                raise Exception, "No configuration received from %s" % \
+                    hostname
             iptables_save, ip_addr_show = confs[hostname]
+            if iptables_save is None:
+                raise Exception, "No configuration received from %s" % \
+                    hostname
             log.debug("iptables_save:" + repr(iptables_save))
-            iptables_p = self.parse_iptables_save(iptables_save, hostname=hostname)
-            #FIXME: iptables-save can be very slow when a firewall cannot resolve localhost
+            iptables_p = self.parse_iptables_save(iptables_save,
+                hostname=hostname)
+            #TODO: iptables-save can be very slow when a firewall cannot
+            # resolve localhost - add a warning?
             #log.debug("iptables_p %s" % repr(iptables_p))
             ip_a_s_p = self.parse_ip_addr_show(ip_addr_show)
             d = Bunch(iptables=iptables_p, ip_a_s=ip_a_s_p)
             confs[hostname] = d
-        #FIXME: if a host returns unexpected output i.e. missing sudo it should be logged
+        #FIXME: if a host returns unexpected output i.e. missing sudo it
+        # should be logged
 
         return confs
 
@@ -301,7 +312,7 @@ class SSHConnector(object):
         COMMIT
         # Completed on Sun Feb 20 15:17:57 2011
         """
-        
+
         def _rules(x):
             """Extract rules, ignore comments and anything else"""
             return x.startswith(('-A PREROUTING', '-A POSTROUTING',
@@ -347,7 +358,7 @@ class SSHConnector(object):
 
     def parse_ip_addr_show(self, s):
         """Parse the output of 'ip addr show' and returns a dict:
-        
+
         :param s: ip addr show output
         :type s: list.
         :rtype: {'iface': (ip_addr_v4, ip_addr_v6)}
@@ -393,7 +404,7 @@ class SSHConnector(object):
     def deliver_confs(self, newconfs_d):
         """Connects to firewalls and deliver the configuration
         using multiple threads.
-        
+
         :arg newconfs_d: configurations: {hostname: [rule, ... ], ... }
         :type newconfs_d: dict
         :returns: status
@@ -427,7 +438,7 @@ class SSHConnector(object):
     @timeit
     def save_existing_confs(self, keep_sessions=False):
         """Run _save_existing_conf on the firewalls
-        
+
         :return: status
         :rtype: dict
         """
@@ -458,7 +469,7 @@ class SSHConnector(object):
         """Setup the auto-rollback script on the firewalls.
         Iptables-restore is ran automatically after a timeout,
         and the previously saved configuration is loaded.
-        
+
         :return: status
         :rtype: dict
         """
