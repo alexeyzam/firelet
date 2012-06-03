@@ -25,6 +25,10 @@ python setup.py sdist
 # binary tar.gz
 python setup.py bdist --formats=gztar,rpm
 
+if ask "Upload to pypi"; then
+    python setup.py sdist upload -i C6856512 -s
+fi
+
 # Debian packaging
 if ask "Perform Debian packaging"; then
     cp dist/firelet-"$V".tar.gz ../packaging/tarballs/firelet_"$V".orig.tar.gz
