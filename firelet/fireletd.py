@@ -148,7 +148,6 @@ def pg_list(name, default=''):
     """Retrieve a serialized (comma-separated) list from a POST request.
     Duplicated and empty elements are removed
     """
-    # FIXME: a hostgroup containing hundreds of hosts may exceed POST size
     s = request.POST.get(name, default)
     li = clean(s).strip().split(',')
     item_set = set(li)
@@ -827,7 +826,7 @@ def main():
     #app = bottle.default_app()
     app = SessionMiddleware(app, session_opts)
 
-    #TODO: make HTTP server configurable, default to auto
+    logging.getLogger('paste.httpserver.ThreadPool').setLevel(logging.WARN)
     try:
         run(
             app=app,
