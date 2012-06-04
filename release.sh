@@ -5,9 +5,11 @@ set -u
 
 PACKAGING_DIR=~/projects/packaging/firelet
 PACKAGING_OUT_DIR=~/projects/packaging/build-area
+CHANGELOG_FILE=CHANGELOG.txt
 
 function ask() {
-    echo -ne "\n$1 [y/N]? "; read ANS
+    echo
+    read -p "$1 [y/N]? " ANS;
     [[ $ANS == "y" ]] && return 0;
     return 1;
 }
@@ -15,7 +17,19 @@ function ask() {
 # Extract version
 V=$(python -c 'from firelet.flcore import __version__ as v; print v')
 
+# Changelog line
+read -p "Changelog message: " CHLOG
+
 if ! ask "release v. $V"; then exit; fi
+
+echo "v$V $(date +%Y-%m-%d)" > "$CHANGELOG_FILE.tmp"
+echo " * $CHLOG" >> "$CHANGELOG_FILE.tmp"
+cat "$CHANGELOG_FILE" >> "$CHANGELOG_FILE.tmp"
+mv -f "$CHANGELOG_FILE.tmp" "$CHANGELOG_FILE"
+
+git commit $CHANGELOG_FILE -m "Release v. $V"
+
+git tag -a v$V -m "Release $V"
 
 # Based on the __version__ value in flcore.py , build:
 #tar.gz source:

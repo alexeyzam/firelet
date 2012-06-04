@@ -24,7 +24,7 @@ setup(
     classifiers=CLASSIFIERS,
     install_requires = [
         'bottle',
-        'netaddr'
+        'netaddr',
         'paramiko',
     ],
     packages = ["firelet"],
