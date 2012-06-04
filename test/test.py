@@ -1204,6 +1204,29 @@ def test_DemoGitFireSet_rules_update():
     )
     fs.rules.update(d, rid=0)
 
+# fs.rules.add() testing
+
+@with_setup(setup_dir, teardown_dir)
+def test_DemoGitFireSet_rules_add():
+    fs = DemoGitFireSet(repodir=testingutils.repodir)
+    d = dict(
+        action='',
+        desc='desc_foo',
+        dst='',
+        dst_serv='',
+        enabled='',
+        log_level='',
+        name='Rule0',
+        src='',
+        src_serv='',
+    )
+    fs.rules.add(d, rid=0)
+
+@with_setup(setup_dir, teardown_dir)
+def test_DemoGitFireSet_rules_add_empty():
+    fs = DemoGitFireSet(repodir=testingutils.repodir)
+    fs.rules.add({}, rid=0)
+
 
 # #  IP address handling  # #
 
