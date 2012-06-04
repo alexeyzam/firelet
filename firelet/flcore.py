@@ -265,9 +265,9 @@ class HostGroup(Bunch):
             assert isinstance(o, str), repr(o)
             if o in host_by_name:
                 return host_by_name[o]
-            elif o in net_by_name:
+            elif o in net_by_name: # pragma: no cover
                 return net_by_name[o]
-            else:
+            else: # pragma: no cover
                 raise Exception,  "%s is not in %s or %s" % \
                     (o, repr(host_by_name), repr(net_by_name))
 
@@ -322,7 +322,7 @@ class Service(Bunch):
 
 class Table(list):
     """A list with pretty-print methods"""
-    def __str__(self):
+    def __str__(self): # pragma: no cover
         cols = zip(*self)
         cols_sizes = [(max(map(len, i))) for i in cols] # get the widest entry for each column
 
@@ -332,7 +332,7 @@ class Table(list):
 class SmartTable(object):
     """A list of Bunch instances. Each subclass is responsible to load and save files."""
     def __init__(self, d):
-        self._dir = d
+        raise NotImplementedError
 
     def __repr__(self):
         return repr(self._list)
@@ -412,8 +412,7 @@ class Rules(SmartTable):
             self.save()
         except Exception, e:
             log.debug("Error in rules.moveup: %s" % e)
-            raise Alert
-            #            say("Cannot move rule %d up." % rid)
+            raise Alert("Cannot move rule %d up." % rid)
 
     def movedown(self, rid):
         """Move a rule down"""
@@ -423,8 +422,7 @@ class Rules(SmartTable):
             self._list = rules[:]
             self.save()
         except Exception, e:
-            #            say("Cannot move rule %d down." % rid)
-            raise Alert
+            raise Alert("Cannot move rule %d down." % rid)
 
     def disable(self, rid):
         """Disable a rule
@@ -465,7 +463,7 @@ class Rules(SmartTable):
         rule.update(d)
         self.save()
 
-    def add(self, d, rid=0): #TODO: unit testing
+    def add(self, d, rid=0):
         """Add a new item based on a dict of fields"""
         assert isinstance(rid, int)
         assert isinstance(d, dict)
@@ -499,7 +497,7 @@ class Hosts(SmartTable):
         li = [[x.hostname, x.iface, x.ip_addr, x.masklen, x.local_fw, x.network_fw, x.mng] + x.routed for x in self._list]
         savecsv('hosts', li, self._dir)
 
-    def add(self, f): #TODO: unit testing
+    def add(self, f):
         """Add a new item based on a dict of fields"""
         names = ["%s:%s" % (x.hostname, x.iface) for x in self._list]
         me = "%s:%s" % (f['hostname'], f['iface'])
@@ -507,15 +505,6 @@ class Hosts(SmartTable):
         li = [f[x] for x in ('hostname', 'iface', 'ip_addr', 'masklen', 'local_fw', 'network_fw', 'mng', 'routed')]
         self._list.append(Host(li))
         self.save()
-
-#        self.hostname=r[0]
-#        self.iface=r[1]
-#        self.ip_addr=r[2]
-#        self.masklen=r[3]
-#        self.local_fw=r[4]
-#        self.network_fw=r[5]
-#        self.mng=r[6]
-#        self.routed=r[7]
 
 
 class HostGroups(SmartTable):
@@ -537,7 +526,7 @@ class HostGroups(SmartTable):
         li = [[x.name] + x.childs for x in self._list]
         savecsv('hostgroups', li, self._dir)
 
-    def add(self, f): #TODO: unit testing
+    def add(self, f):
         """Add a new hostgroup based and saves to disk.
 
         :param f: New hg's fields
@@ -613,7 +602,7 @@ class Networks(SmartTable):
         li = [[x.name, x.ip_addr, x.masklen] for x in self._list]
         savecsv('networks', li, self._dir)
 
-    def add(self, f): #TODO: unit testing
+    def add(self, f):
         """Add a new item based on a dict of fields"""
         names = [x.name for x in self._list]
         assert f['name'] not in names, "Network '%s' already defined" % f['name']
@@ -638,13 +627,14 @@ class Services(SmartTable):
         li = [[x.name, x.protocol, x.ports] for x in self._list]
         savecsv('services', li, self._dir)
 
-    def add(self, f): #TODO: unit testing
+    def add(self, f):
         """Add a new item based on a dict of fields"""
         d = extract_all(f, ('name', 'protocol', 'ports'))
         names = [x.name for x in self._list]
         assert d['name'] not in names, "Service '%s' already defined" % d['name']
         self._list.append(Service(**d))
         self.save()
+
 
 # CSV files
 

@@ -1319,6 +1319,50 @@ def test_DemoGitFireSet_hostgroups_update_missing():
     d = dict(name='foo', childs=[])
     fs.hostgroups.update(d, rid=1000)
 
+# fs.networks.add() testing
+
+@with_setup(setup_dir, teardown_dir)
+def test_DemoGitFireSet_networks_add():
+    fs = DemoGitFireSet(repodir=testingutils.repodir)
+    d = dict(
+        name='',
+        ip_addr='1.2.0.0',
+        masklen=16,
+    )
+    fs.networks.add(d)
+
+@raises(AssertionError)
+@with_setup(setup_dir, teardown_dir)
+def test_DemoGitFireSet_networks_add_duplicate():
+    fs = DemoGitFireSet(repodir=testingutils.repodir)
+    d = dict(
+        name='Internet',
+        ip_addr='1.2.0.0',
+        masklen=16,
+    )
+    fs.networks.add(d)
+
+@raises(Exception)
+@with_setup(setup_dir, teardown_dir)
+def test_DemoGitFireSet_networks_add_incorrect_ipaddr():
+    fs = DemoGitFireSet(repodir=testingutils.repodir)
+    d = dict(
+        name='',
+        ip_addr='foo',
+        masklen=16,
+    )
+    fs.networks.add(d)
+
+@raises(Exception)
+@with_setup(setup_dir, teardown_dir)
+def test_DemoGitFireSet_networks_add_incorrect_netmask():
+    fs = DemoGitFireSet(repodir=testingutils.repodir)
+    d = dict(
+        name='',
+        ip_addr='1.2.0.0',
+        masklen='foo',
+    )
+    fs.networks.add(d)
 
 
 # #  IP address handling  # #
