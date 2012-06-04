@@ -1149,6 +1149,12 @@ def test_DemoGitFireSet_service_update_tcp():
     fs.services.update(dict(protocol='TCP', ports='8888', name='HTTP'), rid=0)
     assert fs.services[0].ports == '8888'
 
+@with_setup(setup_dir, teardown_dir)
+def test_DemoGitFireSet_service_update_ip():
+    fs = DemoGitFireSet(repodir=testingutils.repodir)
+    fs.services.update(dict(protocol='IP', ports='', name='IP'), rid=0)
+    assert fs.services[0].ports == ''
+
 @raises(Alert)
 @with_setup(setup_dir, teardown_dir)
 def test_DemoGitFireSet_service_update_incorrect_icmp_type():
@@ -1226,6 +1232,93 @@ def test_DemoGitFireSet_rules_add():
 def test_DemoGitFireSet_rules_add_empty():
     fs = DemoGitFireSet(repodir=testingutils.repodir)
     fs.rules.add({}, rid=0)
+
+@raises(Alert)
+@with_setup(setup_dir, teardown_dir)
+def test_DemoGitFireSet_rules_add_duplicate():
+    fs = DemoGitFireSet(repodir=testingutils.repodir)
+    d = dict(
+        action='',
+        desc='desc_foo',
+        dst='',
+        dst_serv='',
+        enabled='',
+        log_level='',
+        name='ssh_all', # duplicate
+        src='',
+        src_serv='',
+    )
+    fs.rules.add(d, rid=0)
+
+# fs.hosts.add() testing
+
+@with_setup(setup_dir, teardown_dir)
+def test_DemoGitFireSet_hosts_add():
+    fs = DemoGitFireSet(repodir=testingutils.repodir)
+    d = dict(
+        hostname='',
+        iface='',
+        ip_addr='',
+        masklen='',
+        local_fw='',
+        network_fw='',
+        mng=[],
+        routed=[],
+    )
+    fs.hosts.add(d)
+
+@raises(AssertionError)
+@with_setup(setup_dir, teardown_dir)
+def test_DemoGitFireSet_hosts_add_duplicate():
+    fs = DemoGitFireSet(repodir=testingutils.repodir)
+    d = dict(
+        hostname='InternalFW',
+        iface='eth0',
+        ip_addr='',
+        masklen='',
+        local_fw='',
+        network_fw='',
+        mng=[],
+        routed=[],
+    )
+    fs.hosts.add(d)
+
+# fs.hostgroups.add() testing
+
+@with_setup(setup_dir, teardown_dir)
+def test_DemoGitFireSet_hostgroups_add():
+    fs = DemoGitFireSet(repodir=testingutils.repodir)
+    d = dict(
+        name='',
+        childs=[],
+    )
+    fs.hostgroups.add(d)
+
+@raises(AssertionError)
+@with_setup(setup_dir, teardown_dir)
+def test_DemoGitFireSet_hostgroups_add_duplicate():
+    fs = DemoGitFireSet(repodir=testingutils.repodir)
+    d = dict(
+        name='AllSystems',
+        childs=[],
+    )
+    fs.hostgroups.add(d)
+
+# fs.hostgroups.update() testing
+
+@with_setup(setup_dir, teardown_dir)
+def test_DemoGitFireSet_hostgroups_update():
+    fs = DemoGitFireSet(repodir=testingutils.repodir)
+    d = dict(name='foo', childs=[])
+    fs.hostgroups.update(d, rid=0)
+
+@raises(Alert)
+@with_setup(setup_dir, teardown_dir)
+def test_DemoGitFireSet_hostgroups_update_missing():
+    fs = DemoGitFireSet(repodir=testingutils.repodir)
+    d = dict(name='foo', childs=[])
+    fs.hostgroups.update(d, rid=1000)
+
 
 
 # #  IP address handling  # #
