@@ -1174,6 +1174,19 @@ def test_DemoGitFireSet_service_update_icmp():
     assert fs.services[0].ports == '8'
     assert fs.services[0].name == 'NewName'
 
+# fs.services.update() testing
+
+@with_setup(setup_dir, teardown_dir)
+def test_DemoGitFireSet_service_add():
+    fs = DemoGitFireSet(repodir=testingutils.repodir)
+    fs.services.add(dict(protocol='ICMP', ports='8', name='NewName'))
+
+@raises(AssertionError)
+@with_setup(setup_dir, teardown_dir)
+def test_DemoGitFireSet_service_add_duplicate():
+    fs = DemoGitFireSet(repodir=testingutils.repodir)
+    fs.services.add(dict(protocol='ICMP', ports='8', name='HTTP'))
+
 # fs.rules.update() testing
 
 @raises(AssertionError)
