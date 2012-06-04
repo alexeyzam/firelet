@@ -1117,21 +1117,7 @@ def test_DemoGitFireSet_deploy_then_check():
 #    assert d['localhost']
 #    assert d == {'localhost': [None, '127.0.0.1', {'filter': '-A INPUT -s 10.0.0.0/8 -p tcp -m tcp --dport 80 -j ACCEPT\n-A FORWARD -s 1.2.3.4/32 -d 5.6.7.8/32 -p tcp -m multiport --dports 22,80,443 -j ACCEPT\n-A OUTPUT -d 10.10.10.10/32 -p udp -m udp --dport 123 -j ACCEPT', 'nat': '-A POSTROUTING -o eth3 -j MASQUERADE'}, {'lo': ('127.0.0.1/8', '::1/128'), 'teredo': (None, 'fe80::ffff:ffff:ffff/64'), 'wlan0': ('192.168.1.1/24', 'fe80::219:d2ff:fe26:fb8e/64'), 'eth0': (None, None)}]}
 
-
-
-@with_setup(setup_dir, teardown_dir)
-def test_DemoGitFireSet_service_update():
-    fs = DemoGitFireSet(repodir=testingutils.repodir)
-    assert fs.services[0].protocol == 'TCP', fs.services[0].ports == '443'
-    [{'protocol': 'TCP', 'ports': '443', 'name': 'HTTPS'},
-        {'protocol': 'TCP', 'ports': '80', 'name': 'HTTP'}, {'protocol': 'TCP',
-        'ports': '6660:6669', 'name': 'IRC'}, {'protocol': 'UDP', 'ports': '161',
-        'name': 'SNMP'}, {'protocol': 'TCP', 'ports': '22', 'name': 'SSH'},
-        {'protocol': 'UDP', 'ports': '123', 'name': 'NTP'}, {'protocol': 'TCP',
-        'ports': '143,585,993', 'name': 'EveryIMAP'}]
-    return
-    print repr(fs.services[0])
-    assert False, repr(fs.services)
+# fs.services.update() testing
 
 @raises(AssertionError)
 @with_setup(setup_dir, teardown_dir)
@@ -1181,6 +1167,42 @@ def test_DemoGitFireSet_service_update_icmp():
     fs.services.update(dict(protocol='ICMP', ports='8', name='NewName'), rid=0)
     assert fs.services[0].ports == '8'
     assert fs.services[0].name == 'NewName'
+
+# fs.rules.update() testing
+
+@raises(AssertionError)
+@with_setup(setup_dir, teardown_dir)
+def test_DemoGitFireSet_rules_update_missing_rid():
+    fs = DemoGitFireSet(repodir=testingutils.repodir)
+    fs.rules.update({})
+
+@raises(Alert)
+@with_setup(setup_dir, teardown_dir)
+def test_DemoGitFireSet_rules_update_missing_rule():
+    fs = DemoGitFireSet(repodir=testingutils.repodir)
+    fs.rules.update({}, rid=1000)
+
+@raises(KeyError)
+@with_setup(setup_dir, teardown_dir)
+def test_DemoGitFireSet_rules_update_missing_param():
+    fs = DemoGitFireSet(repodir=testingutils.repodir)
+    fs.rules.update({}, rid=0)
+
+@with_setup(setup_dir, teardown_dir)
+def test_DemoGitFireSet_rules_update():
+    fs = DemoGitFireSet(repodir=testingutils.repodir)
+    d = dict(
+        action='',
+        desc='desc_foo',
+        dst='',
+        dst_serv='',
+        enabled='',
+        log_level='',
+        name='Rule0',
+        src='',
+        src_serv='',
+    )
+    fs.rules.update(d, rid=0)
 
 
 # #  IP address handling  # #
