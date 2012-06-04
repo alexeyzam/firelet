@@ -24,7 +24,8 @@ setup(
     classifiers=CLASSIFIERS,
     install_requires = [
         'bottle',
-        'pygraphviz',
+        'netaddr'
+        'paramiko',
     ],
     packages = ["firelet"],
     platforms=['Linux'],

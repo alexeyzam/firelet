@@ -1,4 +1,8 @@
-from pygraphviz import AGraph,  Edge,  Node
+try:
+    from pygraphviz import AGraph,  Edge,  Node
+    graphviz_available = True
+except ImportError:
+    graphviz_available = False
 
 def _drawmap(fs, rulename=None):
     """Draw a map of the firewalls and their connections based on their interfaces.
@@ -43,10 +47,14 @@ def _drawmap(fs, rulename=None):
 
 
 def draw_png_map(fs, rulename=None):
+    if not graphviz_available:
+        return None
     A = _drawmap(fs, rulename)
     return A.draw(format='png')
 
 def draw_svg_map(fs, rulename=None):
+    if not graphviz_available:
+        return None
     A = _drawmap(fs, rulename)
     return A.draw(format='svg')
 

@@ -1,0 +1,35 @@
+
+
+
+creator=Federico Ceratto <federico.ceratto@gmail.com>
+
+
+
+
+
+
+severity=minor
+
+
+
+
+
+
+status=open
+
+
+
+
+
+
+summary=failed _require() raises an exception instead of redirecting the user
+
+
+
+
+
+
+time=Sun, 03 Jun 2012 18:14:19 +0000
+
+
+

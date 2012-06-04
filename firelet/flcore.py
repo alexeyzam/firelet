@@ -31,7 +31,7 @@ from time import time
 from flssh import SSHConnector, MockSSHConnector
 from flutils import Alert, Bunch, flag, extract_all
 
-__version__ = '0.5.0a1'
+__version__ = '0.5.0a2'
 
 from logging import getLogger
 log = getLogger(__name__)
