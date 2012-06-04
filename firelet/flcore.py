@@ -316,28 +316,6 @@ class Service(Bunch):
         super(Service, self).update(d)
 
 
-class NetworkObjTable(object):
-    """Contains a set of hosts or networks or hostgroups.
-    They are stored as self._objdict where the key is the object name
-    """
-    def __init__(self):
-        raise NotImplementedError
-
-    def __str__(self):
-        """Pretty-print as a table"""
-        cols = zip(*self)
-        # get the widest entry for each column
-        cols_sizes = [(max(map(len, i))) for i in cols]
-
-    def len(self):
-        return len(self._objdict())
-
-    def get(self, id=None, name=None):
-        if name:
-            return self._objdict[name]
-        if id:
-            return self._objdict.values()[id]
-
 
 
 #files handling
