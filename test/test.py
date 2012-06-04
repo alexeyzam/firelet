@@ -19,7 +19,7 @@ from firelet.flcore import *
 from firelet.flssh import SSHConnector, MockSSHConnector
 from firelet.flmap import draw_svg_map
 from firelet.flutils import flag, Bunch, get_rss_channels
-from nose.tools import assert_raises, with_setup
+from nose.tools import assert_raises, with_setup, raises
 from nose.plugins.skip import SkipTest
 
 from firelet import cli
@@ -1119,10 +1119,71 @@ def test_DemoGitFireSet_deploy_then_check():
 
 
 
+@with_setup(setup_dir, teardown_dir)
+def test_DemoGitFireSet_service_update():
+    fs = DemoGitFireSet(repodir=testingutils.repodir)
+    assert fs.services[0].protocol == 'TCP', fs.services[0].ports == '443'
+    [{'protocol': 'TCP', 'ports': '443', 'name': 'HTTPS'},
+        {'protocol': 'TCP', 'ports': '80', 'name': 'HTTP'}, {'protocol': 'TCP',
+        'ports': '6660:6669', 'name': 'IRC'}, {'protocol': 'UDP', 'ports': '161',
+        'name': 'SNMP'}, {'protocol': 'TCP', 'ports': '22', 'name': 'SSH'},
+        {'protocol': 'UDP', 'ports': '123', 'name': 'NTP'}, {'protocol': 'TCP',
+        'ports': '143,585,993', 'name': 'EveryIMAP'}]
+    return
+    print repr(fs.services[0])
+    assert False, repr(fs.services)
+
+@raises(AssertionError)
+@with_setup(setup_dir, teardown_dir)
+def test_DemoGitFireSet_service_update_error1():
+    fs = DemoGitFireSet(repodir=testingutils.repodir)
+    fs.services.update({})
+
+@raises(Alert)
+@with_setup(setup_dir, teardown_dir)
+def test_DemoGitFireSet_service_update_incorrect_tcp_ports():
+    fs = DemoGitFireSet(repodir=testingutils.repodir)
+    fs.services.update(dict(protocol='TCP', ports='foo,foo'), rid=0)
+
+@raises(Alert)
+@with_setup(setup_dir, teardown_dir)
+def test_DemoGitFireSet_service_update_missing_tcp_ports():
+    fs = DemoGitFireSet(repodir=testingutils.repodir)
+    fs.services.update(dict(protocol='TCP', ports=','), rid=0)
+
+@raises(AssertionError)
+@with_setup(setup_dir, teardown_dir)
+def test_DemoGitFireSet_service_update_reversed_tcp_ports():
+    fs = DemoGitFireSet(repodir=testingutils.repodir)
+    fs.services.update(dict(protocol='TCP', ports='10:1'), rid=0)
+
+@with_setup(setup_dir, teardown_dir)
+def test_DemoGitFireSet_service_update_tcp():
+    fs = DemoGitFireSet(repodir=testingutils.repodir)
+    fs.services.update(dict(protocol='TCP', ports='8888', name='HTTP'), rid=0)
+    assert fs.services[0].ports == '8888'
+
+@raises(Alert)
+@with_setup(setup_dir, teardown_dir)
+def test_DemoGitFireSet_service_update_incorrect_icmp_type():
+    fs = DemoGitFireSet(repodir=testingutils.repodir)
+    fs.services.update(dict(protocol='ICMP', ports='foo'), rid=0)
+
+@raises(Alert)
+@with_setup(setup_dir, teardown_dir)
+def test_DemoGitFireSet_service_update_incorrect_protocol():
+    fs = DemoGitFireSet(repodir=testingutils.repodir)
+    fs.services.update(dict(protocol='foo', ports=''), rid=0)
+
+@with_setup(setup_dir, teardown_dir)
+def test_DemoGitFireSet_service_update_icmp():
+    fs = DemoGitFireSet(repodir=testingutils.repodir)
+    fs.services.update(dict(protocol='ICMP', ports='8', name='NewName'), rid=0)
+    assert fs.services[0].ports == '8'
+    assert fs.services[0].name == 'NewName'
 
 
 # #  IP address handling  # #
-
 
 def test_network_update():
     assert Network(['','255.255.255.255',8]).ip_addr == '255.0.0.0'
