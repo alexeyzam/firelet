@@ -4,8 +4,8 @@ python:
   - "2.7"
   # - "3.2" Temporary disabling Python3
 install:
+  - pip install netaddr --use-mirrors
   - pip install -e . --use-mirrors
-  - pip install scrypt --use-mirrors
 script: nosetests tests/test.py
 after_success:
   - coveralls
