@@ -14,35 +14,45 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import logging
-import inspect
-
-import glob
-from os import listdir, mkdir
 from json import dumps
-import shutil
+from os import listdir, mkdir
 from tempfile import mkdtemp
 from time import time
-
-USE_SHM = True # Use tmpfs filesystem in /dev/shm/
+import glob
+import inspect
+import logging
+import os
+import shutil
+import sys
 
 repodir = None
 
 # setup and teardown
 
+def pick_temp_directory():
+    """Select a temporary directory for the test files.
+    """
+
+    if sys.platform == 'linux2':
+        # In-memory filesystem allows faster testing.
+        # Travis CI build system has no /dev/shm
+        if not os.environ.get('TRAVIS', False):
+            tstamp = str(time())[5:]
+            repodir = "/dev/shm/fl_%s" % tstamp
+            mkdir(repodir)
+            return repodir
+
+    return mkdtemp(prefix='tmp_fltest')
+
 def setup_dir():
     global repodir
     if repodir:
         teardown_dir()
-    if USE_SHM:
-        tstamp = str(time())[5:]
-        repodir = "/dev/shm/fl_%s" % tstamp
-        mkdir(repodir)
-    else:
-        repodir = mkdtemp(prefix='tmp_fltest')
+
+    repodir = pick_temp_directory()
 
     # copy the needed files
-    globs = ['test/iptables-save*', 'test/ip-addr-show*','test/*.csv', 'test/*.json']
+    globs = ['tests/iptables-save*', 'tests/ip-addr-show*','tests/*.csv', 'tests/*.json']
     for g in globs:
         for f in glob.glob(g):
             shutil.copy(f, repodir)
