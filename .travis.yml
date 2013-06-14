@@ -4,7 +4,11 @@ python:
   - "2.7"
   # - "3.2" Temporary disabling Python3
 install:
+  - pip install beaker --use-mirrors
+  - pip install bottle --use-mirrors
   - pip install netaddr --use-mirrors
+  - pip install paramiko --use-mirrors
+  - pip install setproctitle --use-mirrors
   - pip install -e . --use-mirrors
 script: nosetests tests/test.py
 after_success:
