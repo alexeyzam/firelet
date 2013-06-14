@@ -23,15 +23,19 @@ setup(
     long_description = """Firelet is a distributed firewall management tool. It provides a CLI and a web-based interface.""",
     classifiers=CLASSIFIERS,
     install_requires = [
+        'beaker',
         'bottle',
         'netaddr',
         'paramiko',
+        'setproctitle',
     ],
     packages = ["firelet"],
     platforms=['Linux'],
-    package_data={'': ['test/*',
-                                        'views/*',
-                                        'static/*']},
+    package_data={'': [
+        'static/*'
+        'tests/*',
+        'views/*',
+    ]},
     entry_points = {
         'console_scripts': [
             'firelet_c = firelet.cli:main',

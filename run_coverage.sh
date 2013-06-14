@@ -1,3 +1,3 @@
 rm cover/ -rf
-nosetests test/test.py --with-coverage --cover-erase --cover-package=firelet --cover-html
+nosetests tests/test.py --with-coverage --cover-erase --cover-package=firelet --cover-html
 
