@@ -1,18 +1,25 @@
 language: python
+
 python:
   - "2.6"
   - "2.7"
   # - "3.2" Temporary disabling Python3
+
 install:
   - pip install argparse --use-mirrors
   - pip install beaker --use-mirrors
   - pip install bottle --use-mirrors
+  - pip install coveralls --use-mirrors
   - pip install mock --use-mirrors
   - pip install netaddr --use-mirrors
   - pip install paramiko --use-mirrors
   - pip install setproctitle --use-mirrors
   - pip install webtest --use-mirrors
   - pip install -e . --use-mirrors
-script: nosetests tests/test.py
+
+script:
+  - nosetests tests/test.py
+  - coverage run --source=firelet tests/test.py
+
 after_success:
   - coveralls
