@@ -7,10 +7,10 @@
 
 while true; do
     D=$(mktemp -d)
-    /bin/cp test/*.csv "$D"
-    /bin/cp test/*.json "$D"
-    /bin/cp test/iptables-save-* "$D"
-    /bin/cp test/ip-addr-show-* "$D"
+    /bin/cp tests/data/*.csv "$D"
+    /bin/cp tests/data/*.json "$D"
+    /bin/cp tests/data/iptables-save-* "$D"
+    /bin/cp tests/data/ip-addr-show-* "$D"
     /bin/cp firelet_demo.ini "$D"/
     ./firelet/fireletd.py --cf "$D"/firelet_demo.ini --repodir "$D"
     rm -rf "$D"
