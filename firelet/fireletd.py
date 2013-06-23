@@ -25,6 +25,7 @@ from bottle import debug as bottle_debug
 from collections import defaultdict
 from datetime import datetime
 #import lockfile
+from os import urandom
 from logging.handlers import TimedRotatingFileHandler
 from setproctitle import setproctitle
 from sys import exit
@@ -102,7 +103,7 @@ class WebLogHandler(logging.Handler):
         elif getattr(record, 'web_log_level', None) == 'success':
             lvl = 'success'
 
-        text = record.msg
+        text = "%s" % record.msg
         if len(text) > 200:
             text = "%s [...see logfile]" % text[:200]
 
@@ -187,11 +188,14 @@ def _require(role='readonly'):
         log.warn("User needs to be authenticated.")
         #TODO: not really explanatory in a multiuser session.
         raise Alert, "User needs to be authenticated."
+
     myrole = s.get('role', None)
     if not myrole:
         raise Alert, "User needs to be authenticated."
+
     if m[myrole] >= m[role]:
         return
+
     log.info("An account with '%s' level or higher is required." % repr(role))
     raise Exception
 
@@ -204,6 +208,7 @@ def login():
     if 'username' in s:  # user is authenticated <--> username is set
         log.info("Already logged in as \"%s\"." % s['username'])
         return {'logged_in': True}
+
     user = pg('user', '')
     pwd = pg('pwd', '')
     try:
@@ -213,7 +218,9 @@ def login():
         s['username'] = user
         s['role'] = role
         s.save()
+
         bottle.redirect('/')
+
     except (Alert, AssertionError), e:
         log.warn("Login denied for \"%s\": %s" % (user, e))
         log.debug("Login denied for \"%s\": %s" % (user, e))
@@ -788,7 +795,7 @@ def main():
         )
         fh.setLevel(logging.DEBUG)
         fh.setFormatter(logging.Formatter(
-            '%(asctime)s [%(process)d] %(levelname)s %(name)s (%(funcName)s) %(message)s'))
+            '%(asctime)s [%(process)d] %(levelname)s %(name)s %(module)s:%(funcName)s:%(lineno)s %(message)s'))
         log.addHandler(fh)
 
     log.success("Firelet started.")
@@ -803,19 +810,22 @@ def main():
     session_opts = {
         'session.type': 'cookie',
         'session.validate_key': True,
+        'session.cookie_expires': True,
+        'session.timeout': 3600 * 24,  # 1 day
+        'session.encrypt_key': urandom(32),
     }
 
     if conf.demo_mode:
         globals()['fs'] = DemoGitFireSet(conf.data_dir)
         log.info("Configuration loaded. Demo mode.")
-        session_opts['session.secure'] = True
+        #session_opts['session.secure'] = True
         session_opts['session.type'] = 'memory'
     else:
         globals()['fs'] = GitFireSet(conf.data_dir)
         log.info("Configuration loaded.")
         # Instruct the browser to sever send the cookie over unencrypted
         # connections
-        session_opts['session.secure'] = True
+        #session_opts['session.secure'] = True
         session_opts['session.type'] = 'memory'
 
     log.info("%d users, %d hosts, %d rules, %d networks loaded." %
