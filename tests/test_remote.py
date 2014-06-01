@@ -18,7 +18,8 @@
 #
 # These tests can be performed against the local node emulator
 # ( see ./node_emulator/) or against real firewalls.
-# WARNING: the tests are disruptive - don't run the in production.
+#
+# WARNING: these tests are disruptive - don't run them on production hosts!
 #
 
 from json import dumps
@@ -33,9 +34,6 @@ from firelet.flcore import *
 from test import debug, string_in_list, assert_equal_line_by_line
 
 import logging
-log = logging.getLogger(__name__)
-
-from logging import getLogger
 log = logging.getLogger(__name__)
 deb = log.debug
 

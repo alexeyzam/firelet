@@ -16,22 +16,21 @@
 
 from __future__ import with_statement
 
-from copy import deepcopy
 import csv
 from collections import defaultdict
 from hashlib import sha512
 import logging
-from netaddr import IPAddress, IPNetwork
-from os import fsync, rename, unlink, getenv
+from netaddr import IPNetwork
+from os import fsync, rename, getenv
 from random import choice
 from socket import inet_ntoa, inet_aton
 from struct import pack, unpack
 from time import time
 
-from flssh import SSHConnector, MockSSHConnector
-from flutils import Alert, Bunch, flag, extract_all
+from firelet.flssh import SSHConnector, MockSSHConnector
+from firelet.flutils import Alert, Bunch, extract_all
 
-__version__ = '0.5.0a3'
+__version__ = '0.5.0a4dev'
 
 from logging import getLogger
 log = getLogger(__name__)
@@ -53,13 +52,13 @@ except ImportError: # pragma: no cover
 try:
     from itertools import product
 except ImportError: # pragma: no cover
-    from flutils import product
+    from firelet.flutils import product
 
-protocols = ['AH', 'ESP', 'ICMP', 'IP', 'TCP', 'UDP']
+PROTOCOLS = ['AH', 'ESP', 'ICMP', 'IP', 'TCP', 'UDP']
 # protocols unsupported by iptables: 'IGMP','','OSPF', 'EIGRP','IPIP','VRRP',
 #  'IS-IS', 'SCTP', 'AH', 'ESP'
 
-icmp_types = {
+ICMP_TYPES = {
     '': 'all',
     0: 'echo-reply',
     3: 'destination-unreachable',
@@ -100,7 +99,7 @@ def timeit(method):
 
 def validc(c):
     """Validate a character in rule name
-    
+
     :arg c: character
     :return: True/False
     :rtype: bool
@@ -158,8 +157,8 @@ class Host(Bunch):
         """
         if isinstance(other, Host):
             return other.ip_addr == self.ip_addr
-        
-        raise Exception, "__contains__ called as: %s in Host" % type(other)
+
+        raise Exception("__contains__ called as: %s in Host" % type(other))
 
     def mynetwork(self):
         """Creates an unnamed network directly connected to the host
@@ -229,7 +228,7 @@ class HostGroup(Bunch):
 
     def _flatten(self, i):
         """Flatten the host groups hierarchy
-       
+
         :return: list of strings
         """
         if hasattr(i, 'childs'):  # "i" is a hostgroup _object_!
@@ -287,13 +286,15 @@ class Service(Bunch):
     def update(self, d):
         """Validate, then set/update the internal dictionary"""
         ports = d['ports']
-        if d['protocol'] in ('TCP', 'UDP') and ports:
+        protocol = d['protocol']
+        if protocol in ('TCP', 'UDP') and ports:
             for block in ports.split(','):
                 try:
                     int_li = [int(i) for i in block.split(':')]
                 except ValueError:
-                    raise Alert, "Incorrect syntax in port definition '%s'" \
-                        % block
+                    msg = "Incorrect syntax in port definition '%s'" % block
+                    raise Alert(msg)
+
                 assert len(int_li) < 3, "Too many items in port range '%s'" \
                     % block
                 for i in int_li:
@@ -302,17 +303,21 @@ class Service(Bunch):
                 if len(int_li) == 2:
                     assert int_li[0] <= int_li[1], \
                         "Reversed port range '%s'" % block
-        elif d['protocol'] == 'ICMP' and ports:
+        elif protocol == 'ICMP' and ports:
             try:
                 icmp_type = int(ports)
             except ValueError:
-                raise Alert,  "Invalid ICMP Type '%s'" % ports
-            assert icmp_type in icmp_types, "Invalid ICMP Type '%s'" % icmp_type
-        elif d['protocol'] in protocols:
+                raise Alert("Invalid ICMP Type '%s'" % ports)
+
+            assert icmp_type in ICMP_TYPES, "Invalid ICMP Type '%s'" % icmp_type
+
+        elif protocol in PROTOCOLS:
             # Supported protocol that has no ports
             d['ports'] = ''
+
         else:
-            raise Alert, "Unsupported protocol: '%s'" % d['protocol']
+            raise Alert("Unsupported protocol: '%s'" % protocol)
+
         super(Service, self).update(d)
 
 
@@ -365,8 +370,9 @@ class SmartTable(object):
         try:
             item = self.__getitem__(int(rid))
         except IndexError:
-            raise Alert, "Item to be updated not found: one or more "\
-                "items has been modified in the meantime."
+            raise Alert("Item to be updated not found: one or more "\
+                "items has been modified in the meantime.")
+
         if token:
             assert token == item._token(), "Unable to update: one " \
                 "or more items has been modified in the meantime."
@@ -457,9 +463,12 @@ class Rules(SmartTable):
         try:
             rule = self.__getitem__(int(rid))
         except IndexError:
-            raise Alert, "Rule to be updated not found: one or more items has been modified in the meantime."
+            raise Alert("Rule to be updated not found: one or more"
+                " items has been modified in the meantime.")
+
         if token:
             self.validate_token(token)
+
         rule.update(d)
         self.save()
 
@@ -470,8 +479,10 @@ class Rules(SmartTable):
         if d == {}:
             d = dict(enabled='0', name='new', src='*', src_serv='*',
                 dst='*', dst_serv='*', action='ACCEPT', log_level=0, desc='')
+
         if d['name'] in (rule.name for rule in self._list):
-            raise Alert, "Another rule with the same name '%s' exists." % d['name']
+            raise Alert("Another rule with the same name '%s' exists." % d['name'])
+
         self._list.insert(rid, Rule(**d))
         self.save()
 
@@ -533,7 +544,7 @@ class HostGroups(SmartTable):
         :type f: dict.
         """
         assert 'name' in f, '"name" field missing'
-        assert 'childs' in f,  '"childs" field missing'
+        assert 'childs' in f, '"childs" field missing'
         names = [x.name for x in self._list]
         assert f['name'] not in names, "Hostgroup '%s' already defined" % f['name']
         li = [f['name']] + f['childs']
@@ -571,11 +582,12 @@ class HostGroups(SmartTable):
         try:
             item = self.__getitem__(int(rid))
         except IndexError:
-            raise Alert, "Item to be updated not found: one or more " \
-                "items has been modified in the meantime."
+            raise Alert("Item to be updated not found: one or more "
+                "items has been modified in the meantime.")
         if token:
             assert token == item._token(), "Unable to update: one " \
                 "or more items has been modified in the meantime."
+
         for child in d['childs']:
             flat = self._simpleflatten(child)
             assert item.name not in flat, "Loop "
@@ -638,19 +650,21 @@ class Services(SmartTable):
 
 # CSV files
 
-def readcsv(n, d):
+def readcsv(fn, d):
     """Read CSV file, ignore comments
-    :param n: filename (path and .csv)
-    :type n: str
+    :param fn: filename (path and .csv)
+    :type fn: str
     :param d: directory name (without slashes)
     :type d: str
     :returns: list
     """
-    with open("%s/%s.csv" % (d, n)) as f:
+    with open("%s/%s.csv" % (d, fn)) as f:
         lines = map(str.rstrip, f)
+
     if lines[0] != '# Format 0.1 - Do not edit this line':
-        raise Exception, "Data format not supported in %s/%s.csv" \
-            % (d, fname)
+        raise Exception("Data format not supported in %s/%s.csv" \
+            % (d, fn))
+
     li = [x for x in lines if not x.startswith('#') and x]
     return csv.reader(li, delimiter=' ')
 
@@ -665,26 +679,36 @@ def savecsv(n, stuff, d):
     except IOError:
         log.debug("%s not existing" % fullname)
         comments = []
+
     f = open(fullname +".tmp", 'wb')
     f.writelines(comments)
-    writer = csv.writer(f,  delimiter=' ', lineterminator='\n')
+    writer = csv.writer(f, delimiter=' ', lineterminator='\n')
     writer.writerows(stuff)
     f.flush()
     fsync(f.fileno())
     f.close()
     rename(fullname + ".tmp", fullname)
 
-def loadjson(n, d):
+def loadjson(fn, d):
+    """Load a JSON file
+
+    :param fn: filename
+    :type fn: str
+    :param d: directory name
+    :type d: str
+    """
+    fname = "%s/%s.json" % (d, fn)
     try:
-        f = open("%s/%s.json" % (d, n))
-        s = f.read()
-        f.close()
+        with open(fname) as f:
+            s = f.read()
+
     except Exception, e:
-        raise Alert, "Unable read json file: %s" % e
+        raise Alert("Unable read json file: %s" % e)
+
     try:
         return json.loads(s)
     except Exception, e:
-        raise Alert, "Unable to load users from '%s/%s.json': %s" % (d, n, e)
+        raise Alert("Unable to load users from '%s': %s" % (fname, e))
 
 
 
@@ -746,7 +770,7 @@ class FireSet(object):
         try:
             return self.__dict__[table][rid]
         except Exception, e:
-            Alert,  "Unable to fetch item %d in table %s: %s" % (rid, table, e)
+            Alert( "Unable to fetch item %d in table %s: %s" % (rid, table, e))
 
 
     def delete(self, table, rid):
@@ -755,10 +779,13 @@ class FireSet(object):
         assert table in self._table_names, "Wrong table name for deletion: %s" % table
         try:
             self.__dict__[table].pop(rid)
+
         except IndexError, e:
-            raise Alert, "The element n. %d is not present in table '%s'" % (rid, table)
+            raise Alert("The element n. %d is not present in table '%s'" % \
+                (rid, table))
+
         except Exception, e:
-            Alert,  "Unable to delete item %d in table %s: %s" % (rid, table, e)
+            Alert("Unable to delete item %d in table %s: %s" % (rid, table, e))
 
 
     def list_sibling_names(self):
@@ -821,6 +848,7 @@ class FireSet(object):
         self._remote_confs = sx.get_confs(logger=log)
         if keep_sessions:
             return sx
+
         sx._disconnect()
         del(sx)
 
@@ -840,22 +868,26 @@ class FireSet(object):
 
         for h in self._get_firewalls():
             if not h.hostname in confs:
-                raise Alert, "Host %s not available." % h.hostname
+                raise Alert("Host %s not available." % h.hostname)
+
             ifaces[h.hostname].add(h.iface)
             ip_a_s = confs[h.hostname].ip_a_s
             if not h.iface in ip_a_s:
-                raise Alert, "Interface %s missing on host %s" \
-                    % (h.iface, h.hostname)
+                raise Alert("Interface %s missing on host %s" \
+                    % (h.iface, h.hostname))
+
             ip_addr_v4, ip_addr_v6 = ip_a_s[h.iface]
             assert '/' in ip_addr_v4, "The IPv4 address extracted from " \
                 "running 'ip addr show' on %s has no '/' in it" % h.hostname
             if not ip_addr_v4 or len(ip_addr_v4.split('/')) != 2:
-                raise Alert, "Unable to parse IPv4 addr from '%s' on '%s'" % \
-                    (ip_a_s, h.hostname)
+                raise Alert("Unable to parse IPv4 addr from '%s' on '%s'" % \
+                    (ip_a_s, h.hostname))
+
             if h.ip_addr not in (ip_addr_v6,  ip_addr_v4.split('/')[0] ):
-                raise Alert,"Wrong address on %s on interface %s: \
-            %s and %s (should be %s)" % (h.hostname, iface, ip_addr_v4,
-                        ip_addr_v6, h.ip_addr)
+                msg = "Wrong address on %s on interface %s: %s and %s" \
+                    "(should be %s)" % (h.hostname, h.iface, ip_addr_v4,
+                    ip_addr_v6, h.ip_addr)
+                raise Alert(msg)
 
         # Check if extra interfaces (unknown to Firelet) are present
         # on the hosts
@@ -873,7 +905,7 @@ class FireSet(object):
                 s = "One or more firewalls have extra interfaces: %s" \
                             % ' '.join(li)
                 log.warn(s)
-                raise Alert, s
+                raise Alert(s)
 
         log.debug("self._check_ifaces successful")
 
@@ -883,13 +915,17 @@ class FireSet(object):
         if not src: return True
         if me.ip_addr == src.ip_addr: # this is input or output traffic, not to be forwarded
             return False
+
         if src in me.mynetwork(): # src is in a directly conn. network
             if dst in me.mynetwork(): # but dst is in the same network
                 return False
+
             return True
+
         for rnet in routed_nets:
             if src in rnet and dst not in rnet:
                 return True
+
         return False
 
     def compile_rules(self):
@@ -927,14 +963,18 @@ class FireSet(object):
                 and provides None for '*' """
             if n in host_by_name_col_iface:
                 return [host_by_name_col_iface[n]]
+
             elif n in net_by_name:
                 return [net_by_name[n]]
+
             elif n in flat_hg:
                 return flat_hg[n]
+
             elif n == '*':
                 return [None]
+
             else:
-                raise Alert, "Item %s is not defined." % n + repr(host_by_name_col_iface)
+                raise Alert("Item %r is not defined." % n)
 
         log.debug('Compiling ruleset...')
         # for each rule, for each (src,dst) tuple, compiles a list
@@ -950,16 +990,17 @@ class FireSet(object):
 
             sproto, sports = proto_port[rule.src_serv]
             dproto, dports = proto_port[rule.dst_serv]
-            assert sproto in protocols + [None], """Unknown source
+            assert sproto in PROTOCOLS + [None], """Unknown source
                 protocol: %s""" % sproto
-            assert dproto in protocols + [None], """Unknown dest
+            assert dproto in PROTOCOLS + [None], """Unknown dest
                 protocol: %s""" % dproto
 
 
             if sproto:
                 if dproto and sproto != dproto:
-                    raise Alert, """Source and destination protocol
-                        must be the same in rule "%s".""" % rule.name
+                    raise Alert("Source and destination protocol"
+                        " must be the same in rule '%s'" % rule.name)
+
                 proto = sproto.lower()
             elif dproto:
                 proto = dproto.lower()
@@ -994,13 +1035,13 @@ class FireSet(object):
 
 
             for x in rule.name:
-                assert validc(x), "Invalid character in '%s': x" % (repr(rule.name), repr(x))
+                assert validc(x), "Invalid character in %r: %r" % (rule.name, x)
 
             try:
                 log_val = int(rule.log_level)
             except ValueError:
-                raise Alert, """The logging field in rule '%s' is '%s'
-                    and must be an integer.""" % (rule.name, rule.log_level)
+                raise Alert("The logging field in rule '%s' is '%s' and "
+                    "must be an integer." % (rule.name, rule.log_level))
 
             for src, dst in product(srcs, dsts):
                 assert isinstance(src, Host) or isinstance(src, Network) or src == None, repr(src)
@@ -1180,7 +1221,8 @@ class FireSet(object):
         """Check the configuration on the firewalls.
         """
         if self.save_needed():
-            raise Alert, "Configuration must be saved before check."
+            raise Alert("Configuration must be saved before check.")
+
         comp_rules = self.compile_rules()
         logger.info('Rules compiled. Getting configurations.')
         self._get_confs()
@@ -1203,7 +1245,8 @@ class FireSet(object):
         Some ignore flags can be set to force the deployment even in case of errors.
         """
         if self.save_needed():
-            raise Alert, "Configuration must be saved before deployment."
+            raise Alert("Configuration must be saved before deployment.")
+
         comp_rules = self.compile_rules()
         log.debug('Rules compiled. Fetching configurations.')
         sx = self._get_confs(keep_sessions=True)
@@ -1316,7 +1359,7 @@ class GitFireSet(FireSet):
         """
         o, e = self._git('log --date=iso')
         if e:
-            Alert, "Error while running 'git log --date=iso': %s" % e
+            Alert("Error while running 'git log --date=iso': %s" % e)
         li = []
         msg = []
         author = None
@@ -1342,8 +1385,8 @@ class GitFireSet(FireSet):
         tags = {'+': 'add', '-': 'del',  ' ': '',  '':''}
         o, e = self._git('diff %s' % commit_id)
         if e:
-            Alert, "Error while runnig 'git diff %s': %s" % \
-                (commit_id, e)
+            Alert("Error while runnig 'git diff %s': %s" % \
+                (commit_id, e))
         li = []
         for x in o.split('\n'):
             x = x.rstrip()
@@ -1405,7 +1448,8 @@ class GitFireSet(FireSet):
             try:
                 n = int(n)
             except ValueError:
-                raise Alert, "rollback requires an integer"
+                raise Alert("rollback requires an integer")
+
             o, e = self._git("reset --hard HEAD~%d" % n)
             assert 'HEAD is now at' in o, \
                 "Git reset --hard HEAD~%d output: '%s' error: '%s'" % (n, o, e)
@@ -1418,14 +1462,17 @@ class GitFireSet(FireSet):
 
     def save_needed(self):
         """True if commit is required: files has been changed"""
+        self._git("add *.csv *.json")
         o, e = self._git('status -uno')
         #log.debug("Git status: '%s'" % (o))
         if 'nothing to commit ' in o:
             return False
-        elif '# On branch master' in o:
+
+        elif 'Changes to be committed' in o:
             return True
+
         else:
-            raise Alert, "Git status output: '%s' error: '%s'" % (o, e)
+            raise Alert("Git status output: '%s' error: '%s'" % (o, e))
 
     # GitFireSet editing
 
@@ -1442,7 +1489,7 @@ class GitFireSet(FireSet):
         elif table == 'hostgroups':
             self.hostgroups.save()
         else:
-            raise Exception, "Table %s not existing" % table
+            raise Exception("Table %s not existing" % table)
 
     def delete(self, table, rid):
         """Delete item from table
@@ -1525,8 +1572,10 @@ class Users(object):
         """Delete an username"""
         try:
             self._users.pop(username)
+
         except KeyError:
-            raise Alert, "Non existing user."
+            raise Alert("Non existing user.")
+
         self._save()
 
     def validate(self, username, pwd):

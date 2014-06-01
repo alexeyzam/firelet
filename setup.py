@@ -45,6 +45,9 @@ setup(
     scripts = ([]),
     test_suite='nose.collector',
     tests_require=['nose'],
+    data_files=[
+        ('/etc/firelet', ['firelet.ini']),
+    ],
 )
 
 

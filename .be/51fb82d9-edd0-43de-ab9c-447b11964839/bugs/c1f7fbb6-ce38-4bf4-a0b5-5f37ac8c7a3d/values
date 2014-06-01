@@ -1,0 +1,43 @@
+{
+
+
+
+
+
+
+    "creator": "Federico Ceratto <federico.ceratto@gmail.com>", 
+
+
+
+
+
+
+    "severity": "minor", 
+
+
+
+
+
+
+    "status": "open", 
+
+
+
+
+
+
+    "summary": "set the right logging level for each WSGI server", 
+
+
+
+
+
+
+    "time": "Sun, 03 Jun 2012 18:06:38 +0000"
+
+
+
+
+
+
+}

@@ -253,12 +253,14 @@ class SSHConnector(object):
         log.debug("Parsing configurations")
         for hostname in self._targets:
             if hostname not in confs:
-                raise Exception, "No configuration received from %s" % \
-                    hostname
+                raise Exception("No configuration received from %s" % \
+                    hostname)
+
             iptables_save, ip_addr_show = confs[hostname]
             if iptables_save is None:
-                raise Exception, "No configuration received from %s" % \
-                    hostname
+                raise Exception("No configuration received from %s" % \
+                    hostname)
+
             log.debug("iptables_save:" + repr(iptables_save))
             iptables_p = self.parse_iptables_save(iptables_save,
                 hostname=hostname)
@@ -268,6 +270,7 @@ class SSHConnector(object):
             ip_a_s_p = self.parse_ip_addr_show(ip_addr_show)
             d = Bunch(iptables=iptables_p, ip_a_s=ip_a_s_p)
             confs[hostname] = d
+
         #FIXME: if a host returns unexpected output i.e. missing sudo it
         # should be logged
 
@@ -336,8 +339,8 @@ class SSHConnector(object):
         except ValueError:
             log.error("Unable to parse iptables-save output: missing '*filter'"
                 " and/or 'COMMIT' on %s: %s" % (hostname, repr(li)))
-            raise Exception, "Unable to parse iptables-save output: missing "
-            "'*filter' and/or 'COMMIT' in %s" % repr(li)
+            raise Exception("Unable to parse iptables-save output: missing "
+                "'*filter' and/or 'COMMIT' in %r" % li)
 
         return Bunch(nat=nat, filter=f)
 

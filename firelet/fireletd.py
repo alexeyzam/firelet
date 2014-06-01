@@ -17,29 +17,26 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from argparse import ArgumentParser
-#import daemon
 from beaker.middleware import SessionMiddleware
-import bottle
+from bottle import HTTPResponse, HTTPError
 from bottle import abort, route, static_file, run, view, request
 from bottle import debug as bottle_debug
 from collections import defaultdict
 from datetime import datetime
-#import lockfile
-from os import urandom
 from logging.handlers import TimedRotatingFileHandler
+from os import urandom
 from setproctitle import setproctitle
 from sys import exit
+import bottle
+import logging
 import time
 
-from confreader import ConfReader
-from mailer import Mailer
-from flcore import Alert, GitFireSet, DemoGitFireSet, Users, clean
-from flmap import draw_png_map, draw_svg_map
-from flutils import flag, extract_all, get_rss_channels
+from firelet.confreader import ConfReader
+from firelet.mailer import Mailer
+from firelet.flcore import Alert, GitFireSet, DemoGitFireSet, Users, clean
+from firelet.flmap import draw_png_map, draw_svg_map
+from firelet.flutils import flag, extract_all, get_rss_channels
 
-from bottle import HTTPResponse, HTTPError
-
-import logging
 log = logging.getLogger()
 log.success = log.info
 
@@ -187,11 +184,11 @@ def _require(role='readonly'):
     if not s:
         log.warn("User needs to be authenticated.")
         #TODO: not really explanatory in a multiuser session.
-        raise Alert, "User needs to be authenticated."
+        raise Alert("User needs to be authenticated.")
 
     myrole = s.get('role', None)
     if not myrole:
-        raise Alert, "User needs to be authenticated."
+        raise Alert("User needs to be authenticated.")
 
     if m[myrole] >= m[role]:
         return
@@ -277,13 +274,13 @@ def index():
 
 @bottle.route('/ruleset')
 @view('ruleset')
-def ruleset():
+def serve_ruleset():
     """Serve ruleset tab"""
     _require()
     return dict(rules=enumerate(fs.rules))
 
 @bottle.route('/ruleset', method='POST')
-def ruleset():
+def serve_ruleset_post():
     """Make changes on a rule."""
     _require('editor')
     action = pg('action', '')
@@ -736,8 +733,6 @@ def parse_args():
                         help='root directory')
     parser.add_argument('-l', '--logfile',  nargs='?',
                         help='log file name')
-    #parser.add_argument('-b', '--daemonize', action='store_true', default=False,
-    #                    help='run as a daemon')
     #parser.add_argument('-p', '--pidfile',  nargs='?',
     #                    default='/var/run/firelet.pid', help='pid file name')
     args = parser.parse_args()
@@ -759,19 +754,6 @@ def main():
         conf.data_dir = args.repodir
     logfile = args.logfile if args.logfile else conf.logfile
 
-    # daemonization is handled externally by start-stop-daemon
-    # daemoncontext = daemon.DaemonContext()
-    #if args.daemonize:
-    #    if args.rootdir:
-    #        daemoncontext.working_directory = args.rootdir
-    #    daemoncontext.umask = 66
-    #    daemoncontext.stdout = open(logfile, 'a')
-    #    daemoncontext.stderr = open(logfile, 'a')
-    #    print args.pidfile
-    #    #daemoncontext.pidfile = lockfile.FileLock(args.pidfile)
-    #    daemoncontext.pidfile = lockfile.FileLock('/tmp/foo')
-    #    daemoncontext.open()
-
     # setup logging
     logging.basicConfig(
         level=logging.DEBUG,
@@ -784,6 +766,7 @@ def main():
         log.debug("Configuration file: '%s'" % args.cf)
         log.debug("Logfile (unused in debug mode): '%s'" % logfile)
         bottle_debug(True)
+
     else:
         logging.basicConfig(
             level=logging.DEBUG,
