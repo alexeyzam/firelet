@@ -15,6 +15,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from logging import getLogger
+from nose.plugins.skip import SkipTest
 from nose.tools import raises, assert_raises, with_setup
 from webtest import TestApp, AppError
 import os
@@ -22,7 +23,7 @@ import os
 log = getLogger(__name__)
 deb = log.debug
 
-from testingutils import setup_dir, teardown_dir
+from testingutils import BaseFunctionalTesting
 
 from firelet import fireletd
 
@@ -38,32 +39,28 @@ from firelet import fireletd
 
 #TODO: implement webapp testing
 REDIR = '302 Found'
-app = None
-tmpdir = None
-orig_dir = None
 
-def setup():
-    setup_dir()
-    # create global TestApp instance
-    global app
-    app = TestApp(fireletd.app)
+class TestWebapp(BaseFunctionalTesting):
+    def setUp(self):
+        self._setup_repodir()
+        # create global TestApp instance
+        self._app = TestApp(fireletd.app)
 
-def teardown():
-    teardown_dir()
-    app = None
+    def tearDown(self):
+        self._teardown_repodir()
+        self._app = None
 
-@raises(AppError)
-def test_bogus_page():
-    app.get('/bogus_page')
+    @raises(AppError)
+    def test_bogus_page(self):
+        self._app.get('/bogus_page')
 
-def test_index_page():
-    assert app.get('/').status == '200 OK'
+    def test_index_page(self):
+        assert self._app.get('/').status == '200 OK'
 
-def login():
-    """run setup_app and log in"""
-    global app
-    setup_app()
-    p = app.post('/login', {'user': 'admin', 'pwd': 'admin'})
+    @SkipTest
+    def login(self):
+        """run setup_app and log in"""
+        p = self._app.post('/login', {'user': 'admin', 'pwd': 'admin'})
 
 
 

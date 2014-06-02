@@ -25,47 +25,39 @@ import os
 import shutil
 import sys
 
-repodir = None
+class BaseFunctionalTesting(object):
 
-# setup and teardown
+    def _setup_repodir(self):
+        """Create and populate test repository directory"""
 
-def pick_temp_directory():
-    """Select a temporary directory for the test files.
-    """
+        if sys.platform == 'linux2' and 'TRAVIS' not in os.environ:
+            # In-memory filesystem allows faster testing.
+            # Travis CI build system has no /dev/shm
+            self._repodir = mkdtemp(prefix='tmp_fltest', dir='/dev/shm')
 
-    if sys.platform == 'linux2':
-        # In-memory filesystem allows faster testing.
-        # Travis CI build system has no /dev/shm
-        if not os.environ.get('TRAVIS', False):
-            tstamp = str(time())[5:]
-            repodir = "/dev/shm/fl_%s" % tstamp
-            mkdir(repodir)
-            return repodir
+        else:
+            self._repodir = mkdtemp(prefix='tmp_fltest')
 
-    return mkdtemp(prefix='tmp_fltest')
+        # copy the needed files
+        globs = ['tests/iptables-save*', 'tests/ip-addr-show*','tests/*.csv', 'tests/*.json']
+        for g in globs:
+            for f in glob.glob(g):
+                shutil.copy(f, self._repodir)
 
-def setup_dir():
-    global repodir
-    if repodir:
-        teardown_dir()
+        li = listdir(self._repodir)
+        assert len(li) > 5, "Not enough file copied"
 
-    repodir = pick_temp_directory()
+    def _teardown_repodir(self):
+        assert self._repodir
+        shutil.rmtree(self._repodir)
+        self._repodir = None
 
-    # copy the needed files
-    globs = ['tests/iptables-save*', 'tests/ip-addr-show*','tests/*.csv', 'tests/*.json']
-    for g in globs:
-        for f in glob.glob(g):
-            shutil.copy(f, repodir)
+    def setUp(self):
+        self._setup_repodir()
 
-    li = listdir(repodir)
-    assert len(li) > 5, "Not enough file copied"
-#    log.debug("temp dir %s created" % repodir)
+    def tearDown(self):
+        self._teardown_repodir()
 
-def teardown_dir():
-    global repodir
-    if repodir:
-        shutil.rmtree(repodir)
-        repodir = None
 
 def show(s, o=None):
     """Log an object representation"""
