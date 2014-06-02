@@ -14,25 +14,25 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import with_statement
-
-import csv
 from collections import defaultdict
 from hashlib import sha512
-import logging
+from itertools import product
+from logging import getLogger
 from netaddr import IPNetwork
-from os import fsync, rename, getenv
 from random import choice
 from socket import inet_ntoa, inet_aton
 from struct import pack, unpack
+from subprocess import Popen, PIPE
 from time import time
+import csv
+import logging
+import os
 
 from firelet.flssh import SSHConnector, MockSSHConnector
 from firelet.flutils import Alert, Bunch, extract_all
 
 __version__ = '0.5.0a4dev'
 
-from logging import getLogger
 log = getLogger(__name__)
 
 # Logging levels:
@@ -48,11 +48,6 @@ try:
     import json
 except ImportError: # pragma: no cover
     import simplejson as json
-
-try:
-    from itertools import product
-except ImportError: # pragma: no cover
-    from firelet.flutils import product
 
 PROTOCOLS = ['AH', 'ESP', 'ICMP', 'IP', 'TCP', 'UDP']
 # protocols unsupported by iptables: 'IGMP','','OSPF', 'EIGRP','IPIP','VRRP',
@@ -688,9 +683,9 @@ def savecsv(n, stuff, d):
     writer = csv.writer(f, delimiter=' ', lineterminator='\n')
     writer.writerows(stuff)
     f.flush()
-    fsync(f.fileno())
+    os.fsync(f.fileno())
     f.close()
-    rename(fullname + ".tmp", fullname)
+    os.rename(fullname + ".tmp", fullname)
 
 def loadjson(fn, d):
     """Load a JSON file
@@ -1296,7 +1291,7 @@ class FireSet(object):
         :returns: Key (str)
         """
 
-        id_rsa_fn = "%s/.ssh/id_rsa.pub" % getenv("HOME")
+        id_rsa_fn = "%s/.ssh/id_rsa.pub" % os.getenv("HOME")
         with open(id_rsa_fn) as f:
             id_rsa = f.read()
 
@@ -1347,6 +1342,7 @@ class GitFireSet(FireSet):
         self.services = Services(repodir)
         self.networks = Networks(repodir)
         self._git_repodir = repodir
+        self._locate_git_executable()
         if 'fatal: Not a git repository' in self._git('status')[1]:
             log.debug('Creating Git repo...')
             self._git('init .')
@@ -1354,6 +1350,17 @@ class GitFireSet(FireSet):
             self._git('commit -m "Configuration database created."')
 
         super(GitFireSet, self).__init__()
+
+    def _locate_git_executable(self):
+        """Locate Git executable"""
+        for path in os.environ["PATH"].split(os.pathsep):
+            path = path.strip('"')
+            fname = os.path.join(path, 'git')
+            if os.path.isfile(fname) and os.access(fname, os.X_OK):
+                self._git_executable = fname
+                return
+
+        raise EnvironmentError("Git executable not found.")
 
     def version_list(self):
         """Parse git log --date=iso
@@ -1411,11 +1418,13 @@ class GitFireSet(FireSet):
         return li
 
     def _git(self, cmd):
-        from subprocess import Popen, PIPE
-        #log.debug('Executing "/usr/bin/git %s" in "%s"' % \
-        #    (cmd, self._git_repodir))
-        p = Popen('/usr/bin/git %s' % cmd, shell=True, cwd=self._git_repodir,
-            stdout=PIPE, stderr=PIPE)
+        """Run Git in a shell process
+
+        :param cmd: git command
+        :type cmd: str
+        """
+        p = Popen("%s %s" % (self._git_executable, cmd), shell=True,
+            cwd=self._git_repodir, stdout=PIPE, stderr=PIPE)
         p.wait()
         return p.communicate()
 
@@ -1423,6 +1432,7 @@ class GitFireSet(FireSet):
         """Commit changes if needed."""
         if not msg:
             msg = '(no message)'
+
         self._git("add *")
         self._git("commit -m '%s'" % msg)
 
