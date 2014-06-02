@@ -15,7 +15,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from datetime import datetime
-from itertools import product
 from logging import getLogger
 from mock import Mock
 from netaddr import IPNetwork
@@ -35,7 +34,6 @@ from firelet.flcore import readcsv, savecsv, Hosts
 from firelet.flmap import draw_svg_map
 from firelet.flssh import SSHConnector, MockSSHConnector
 from firelet.flutils import flag, Bunch, get_rss_channels
-from firelet.flutils import product
 from firelet.mailer import Mailer
 
 log = getLogger(__name__)
@@ -53,7 +51,6 @@ deb = log.debug
 #
 # CLI
 # IP address manipulation
-# cartesian product
 #
 
 
@@ -1403,26 +1400,6 @@ class TestJson(BaseFunctionalTesting):
         savejson('jfile', d, d=self._repodir)
         nd = loadjson('jfile', d=self._repodir)
         assert d == nd
-
-# #  Test cartesian product  # #
-
-def test_product_2_6():
-
-    assert tuple(product([1,2,3,4,5,'O HI'],['a','b','c','d',42])) == (
-        (1, 'a'), (1, 'b'), (1, 'c'), (1, 'd'), (1, 42), (2, 'a'), (2, 'b'), (2, 'c'), (2, 'd'), (2, 42),
-        (3, 'a'), (3, 'b'), (3, 'c'), (3, 'd'), (3, 42), (4, 'a'), (4, 'b'), (4, 'c'), (4, 'd'), (4, 42),
-        (5, 'a'), (5, 'b'), (5, 'c'), (5, 'd'), (5, 42), ('O HI', 'a'), ('O HI', 'b'), ('O HI', 'c'),
-        ('O HI', 'd'), ('O HI', 42))
-
-
-def test_product_2_5():
-
-    assert tuple(product([1,2,3,4,5,'O HI'],['a','b','c','d',42])) == (
-        (1, 'a'), (1, 'b'), (1, 'c'), (1, 'd'), (1, 42), (2, 'a'), (2, 'b'), (2, 'c'), (2, 'd'), (2, 42),
-        (3, 'a'), (3, 'b'), (3, 'c'), (3, 'd'), (3, 42), (4, 'a'), (4, 'b'), (4, 'c'), (4, 'd'), (4, 42),
-        (5, 'a'), (5, 'b'), (5, 'c'), (5, 'd'), (5, 42), ('O HI', 'a'), ('O HI', 'b'), ('O HI', 'c'),
-        ('O HI', 'd'), ('O HI', 42))
-
 
 # #  Bunch objects testing  # #
 

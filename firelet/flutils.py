@@ -2,15 +2,6 @@ from copy import deepcopy
 from datetime import datetime
 from optparse import OptionParser
 
-def product(*args, **kwds):
-    """List cartesian product - not available in Python 2.5"""
-    pools = map(tuple, args) * kwds.get('repeat', 1)
-    result = [[]]
-    for pool in pools:
-        result = [x + [y] for x in result for y in pool]
-    for prod in result:
-        yield tuple(prod)
-
 def cli_args(args=None): # pragma: no cover
     """Parse command line arguments"""
     parser = OptionParser()
