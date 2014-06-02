@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from setuptools import setup
-from firelet.flcore import __version__
+from firelet import __version__
 
 CLASSIFIERS = map(str.strip,
 """Environment :: Console
@@ -23,6 +23,7 @@ setup(
     url = "http://www.firelet.net/",
     long_description = """Firelet is a distributed firewall management tool. It provides a CLI and a web-based interface.""",
     classifiers=CLASSIFIERS,
+    setup_requires=['nose>=1.0'],
     install_requires = [
         'beaker',
         'bottle',
@@ -43,6 +44,7 @@ setup(
             'fireletd = firelet.fireletd:main',
         ],
     },
+    use_2to3 = True,
     scripts = ([]),
     test_suite='nose.collector',
     tests_require=['nose'],

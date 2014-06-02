@@ -31,8 +31,6 @@ import os
 from firelet.flssh import SSHConnector, MockSSHConnector
 from firelet.flutils import Alert, Bunch, extract_all
 
-__version__ = '0.5.0a4dev'
-
 log = getLogger(__name__)
 
 # Logging levels:
@@ -414,7 +412,7 @@ class Rules(SmartTable):
             rules[rid], rules[rid - 1] = rules[rid - 1], rules[rid]
             self._list = rules
             self.save()
-        except Exception, e:
+        except Exception as e:
             log.debug("Error in rules.moveup: %s" % e)
             raise Alert("Cannot move rule %d up." % rid)
 
@@ -425,7 +423,7 @@ class Rules(SmartTable):
             rules[rid], rules[rid + 1] = rules[rid + 1], rules[rid]
             self._list = rules[:]
             self.save()
-        except Exception, e:
+        except Exception as e:
             raise Alert("Cannot move rule %d down." % rid)
 
     def disable(self, rid):
@@ -700,12 +698,12 @@ def loadjson(fn, d):
         with open(fname) as f:
             s = f.read()
 
-    except Exception, e:
+    except Exception as e:
         raise Alert("Unable read json file: %s" % e)
 
     try:
         return json.loads(s)
-    except Exception, e:
+    except Exception as e:
         raise Alert("Unable to load users from '%s': %s" % (fname, e))
 
 
@@ -724,7 +722,7 @@ def net_addr(a, n):
     return str(q)
 
     addr = map(int, a.split('.'))
-    x =unpack('!L', inet_aton(a))[0] & 2L**(n + 1) - 1
+    x  = unpack('!L', inet_aton(a))[0] & 2L ** (n + 1) - 1
     return inet_ntoa(pack('L', x))
 
 

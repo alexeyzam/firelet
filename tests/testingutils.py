@@ -44,6 +44,8 @@ class BaseFunctionalTesting(object):
             for f in glob.glob(g):
                 shutil.copy(f, self._repodir)
 
+        shutil.copy('tests/firelet_test.ini', self._repodir)
+
         li = listdir(self._repodir)
         assert len(li) > 5, "Not enough file copied"
 

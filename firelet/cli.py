@@ -19,14 +19,13 @@
 # Firelet Command Line Interface
 
 from argparse import ArgumentParser
-from getpass import getpass
-from sys import argv, exit
-
 from confreader import ConfReader
-from flcore import GitFireSet, DemoGitFireSet, Users, __version__
+from getpass import getpass
+import sys
+import os.path
 
-import logging
-log = logging.getLogger(__name__)
+from . import __version__
+from flcore import GitFireSet, DemoGitFireSet, Users
 
 #   commands
 #
@@ -125,7 +124,7 @@ def help(s=None):
     if s:
         say(s)
     give_help()
-    exit(1)
+    sys.exit(1)
 
 def to_int(s):
     """Convert string to int, exit on failure"""
@@ -193,12 +192,17 @@ def main(mockargs=None):    # pragma: no cover
         help()
 
     # read configuration,
+    fn = opts.conffile.strip()
+    fn = os.path.abspath(fn)
+    if not os.path.isfile(fn):
+        say("File %s not found" % fn)
+        sys.exit(1)
+
     try:
-        fn = opts.conffile.strip()
         conf = ConfReader(fn=fn)
     except Exception, e:
-        log.error("Exception %s while reading configuration file '%s'" % (e, fn))
-        exit(1)
+        say("Exception %s while reading configuration file '%s'" % (e, fn))
+        sys.exit(1)
 
     # Repodir specified from command line has precedence over the conf. file
     if opts.repodir:
@@ -241,11 +245,11 @@ def main(mockargs=None):    # pragma: no cover
         if fs.save_needed():
             say('Yes')
             if __name__ == '__main__':
-                exit(0)
+                sys.exit(0)
         else:
             say('No')
             if __name__ == '__main__':
-                exit(1)
+                sys.exit(1)
 
     elif a1 == 'check':
         if a2: help()
@@ -358,9 +362,9 @@ Press Enter when done or Ctrl-C to terminate""" % (username, password))
 
     else:
         give_help()
-        exit(0)
+        sys.exit(0)
 
-    exit(0)
+    sys.exit(0)
 
 if __name__ == '__main__':
     main()
