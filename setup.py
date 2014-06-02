@@ -44,7 +44,6 @@ setup(
             'fireletd = firelet.fireletd:main',
         ],
     },
-    use_2to3 = True,
     scripts = ([]),
     test_suite='nose.collector',
     tests_require=['nose'],
