@@ -23,7 +23,7 @@ from getpass import getpass
 from sys import argv, exit
 
 from confreader import ConfReader
-from flcore import GitFireSet, DemoGitFireSet, Users,  __version__
+from flcore import GitFireSet, DemoGitFireSet, Users, __version__
 
 import logging
 log = logging.getLogger(__name__)
@@ -187,14 +187,14 @@ def main(mockargs=None):    # pragma: no cover
     if opts.quiet:
         whisper = lambda x: None
 
-    whisper( "Firelet %s CLI." % __version__)
+    whisper("Firelet %s CLI." % __version__)
 
     if not a1:
         help()
 
     # read configuration,
     try:
-        fn=opts.conffile.strip()
+        fn = opts.conffile.strip()
         conf = ConfReader(fn=fn)
     except Exception, e:
         log.error("Exception %s while reading configuration file '%s'" % (e, fn))

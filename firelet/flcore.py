@@ -113,7 +113,7 @@ def clean(s):
     """Remove dangerous characters.
     >>> clean(' !"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_')
     ' !#$%&()*+,-./0123456789:;=?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_'
-    
+
     :arg s: string
     :type s: str
     :rtype: str
@@ -123,11 +123,14 @@ def clean(s):
 # Network objects
 
 class Rule(Bunch):
+    """Firewall rule"""
 
     def enable(self):
+        """Enable rule"""
         self.enabled = '1'
 
     def disable(self):
+        """Disable rule"""
         self.enabled = '0'
 
 
@@ -138,14 +141,14 @@ class Host(Bunch):
         :arg r: Host attributes
         :type r: list
         """
-        self.hostname=r[0]
-        self.iface=r[1]
-        self.ip_addr=r[2]
-        self.masklen=r[3]
-        self.local_fw=r[4]
-        self.network_fw=r[5]
-        self.mng=r[6]
-        self.routed=r[7]
+        self.hostname = r[0]
+        self.iface = r[1]
+        self.ip_addr = r[2]
+        self.masklen = r[3]
+        self.local_fw = r[4]
+        self.network_fw = r[5]
+        self.mng = r[6]
+        self.routed = r[7]
 
     def ipt(self):
         """String representation for iptables"""
@@ -267,8 +270,8 @@ class HostGroup(Bunch):
             elif o in net_by_name: # pragma: no cover
                 return net_by_name[o]
             else: # pragma: no cover
-                raise Exception,  "%s is not in %s or %s" % \
-                    (o, repr(host_by_name), repr(net_by_name))
+                raise Exception("%s is not in %s or %s" % \
+                    (o, repr(host_by_name), repr(net_by_name)))
 
         return map(res, li)
 
@@ -1349,6 +1352,7 @@ class GitFireSet(FireSet):
             self._git('init .')
             self._git('add *.csv *.json')
             self._git('commit -m "Configuration database created."')
+
         super(GitFireSet, self).__init__()
 
     def version_list(self):
