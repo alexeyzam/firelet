@@ -208,7 +208,7 @@ def _require(role='readonly'):
 
 @bottle.route('/login')
 @bottle.route('/login', method='POST')
-def login():
+def serve_login():
     """Log user in if authorized"""
     s = bottle.request.environ.get('beaker.session')
     if 'username' in s:  # user is authenticated <--> username is set
@@ -232,7 +232,7 @@ def login():
         bottle.redirect('/')
 
 @bottle.route('/logout')
-def logout():
+def serve_logout():
     """Log user out"""
     s = bottle.request.environ.get('beaker.session')
     u = s.get('username', None)
@@ -251,14 +251,14 @@ def logout():
 
 @bottle.route('/messages')
 @view('messages')
-def messages():
+def serve_messages():
     """Populate log message pane"""
     _require()
     return dict(messages=web_log_handler.get_msgs())
 
 @bottle.route('/')
 @view('index')
-def index():
+def serve_index():
     """Serve main page"""
     s = bottle.request.environ.get('beaker.session')
     logged_in = True if s and 'username' in s else False
@@ -336,7 +336,7 @@ def serve_ruleset_post():
 
 @bottle.route('/ruleset_form', method='POST')
 @view('ruleset_form')
-def ruleset_form():
+def serve_ruleset_form():
     """Generate an inline editing form for a rule"""
     _require()
     rid = int_pg('rid')
@@ -348,7 +348,7 @@ def ruleset_form():
     return dict(rule=rule, rid=rid, services=services_list, objs=objs)
 
 @bottle.route('/sib_names', method='POST')
-def sib_names():
+def serve_sib_names():
     """Return a list of all the available siblings for a hostgroup
     being created or edited.
     Used in the ajax form."""
@@ -358,13 +358,13 @@ def sib_names():
 
 @bottle.route('/hostgroups')
 @view('hostgroups')
-def hostgroups():
+def serve_hostgroups():
     """Generate the HTML hostgroups table"""
     _require()
     return dict(hostgroups=enumerate(fs.hostgroups))
 
 @bottle.route('/hostgroups', method='POST')
-def hostgroups():
+def serve_hostgroups():
     """Add/edit/delete a hostgroup"""
     _require('editor')
     action = pg('action', '')
@@ -397,13 +397,13 @@ def hostgroups():
 
 @bottle.route('/hosts')
 @view('hosts')
-def hosts():
+def serve_hosts():
     """Serve hosts tab"""
     _require()
     return dict(hosts=enumerate(fs.hosts))
 
 @bottle.route('/hosts', method='POST')
-def hosts():
+def serve_hosts():
     """Add/edit/delete a host"""
     _require('editor')
     action = pg('action', '')
@@ -443,7 +443,7 @@ def hosts():
 
 
 @bottle.route('/net_names', method='POST')
-def net_names():
+def serve_net_names():
     """Serve networks names"""
     _require()
     nn = [n.name for n in fs.networks]
@@ -451,13 +451,13 @@ def net_names():
 
 @bottle.route('/networks')
 @view('networks')
-def networks():
+def serve_networks():
     """Generate the HTML networks table"""
     _require()
     return dict(networks=enumerate(fs.networks))
 
 @bottle.route('/networks', method='POST')
-def networks():
+def serve_networks():
     """Add/edit/delete a network"""
     _require('editor')
     action = pg('action', '')
@@ -491,13 +491,13 @@ def networks():
 
 @bottle.route('/services')
 @view('services')
-def services():
+def serve_services():
     """Generate the HTML services table"""
     _require()
     return dict(services=enumerate(fs.services))
 
 @bottle.route('/services', method='POST')
-def services():
+def serve_services():
     """Add/edit/delete a service"""
     _require('editor')
     action = pg('action', '')
@@ -538,7 +538,7 @@ def services():
 
 @bottle.route('/manage')
 @view('manage')
-def manage():
+def serve_manage():
     """Serve manage tab"""
     _require()
     s = bottle.request.environ.get('beaker.session')
@@ -547,13 +547,13 @@ def manage():
     return dict(can_deploy=cd)
 
 @bottle.route('/save_needed')
-def save_needed():
+def serve_save_needed():
     """Serve fs.save_needed() output"""
     _require()
     return {'sn': fs.save_needed()}
 
 @bottle.route('/save', method='POST')
-def savebtn():
+def serve_savebtn():
     """Save configuration"""
     _require()
     msg = pg('msg', '')
@@ -570,7 +570,7 @@ def savebtn():
     )
 
 @bottle.route('/reset', method='POST')
-def resetbtn():
+def serve_resetbtn():
     """Reset configuration"""
     _require()
     if not fs.save_needed():
@@ -581,7 +581,7 @@ def resetbtn():
 
 @bottle.route('/api/1/check', method='POST')
 @view('rules_diff_table')
-def checkbtn():
+def serve_checkbtn():
     """Check configuration"""
     _require()
     log.info('Configuration check started...')
@@ -594,7 +594,7 @@ def checkbtn():
         return dict(diff_dict={}, error="Check failed: %s" % e)
 
 @bottle.route('/api/1/deploy', method='POST')
-def deploybtn():
+def serve_deploybtn():
     """Deploy configuration"""
     _require('admin')
     log.info('Configuration deployment started...')
@@ -611,7 +611,7 @@ def deploybtn():
         ret_alert("Deployment failed: %s" % e)
 
 @bottle.route('/api/1/get_compiled_rules')
-def get_compiled_rules():
+def serve_get_compiled_rules():
     """Compile rules and return them to the requester"""
     _require('admin')
     log.info('Compiling firewall rules...')
@@ -626,7 +626,7 @@ def get_compiled_rules():
 
 @bottle.route('/api/1/version_list')
 @view('version_list')
-def version_list():
+def serve_version_list():
     """Serve version list"""
     _require()
     li = fs.version_list()
@@ -634,7 +634,7 @@ def version_list():
 
 @bottle.route('/api/1/version_diff', method='POST')
 @view('version_diff')
-def version_diff():
+def serve_version_diff():
     """Serve version diff"""
     _require()
     cid = pg('commit_id') #TODO validate cid?
@@ -644,7 +644,7 @@ def version_diff():
     return dict(li=(('(No changes.)', 'title')))
 
 @bottle.route('/api/1/rollback', method='POST')
-def rollback():
+def serve_rollback():
     """Rollback configuration"""
     _require('admin')
     cid = pg('commit_id') #TODO validate cid?
@@ -655,7 +655,7 @@ def rollback():
 # serving static files
 
 @bottle.route('/static/:filename#[a-zA-Z0-9_\.?\/?]+#')
-def static(filename):
+def serve_static(filename):
     """Serve static content"""
     bottle.response.headers['Cache-Control'] = 'max-age=3600, public'
     if filename == 'rss.png':
@@ -675,20 +675,20 @@ def static(filename):
 
 
 @bottle.route('/favicon.ico')
-def favicon():
+def serve_favicon():
     static_file('favicon.ico', 'static')
 
 @bottle.route('/map') #FIXME: the SVG map is not shown inside the jQuery tab.
-def flmap():
+def serve_flmap():
     return """<img src="map.png" width="700px" style="margin: 10px">"""
 
 @bottle.route('/map.png')
-def flmap_png():
+def serve_flmap_png():
     bottle.response.content_type = 'image/png'
     return draw_png_map(fs)
 
 @bottle.route('/svgmap')
-def flmap_svg():
+def serve_flmap_svg():
     bottle.response.content_type = 'image/svg+xml'
     return draw_svg_map(fs)
 
@@ -699,7 +699,7 @@ def flmap_svg():
 
 @bottle.route('/rss')
 @view('rss_index')
-def rss_index():
+def serve_rss_index():
     """Return RSS index page"""
     # FIXME: available to non-authenticated users - also, trying to fetch the
     # rss.png icon generates an auth Alert.
@@ -708,7 +708,7 @@ def rss_index():
 
 @bottle.route('/rss/:channel')
 @view('rss')
-def rss_channels(channel=None):
+def serve_rss_channels(channel=None):
     """Generate RSS feeds for different channels"""
     # TODO: RSS feeds are available to non-authenticated users
     # make the feed enabled/disabled by conf
@@ -725,7 +725,7 @@ def rss_channels(channel=None):
 
 
 @bottle.route('/test_email_delivery')
-def test_email_delivery():
+def serve_test_email_delivery():
     """Send a test email
     """
     mailer.send_msg(body_txt='Email delivery test - please ignore this message.')
