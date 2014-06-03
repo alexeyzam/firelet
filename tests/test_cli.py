@@ -48,6 +48,10 @@ class MockSay():
     def output_history(self):
         return self._output_history
 
+    @property
+    def last(self):
+        return self._output_history[-1]
+
     def reset_history(self):
         self._output_history = []
 
@@ -110,46 +114,71 @@ class TestCLI(BaseFunctionalTesting):
 
     def test_versioning(self):
         deb(show('started'))
-        out = self.run('save_needed', '-q')
-        assert out == ['No'], "No save needed here" + cli.say.hist()
-        out = self.run('version', 'list', '-q') # no versions
-        assert out == [], "No versions expected" + cli.say.hist()
-        out = self.run('rule', 'disable', '2', '-q')
-        out = self.run('save', 'test1', '-q') # save 1
-        out = self.run('version', 'list', '-q')
-        assert cli.say.output_history[:3] == ['No', 'Rule 2 disabled.',
-        'Configuration saved. Message: "test1"'], "Incorrect behavior"
-        assert out, cli.say.hist()
-        assert out[-1].endswith('| test1 |'), cli.say.hist()
-        out = self.run('rule', 'enable', '2', '-q')
-        out = self.run('save', 'test2', '-q') # save 2
-        out = self.run('version', 'list', '-q')
-        assert out[-2].endswith('| test2 |'), cli.say.hist()
-        out = self.run('rule', 'disable', '2', '-q')
-        out = self.run('save', 'test3', '-q') # save 1
-        out = self.run('version', 'list', '-q')
-        assert out[-3].endswith('| test3 |'), cli.say.hist()
+        self.run('save_needed', '-q')
+        assert cli.say.output_history == ['No'], "No save needed here" + cli.say.hist()
+
+        self.run('version', 'list', '-q') # no versions
+        assert cli.say.output_history == [], "No versions expected" + cli.say.hist()
+
+        self.run('rule', 'disable', '2', '-q')
+        assert cli.say.output_history == ['Rule 2 disabled.']
+
+        self.run('save_needed', '-q')
+        assert cli.say.last == 'Yes', "Save needed"
+
+        self.run('save', 'test1', '-q') # save 1
+        assert cli.say.output_history == ['Configuration saved. Message: "test1"']
+
+        self.run('version', 'list', '-q')
+        assert cli.say.last.endswith('| test1 |'), cli.say.hist()
+
+        self.run('rule', 'enable', '2', '-q')
+        assert cli.say.last == 'Rule 2 enabled.'
+
+        self.run('save', 'test2', '-q') # save 2
+        assert cli.say.last == 'Configuration saved. Message: "test2"'
+
+        self.run('version', 'list', '-q')
+        assert len(cli.say.output_history) == 2
+        assert cli.say.output_history[0].endswith('| test2 |'), cli.say.hist()
+        assert cli.say.output_history[1].endswith('| test1 |'), cli.say.hist()
+
+        self.run('rule', 'disable', '2', '-q')
+        assert cli.say.last == 'Rule 2 disabled.'
+
+        self.run('save', 'test3', '-q') # save 1
+        assert cli.say.last == 'Configuration saved. Message: "test3"'
+
+        self.run('version', 'list', '-q')
+        assert len(cli.say.output_history) == 3
+        assert cli.say.output_history[0].endswith('| test3 |'), cli.say.hist()
+
         # rollback by number
-        out = self.run('version', 'rollback', '1', '-q')
-        out = self.run('version', 'list', '-q')
-        assert out[0].endswith('| test2 |') and \
-            out[1].endswith('| test1 |'), "Incorrect rollback" + cli.say.hist()
-        # rollback by ID
-        commit_id = out[1].split()[0]
-        out = self.run('version', 'rollback', commit_id, '-q')
-        out = self.run('version',
-                    'list', '-q')
-        assert out[0].endswith('| test1 |'),  "Incorrect rollback" + cli.say.hist()
+        self.run('version', 'rollback', '1', '-q')
+
+        self.run('version', 'list', '-q')
+        assert len(cli.say.output_history) == 2
+        assert cli.say.output_history[0].endswith('| test2 |'), cli.say.hist()
+        assert cli.say.output_history[1].endswith('| test1 |'), cli.say.hist()
+
+        # rollback by ID - to a version where rule 2 was disabled
+        commit_id = cli.say.output_history[1].split()[0]
+        self.run('version', 'rollback', commit_id, '-q')
+
+        self.run('version', 'list', '-q')
+        assert cli.say.last.endswith('| test1 |'),  "Incorrect rollback" + cli.say.hist()
+
         # reset
-        out = self.run('rule',
-                    'enable', '2', '-q')
-        out = self.run('save_needed',
-                    '-q')
-        assert out[-1] == 'Yes', "Save needed here" + cli.say.hist()
-        out = self.run('reset', '-q')
-        out = self.run('save_needed',
-                    '-q')
-        assert out[-1] == 'No', "No save needed here" + cli.say.hist()
+        self.run('rule', 'enable', '2', '-q')
+        assert cli.say.last == 'Rule 2 enabled.'
+
+        self.run('save_needed', '-q')
+        assert cli.say.last == 'Yes', "Save needed"
+
+        self.run('reset', '-q')
+
+        self.run('save_needed', '-q')
+        assert cli.say.last == 'No', "Save not needed"
 
     # TODO: add check, compile and deploy tests
 
