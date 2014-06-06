@@ -96,6 +96,7 @@ def test_send_msg():
     m = Mailer()
     m._send = Mock()
     m.send_msg()
+    m.join()
     assert m._send.call_count == 1
     msg = m._send.call_args[0][3] # 'msg' passed to _send()
     assert 'Subject: [Firelet] Message' in msg
@@ -105,6 +106,7 @@ def test_send_diff():
     m = Mailer()
     m._send = Mock()
     m.send_diff({'items':[]})
+    m.join()
     assert m._send.call_count == 1
     msg = m._send.call_args[0][3] # 'msg' passed to _send()
     assert 'Subject: [Firelet] Diff' in msg
