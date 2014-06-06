@@ -278,6 +278,7 @@ def main(mockargs=None):    # pragma: no cover
     elif a1 == 'rule':
         if a2 == 'add':
             raise NotImplementedError   #TODO
+
         elif a2 == 'enable':
             i = to_int(a3)
             fs.rules.enable(i)

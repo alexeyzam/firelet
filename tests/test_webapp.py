@@ -37,7 +37,6 @@ from firelet import fireletd
 #    result = app.handle('/', 'GET')
 #    assert 'Please insert your credentials' in result
 
-#TODO: implement webapp testing
 REDIR = '302 Found'
 
 class TestWebapp(BaseFunctionalTesting):

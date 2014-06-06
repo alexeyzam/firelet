@@ -85,6 +85,7 @@ def timeit(method):
             )
         )
         return result
+
     timed.__doc__ = method.__doc__
     return timed
 

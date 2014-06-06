@@ -180,7 +180,6 @@ class TestCLI(BaseFunctionalTesting):
         self.run('save_needed', '-q')
         assert cli.say.last == 'No', "Save not needed"
 
-    # TODO: add check, compile and deploy tests
 
     # user management
 
@@ -206,7 +205,6 @@ class TestCLI(BaseFunctionalTesting):
         out3 = self.run('-q', 'user', 'list')
         assert out3 == out1, "User not deleted" + cli.say.hist()
 
-        #TODO: add user editing to the CLI and test it ?
 
     # rule management
 
