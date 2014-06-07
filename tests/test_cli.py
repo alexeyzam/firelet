@@ -102,9 +102,6 @@ class TestCLI(BaseFunctionalTesting):
         out = self.run('rule', 'list')
         assert len(cli.say.output_history) > 5, cli.say.hist()
 
-    def test_help(self):
-        assert_raises(SystemExit, cli.main), "Exit 1, print help"
-
     def test_list(self):
         for x in ('rule', 'host', 'hostgroup', 'service', 'network'):
             print "Running cli %s list" % x
