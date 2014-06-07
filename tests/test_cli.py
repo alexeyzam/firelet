@@ -67,13 +67,13 @@ def mock_getpass(s=None):
 
 
 class TestCLI(BaseFunctionalTesting):
-    def setUp(self):
+    def setup(self):
         self._setup_repodir()
         cli.say = MockSay()
         cli.getpass = mock_getpass
         cli.open_fs = mock_open_fs
 
-    def tearDown(self):
+    def teardown(self):
         self._teardown_repodir()
 
     def run(self, *args):

@@ -54,10 +54,10 @@ class BaseFunctionalTesting(object):
         shutil.rmtree(self._repodir)
         self._repodir = None
 
-    def setUp(self):
+    def setup(self):
         self._setup_repodir()
 
-    def tearDown(self):
+    def teardown(self):
         self._teardown_repodir()
 
 

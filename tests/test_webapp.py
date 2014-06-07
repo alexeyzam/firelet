@@ -40,12 +40,12 @@ from firelet import fireletd
 REDIR = '302 Found'
 
 class TestWebapp(BaseFunctionalTesting):
-    def setUp(self):
+    def setup(self):
         self._setup_repodir()
         # create global TestApp instance
         self._app = TestApp(fireletd.app)
 
-    def tearDown(self):
+    def teardown(self):
         self._teardown_repodir()
         self._app = None
 
