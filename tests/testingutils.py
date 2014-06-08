@@ -18,47 +18,27 @@ from json import dumps
 from os import listdir, mkdir
 from tempfile import mkdtemp
 from time import time
-import glob
 import inspect
 import logging
 import os
-import shutil
 import sys
 
+import pytest
+repodir = pytest.mark.usefixtures("repodir")
 class BaseFunctionalTesting(object):
-
-    def _setup_repodir(self):
-        """Create and populate test repository directory"""
-
-        if sys.platform == 'linux2' and 'TRAVIS' not in os.environ:
-            # In-memory filesystem allows faster testing.
-            # Travis CI build system has no /dev/shm
-            self._repodir = mkdtemp(prefix='tmp_fltest', dir='/dev/shm')
-
-        else:
-            self._repodir = mkdtemp(prefix='tmp_fltest')
-
-        # copy the needed files
-        globs = ['tests/iptables-save*', 'tests/ip-addr-show*','tests/*.csv', 'tests/*.json']
-        for g in globs:
-            for f in glob.glob(g):
-                shutil.copy(f, self._repodir)
-
-        shutil.copy('tests/firelet_test.ini', self._repodir)
-
-        li = listdir(self._repodir)
-        assert len(li) > 5, "Not enough file copied"
-
-    def _teardown_repodir(self):
-        assert self._repodir
-        shutil.rmtree(self._repodir)
-        self._repodir = None
-
     def setup(self):
         self._setup_repodir()
+        pass
+
+    def _setup_repodir(self):
+        self._repodir = repodir
 
     def teardown(self):
-        self._teardown_repodir()
+        pass
+
+    def _teardown_repodir(self, *a):
+        pass
+
 
 
 def show(s, o=None):

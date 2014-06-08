@@ -15,15 +15,13 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from logging import getLogger
-from nose.plugins.skip import SkipTest
-from nose.tools import raises, assert_raises, with_setup
+from pytest import raises
 from webtest import TestApp, AppError
 import os
+import pytest
 
 log = getLogger(__name__)
 deb = log.debug
-
-from testingutils import BaseFunctionalTesting
 
 from firelet import fireletd
 
@@ -39,27 +37,21 @@ from firelet import fireletd
 
 REDIR = '302 Found'
 
-class TestWebapp(BaseFunctionalTesting):
-    def setup(self):
-        self._setup_repodir()
-        # create global TestApp instance
-        self._app = TestApp(fireletd.app)
+@pytest.fixture
+def app():
+    return TestApp(fireletd.app)
 
-    def teardown(self):
-        self._teardown_repodir()
-        self._app = None
 
-    @raises(AppError)
-    def test_bogus_page(self):
-        self._app.get('/bogus_page')
+def test_bogus_page(app):
+    with raises(AppError):
+        app.get('/bogus_page')
 
-    def test_index_page(self):
-        assert self._app.get('/').status == '200 OK'
+def test_index_page(app):
+    assert app.get('/').status == '200 OK'
 
-    @SkipTest
-    def login(self):
-        """run setup_app and log in"""
-        p = self._app.post('/login', {'user': 'admin', 'pwd': 'admin'})
+def login(app):
+    """run setup_app and log in"""
+    app.post('/login', {'user': 'admin', 'pwd': 'admin'})
 
 
 
