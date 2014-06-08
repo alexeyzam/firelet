@@ -5,17 +5,17 @@ python:
   # - "3.2" Temporary disabling Python3
 
 install:
-  - pip install argparse --use-mirrors
-  - pip install beaker --use-mirrors
-  - pip install bottle --use-mirrors
-  - pip install coveralls --use-mirrors
-  - pip install mock --use-mirrors
-  - pip install netaddr --use-mirrors
-  - pip install paramiko --use-mirrors
-  - pip install pytest --use-mirrors
-  - pip install setproctitle --use-mirrors
-  - pip install webtest --use-mirrors
-  - pip install -e . --use-mirrors
+  - pip install argparse
+  - pip install beaker
+  - pip install bottle
+  - pip install coveralls
+  - pip install mock
+  - pip install netaddr
+  - pip install paramiko
+  - pip install pytest
+  - pip install setproctitle
+  - pip install webtest
+  - pip install -e .
 
 script:
   - py.test tests/test.py tests/test_cli.py tests/test_webapp.py
