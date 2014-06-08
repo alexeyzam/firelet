@@ -1207,6 +1207,44 @@ def test_DemoGitFireSet_rules_add_duplicate(repodir):
     with raises(Alert):
         fs.rules.add(d, rid=0)
 
+# fs.rules.moveup()/movedown() testing
+
+def test_DemoGitFireSet_rules_moveup(repodir):
+    fs = DemoGitFireSet(repodir=repodir)
+    r0 = fs.rules[0]
+    fs.rules.moveup(1)
+    assert fs.rules[1] == r0
+
+def test_DemoGitFireSet_rules_moveup_alert(repodir):
+    fs = DemoGitFireSet(repodir=repodir)
+    with raises(Alert):
+        fs.rules.moveup(0)
+
+def test_DemoGitFireSet_rules_movedown(repodir):
+    fs = DemoGitFireSet(repodir=repodir)
+    last_rid = len(fs.rules) - 1
+    fs.rules.movedown(last_rid - 1)
+
+def test_DemoGitFireSet_rules_movedown_alert(repodir):
+    fs = DemoGitFireSet(repodir=repodir)
+    last_rid = len(fs.rules) - 1
+    with raises(Alert):
+        fs.rules.movedown(last_rid)
+
+# fs.rules.update() testing
+
+@SkipTest
+def test_DemoGitFireSet_rules_update_using_token(repodir):
+    fs = DemoGitFireSet(repodir=repodir)
+    token = fs.rules[1]._token()
+    fs.rules.update({'Name': 'foo'}, rid=1, token=token)
+
+def test_DemoGitFireSet_rules_update_using_token_failing(repodir):
+    fs = DemoGitFireSet(repodir=repodir)
+    token = 'bogustoken'
+    with raises(Exception):
+        fs.rules.update({'Name': 'foo'}, rid=1, token=token)
+
 # fs.hosts.add() testing
 
 def test_DemoGitFireSet_hosts_add(repodir):
@@ -1497,7 +1535,7 @@ def test_bunch_token(repodir):
     assert_raises(Exception,  b.validate_token, '123456')
 
 def test_bunch_update(repodir):
-    b = Bunch( c=42, a=3, b='44', _a=0)
+    b = Bunch(c=42, a=3, b='44', _a=0)
     d = dict(_a=1, a=2, b=3, c=4, extra=5)
     b.update(d)
     assert b.a == 2 and b.c == 4

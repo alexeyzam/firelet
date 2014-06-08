@@ -301,29 +301,38 @@ def serve_ruleset_post():
             name = item.name
             fs.delete('rules', rid)
             return ack("Rule %s deleted." % name)
+
         elif action == 'moveup':
             fs.rules.moveup(rid)
             return ack("Rule moved up.")
+
         elif action == 'movedown':
             fs.rules.movedown(rid)
             return ack("Rule moved down.")
+
         elif action == 'enable':
             fs.rules.enable(rid)
             return ack("Rule %d enabled." % rid)
+
         elif action == 'disable':
             fs.rules.disable(rid)
             return ack("Rule %d disabled." % rid)
+
         elif action == "save":
             fields = ('name', 'src', 'src_serv', 'dst', 'dst_serv', 'desc')
             d = dict((f, pg(f)) for f in fields)
             d['enabled'] = flag(pg('enabled'))
             d['action'] = pg('rule_action')
             d['log_level'] = pg('log')
+            # FIXME: the token is not being set by the UI
+            # assert pg('token')
             fs.rules.update(d, rid=pg('rid'), token=pg('token'))
+
         elif action == "newabove":
             action = "create new rule above"
             d = {}
             fs.rules.add(d, rid=rid)
+
         elif action == "newbelow":
             action = "create new rule below"
             d = {}

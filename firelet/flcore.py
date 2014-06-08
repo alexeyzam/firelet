@@ -349,9 +349,7 @@ class SmartTable(object):
         return self._list.__getitem__(i)
 
     def pop(self, i):
-        x = self._list[i]
-        del self._list[i]
-        return x
+        return self._list.pop(i)
 
     def update(self, d, rid=None, token=None):
         """Update internal dictionary based on d
@@ -373,6 +371,7 @@ class SmartTable(object):
         if token:
             assert token == item._token(), "Unable to update: one " \
                 "or more items has been modified in the meantime."
+
         item.update(d)
         self.save()
 
@@ -409,20 +408,18 @@ class Rules(SmartTable):
     def moveup(self, rid):
         """Move a rule up"""
         try:
-            rules = self._list
-            rules[rid], rules[rid - 1] = rules[rid - 1], rules[rid]
-            self._list = rules
+            assert rid >= 1
+            b = rid - 1
+            self._list[rid], self._list[b] = self._list[b], self._list[rid]
             self.save()
         except Exception as e:
-            log.debug("Error in rules.moveup: %s" % e)
             raise Alert("Cannot move rule %d up." % rid)
 
     def movedown(self, rid):
         """Move a rule down"""
         try:
-            rules = self._list
-            rules[rid], rules[rid + 1] = rules[rid + 1], rules[rid]
-            self._list = rules[:]
+            b = rid + 1
+            self._list[rid], self._list[b] = self._list[b], self._list[rid]
             self.save()
         except Exception as e:
             raise Alert("Cannot move rule %d down." % rid)
@@ -456,7 +453,7 @@ class Rules(SmartTable):
 
     def update(self, d, rid=None, token=None):
         """Update internal dictionary based on d"""
-        assert rid != None, "Malformed input row ID is missing."
+        assert rid is not None, "Malformed input row ID is missing."
         try:
             rule = self.__getitem__(int(rid))
         except IndexError:
@@ -464,7 +461,7 @@ class Rules(SmartTable):
                 " items has been modified in the meantime.")
 
         if token:
-            self.validate_token(token)
+            rule.validate_token(token)
 
         rule.update(d)
         self.save()
