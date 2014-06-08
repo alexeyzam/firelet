@@ -280,6 +280,10 @@ class HostGroup(Bunch):
 
 class Service(Bunch):
     """A network service using one protocol and one, many or no ports"""
+    def __init__(self, **kw):
+        super(Service, self).__init__(**kw)
+        self.update(kw)
+
     def update(self, d):
         """Validate, then set/update the internal dictionary"""
         ports = d['ports']
