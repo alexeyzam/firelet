@@ -18,7 +18,6 @@ from datetime import datetime
 from logging import getLogger
 from mock import Mock
 from netaddr import IPNetwork
-from nose.tools import assert_raises
 from paramiko import SSHClient
 from pytest import raises
 import mock
@@ -128,7 +127,8 @@ def test_send_html(repodir):
 
 def test_parse_iptables_save_1(repodir):
     sx = MockSSHConnector(targets={'localhost':['127.0.0.1']})
-    assert_raises(Exception, sx.parse_iptables_save, '')
+    with raises(Exception):
+        sx.parse_iptables_save('')
 
 def test_parse_iptables_save_2(repodir):
     sx = MockSSHConnector(targets={'localhost':['127.0.0.1']})
@@ -264,17 +264,24 @@ def test_flssh_connect_one(mocked_connect, repodir):
 def test_user_management(repodir):
     u = Users(d=repodir)
     u.create('Totoro', 'admin', 'rawr', 'totoro@nowhere.forest')
-    assert_raises(Exception,  u.create, 'Totoro', '', '', '')
+    with raises(Exception):
+        u.create('Totoro', '', '', '')
+
     u.validate('Totoro', 'rawr')
-    assert_raises(Exception, u.validate, 'Totoro', 'booo')
+    with raises(Exception):
+        u.validate('Totoro', 'booo')
+
     u.update('Totoro', role='user')
     assert u._users['Totoro'][0] == 'user'
     u.update('Totoro', pwd='')
     u.update('Totoro', email='')
     assert u._users['Totoro'][2] == ''
-    assert_raises(Exception, u.update, 'Totoro2', 'email=""')
+    with raises(Exception):
+        u.update('Totoro2', 'email=""')
+
     u.delete('Totoro')
-    assert_raises(Exception,  u.delete, 'Totoro')
+    with raises(Exception):
+        u.delete('Totoro')
 
 
 # # File save/load # #
@@ -394,7 +401,8 @@ def test_gitfireset_smarttable_methods(gfs):
 
 def test_gitfireset_check_ifaces_1(gfs):
     gfs._remote_confs = None
-    assert_raises(AssertionError, gfs._check_ifaces)
+    with raises(AssertionError):
+        gfs._check_ifaces()
 
 def test_gitfireset_check_ifaces_20(gfs):
     d = {'InternalFW': {'filter': [], 'ip_a_s': {'eth1': ('10.66.2.1/24',None),
@@ -412,11 +420,13 @@ def test_gitfireset_check_ifaces_20(gfs):
 
 def test_gitfireset_check_ifaces_wrong_value(gfs):
     gfs._remote_confs = {'bogus': 'not a bunch'} # value should be a Bunch
-    assert_raises(AssertionError, gfs._check_ifaces)
+    with raises(AssertionError):
+        gfs._check_ifaces()
 
 def test_gitfireset_check_ifaces_wrong_bunch_size(gfs):
     gfs._remote_confs = {'bogus': Bunch()} # len(Bunch(...)) should be 2 (ip_addr_v4, ip_addr_v6)
-    assert_raises(AssertionError, gfs._check_ifaces)
+    with raises(AssertionError):
+        gfs._check_ifaces()
 
 def test_gitfireset_check_ifaces_missing_iface(gfs):
     gfs.hosts = [
@@ -427,7 +437,8 @@ def test_gitfireset_check_ifaces_missing_iface(gfs):
         'host1': Bunch(ip_a_s = {'lo': ()}),
         'host2': Bunch(ip_a_s = {}) # missing iface
     }
-    assert_raises(AssertionError, gfs._check_ifaces)
+    with raises(AssertionError):
+        gfs._check_ifaces()
 
 def test_gitfireset_check_ifaces_wrong_ipaddr_string(gfs):
     """_check_ifaces should raise AssertionError on incorrect IPaddr strings"""
@@ -439,7 +450,8 @@ def test_gitfireset_check_ifaces_wrong_ipaddr_string(gfs):
         'host1': Bunch(ip_a_s = {'lo': ('bogus', 'bogus')}),
         'host2': Bunch(ip_a_s = {'lo': ('bogus', 'bogus') })
     }
-    assert_raises(AssertionError, gfs._check_ifaces)
+    with raises(AssertionError):
+        gfs._check_ifaces()
 
 def test_gitfireset_check_ifaces_wrong_ipaddr(gfs):
     """_check_ifaces should raise AssertionError on incorrect IPaddr"""
@@ -449,7 +461,8 @@ def test_gitfireset_check_ifaces_wrong_ipaddr(gfs):
     gfs._remote_confs = {
         'host1': Bunch(ip_a_s = {'lo': ('1.2.3.5/32', None)}),
     }
-    assert_raises(AssertionError, gfs._check_ifaces)
+    with raises(AssertionError):
+        gfs._check_ifaces()
 
 def test_gitfireset_check_ifaces_correct(gfs):
     gfs.hosts = [
@@ -492,7 +505,8 @@ def test_gitfireset_check_ifaces_alert(gfs):
             iptables_p = Bunch()
         ),
     }
-    assert_raises(Alert, gfs._check_ifaces, stop_on_extra_interfaces=True)
+    with raises(Alert):
+        gfs._check_ifaces(stop_on_extra_interfaces=True)
 
 
 def test_gitfireset_sibling_names(gfs):
@@ -1337,10 +1351,9 @@ def test_host_contains_host(repodir):
 
 def test_host_contains_network(repodir):
     # only an Host can be in a Host, otherwise raise an Exception
-    def tester():
+    with raises(Exception):
         Network(['h', '1.1.1.0', 8]) in \
         Host(['h', 'eth0', '1.1.1.1', 24, '1', '1', '1', [] ])
-    assert_raises(Exception, tester)
 
 def test_compare(repodir):
     for x in xrange(0, 32):
@@ -1380,7 +1393,8 @@ def test_json_files(repodir):
 
 def test_bunch_service1(repodir):
     d = dict(name='s1', protocol='NotAProtocol', ports='53')
-    assert_raises(Exception, Bunch, d)
+    with raises(Exception):
+        Bunch(d)
 
 def test_bunch_service1b(repodir):
     d = dict(name='s1', protocol='TCP', ports='53')
@@ -1389,31 +1403,35 @@ def test_bunch_service1b(repodir):
 
 def test_bunch_service2(repodir):
     d = dict(name='s1', protocol='TCP', ports='999999')
-    assert_raises(Exception, Bunch, d)
+    with raises(Exception):
+        Bunch(d)
 
 def test_bunch_service3(repodir):
     d = dict(name='s1', protocol='TCP', ports='-1')
-    assert_raises(Exception, Bunch, d)
+    with raises(Exception):
+        Bunch(d)
 
 def test_bunch_service4(repodir):
     d = dict(name='s1', protocol='TCP', ports='10:20:30')
-    assert_raises(Exception, Bunch, d)
+    with raises(Exception):
+        Bunch(d)
 
 def test_bunch_service5(repodir):
     d = dict(name='s1', protocol='TCP', ports='30:20')
-    assert_raises(Exception, Bunch, d)
+    with raises(Exception):
+        Bunch(d)
 
 def test_bunch_service6(repodir):
     d = dict(name='s1', protocol='TCP', ports='blah')
-    assert_raises(Exception, Bunch, d)
+    with raises(Exception):
+        Bunch(d)
 
 def test_bunch_service7(repodir):
     d = dict(name='s1', protocol='TCP', ports='80')
     s = Bunch(**d)
     d = dict(name='s1', protocol='TCP', ports='blah')
-    s.update(d) #FIXME: this should raise an Alert
-    assert s.ports == 'blah'    # remove after the fix
-#    assert_raises(Exception, s.update, d)
+    with raises(Exception):
+        s.update(d)
 
 def test_bunch_service(repodir):
     s = Bunch(name='s1', protocol='UDP', ports='53')
@@ -1424,9 +1442,8 @@ def test_bunch_service(repodir):
     assert s.name == 's2', 'Incorrect bunch name'
     assert s.protocol == 'TCP', 'Incorrect bunch proto'
     assert s.ports == '80', 'Incorrect bunch ports'
-#    assert_raises(Alert, s.update,
-#        {'name': 's2', 'protocol':'TCP', 'ports':'eighty    '}
-#    )
+    with raises(Alert):
+        s.update({'name': 's2', 'protocol':'TCP', 'ports':'eighty'})
 
 
 
@@ -1474,7 +1491,8 @@ def test_bunch_token(repodir):
     b = Bunch( c=42, a=3, b='44', _a=0)
     tok = b._token()
     b.validate_token(tok)
-    assert_raises(Exception,  b.validate_token, '123456')
+    with raises(Exception):
+        b.validate_token('123456')
 
 def test_bunch_update(repodir):
     b = Bunch(c=42, a=3, b='44', _a=0)
@@ -1492,7 +1510,8 @@ def test_flag_false(repodir):
 
 def test_flag_raise(repodir):
     for x in ('true', 'false'):
-        assert_raises(Exception, flag, x)
+        with raises(Exception):
+            flag(x)
 
 # RSS generation
 
