@@ -301,47 +301,54 @@ def test_load_save_csv(repodir):
     assert h == h2, "load/save hosts loop failed:\n%s\n!=\n%s" % \
         (h, h2)
 
+
 # #  FireSet testing # #
 
-def test_gitfireset_otp(repodir):
-    fs = GitFireSet(repodir=repodir)
-    otp = fs.generate_otp()
+@pytest.fixture
+def gfs(repodir):
+    return GitFireSet(repodir=repodir)
+
+@pytest.fixture
+def fs(repodir):
+    return DemoGitFireSet(repodir=repodir)
+
+
+def test_gitfireset_otp(gfs):
+    otp = gfs.generate_otp()
     assert isinstance(otp, str)
     assert len(otp) == 10
 
-def test_gitfireset_simple(repodir):
-    fs = GitFireSet(repodir=repodir)
-    assert fs.save_needed() == False
-    fs.save('test')
-    assert fs.save_needed() == False
-    fs.reset()
-    assert fs.save_needed() == False
+def test_gitfireset_simple(gfs):
+    assert gfs.save_needed() == False
+    gfs.save('test')
+    assert gfs.save_needed() == False
+    gfs.reset()
+    assert gfs.save_needed() == False
 
-def test_gitfireset_long(repodir):
-    fs = GitFireSet(repodir=repodir)
+def test_gitfireset_long(repodir, gfs):
     # Delete first item in every table
     for t in ('rules', 'hosts', 'hostgroups', 'services', 'networks'):
-        fs.delete(t, 1)
-        assert fs.save_needed() == True, "save_needed non set when deleting item 1 from %s" % t
-        fs.save("%s: n.1 deleted" % t)
-        assert fs.save_needed() == False
+        gfs.delete(t, 1)
+        assert gfs.save_needed() == True, "save_needed non set when deleting item 1 from %s" % t
+        gfs.save("%s: n.1 deleted" % t)
+        assert gfs.save_needed() == False
 
     # Perform changes
-    fs.rules.disable(2)
-    assert not fs.rules.enabled(2), "Rule 2 should be flagged as disabled"
-    fs.rules.enable(2)
-    assert fs.rules.enabled(2), "Rule 2 should be flagged as enabled"
-    fs.rules.moveup(2)
-    assert fs.save_needed() == True
-    fs.rules.movedown(1)
-    fs.save('movedown1')
-    fs.rules.movedown(2)
-    fs.save('movedown2')
-    fs.rules.movedown(3)
-    fs.save('movedown3')
+    gfs.rules.disable(2)
+    assert not gfs.rules.enabled(2), "Rule 2 should be flagged as disabled"
+    gfs.rules.enable(2)
+    assert gfs.rules.enabled(2), "Rule 2 should be flagged as enabled"
+    gfs.rules.moveup(2)
+    assert gfs.save_needed() == True
+    gfs.rules.movedown(1)
+    gfs.save('movedown1')
+    gfs.rules.movedown(2)
+    gfs.save('movedown2')
+    gfs.rules.movedown(3)
+    gfs.save('movedown3')
 
     # Check version list
-    vl = fs.version_list()
+    vl = gfs.version_list()
     assert zip(*vl)[2] == (['movedown3'],
         ['movedown2'],
         ['networks: n.1 deleted'],
@@ -355,7 +362,7 @@ def test_gitfireset_long(repodir):
 
     # Check version_diff
     last_commit_id = vl[-1][-1]
-    diff = fs.version_diff(last_commit_id)
+    diff = gfs.version_diff(last_commit_id)
     assert ('1 http_ok InternalFW:eth1 * Server001:eth0 HTTP ACCEPT 0 "Web server"',
         'add') in diff
     assert ('1 http_ok InternalFW:eth1 * Server001:eth0 HTTP ACCEPT 0 "Web server"',
@@ -363,9 +370,9 @@ def test_gitfireset_long(repodir):
     assert len(diff) == 52
 
     # Rollback and check again
-    fs.rollback(2)
-    assert fs.save_needed() == False
-    vl = fs.version_list()
+    gfs.rollback(2)
+    assert gfs.save_needed() == False
+    vl = gfs.version_list()
     log.debug('version_list: %s' % repr(vl))
     assert zip(*vl)[2] == (['networks: n.1 deleted'],
         ['services: n.1 deleted'],
@@ -374,26 +381,22 @@ def test_gitfireset_long(repodir):
         ['rules: n.1 deleted'])
 
 
-def test_gitfireset_smarttable_methods(repodir):
-    fs = GitFireSet(repodir=repodir)
-
-    h = fs.fetch('hosts', 0)
-    fs.delete('hosts', 0)
+def test_gitfireset_smarttable_methods(gfs):
+    h = gfs.fetch('hosts', 0)
+    gfs.delete('hosts', 0)
     #TODO: add other methods
 
 #        d = {'name': pg('name'),
 #                    'childs': childs}
 #            if rid == None:     # new item
-#                fs.hostgroups.add(d)
+#                gfs.hostgroups.add(d)
 
 
-def test_gitfireset_check_ifaces_1(repodir):
-    fs = GitFireSet(repodir=repodir)
-    fs._remote_confs = None
-    assert_raises(AssertionError, fs._check_ifaces)
+def test_gitfireset_check_ifaces_1(gfs):
+    gfs._remote_confs = None
+    assert_raises(AssertionError, gfs._check_ifaces)
 
-def test_gitfireset_check_ifaces_20(repodir):
-    fs = GitFireSet(repodir=repodir)
+def test_gitfireset_check_ifaces_20(gfs):
     d = {'InternalFW': {'filter': [], 'ip_a_s': {'eth1': ('10.66.2.1/24',None),
                 'eth0': ('10.66.1.2/24', None)}},
             'Server001': {'filter': [], 'ip_a_s': {'eth0': ('10.66.2.2/24', None)}},
@@ -402,93 +405,85 @@ def test_gitfireset_check_ifaces_20(repodir):
                 'eth2': ('88.88.88.88/24', None),
                 'eth0': ('172.16.2.223/24', None)}},
             'Smeagol': {'filter': [], 'ip_a_s': {'eth0': ('10.66.1.3/24', None)}} }
-    fs._remote_confs = {}
+    gfs._remote_confs = {}
     for n, v in d.iteritems():
-        fs._remote_confs[n] = Bunch(filter=v['filter'], ip_a_s=v['ip_a_s'])
-    fs._check_ifaces()
+        gfs._remote_confs[n] = Bunch(filter=v['filter'], ip_a_s=v['ip_a_s'])
+    gfs._check_ifaces()
 
-def test_gitfireset_check_ifaces_wrong_value(repodir):
-    fs = GitFireSet(repodir=repodir)
-    fs._remote_confs = {'bogus': 'not a bunch'} # value should be a Bunch
-    assert_raises(AssertionError, fs._check_ifaces)
+def test_gitfireset_check_ifaces_wrong_value(gfs):
+    gfs._remote_confs = {'bogus': 'not a bunch'} # value should be a Bunch
+    assert_raises(AssertionError, gfs._check_ifaces)
 
-def test_gitfireset_check_ifaces_wrong_bunch_size(repodir):
-    fs = GitFireSet(repodir=repodir)
-    fs._remote_confs = {'bogus': Bunch()} # len(Bunch(...)) should be 2 (ip_addr_v4, ip_addr_v6)
-    assert_raises(AssertionError, fs._check_ifaces)
+def test_gitfireset_check_ifaces_wrong_bunch_size(gfs):
+    gfs._remote_confs = {'bogus': Bunch()} # len(Bunch(...)) should be 2 (ip_addr_v4, ip_addr_v6)
+    assert_raises(AssertionError, gfs._check_ifaces)
 
-def test_gitfireset_check_ifaces_missing_iface(repodir):
-    fs = GitFireSet(repodir=repodir)
-    fs.hosts = [
+def test_gitfireset_check_ifaces_missing_iface(gfs):
+    gfs.hosts = [
         Bunch(hostname='host1', iface='lo'),
         Bunch(hostname='host2', iface='lo')
     ]
-    fs._remote_confs = {
+    gfs._remote_confs = {
         'host1': Bunch(ip_a_s = {'lo': ()}),
         'host2': Bunch(ip_a_s = {}) # missing iface
     }
-    assert_raises(AssertionError, fs._check_ifaces)
+    assert_raises(AssertionError, gfs._check_ifaces)
 
-def test_gitfireset_check_ifaces_wrong_ipaddr_string(repodir):
+def test_gitfireset_check_ifaces_wrong_ipaddr_string(gfs):
     """_check_ifaces should raise AssertionError on incorrect IPaddr strings"""
-    fs = GitFireSet(repodir=repodir)
-    fs.hosts = [
+    gfs.hosts = [
         Bunch(hostname='host1', iface='lo'),
         Bunch(hostname='host2', iface='lo')
     ]
-    fs._remote_confs = {
+    gfs._remote_confs = {
         'host1': Bunch(ip_a_s = {'lo': ('bogus', 'bogus')}),
         'host2': Bunch(ip_a_s = {'lo': ('bogus', 'bogus') })
     }
-    assert_raises(AssertionError, fs._check_ifaces)
+    assert_raises(AssertionError, gfs._check_ifaces)
 
-def test_gitfireset_check_ifaces_wrong_ipaddr(repodir):
+def test_gitfireset_check_ifaces_wrong_ipaddr(gfs):
     """_check_ifaces should raise AssertionError on incorrect IPaddr"""
-    fs = GitFireSet(repodir=repodir)
-    fs.hosts = [
+    gfs.hosts = [
         Bunch(hostname='host1', iface='lo', ip_addr='1.2.3.4'),
     ]
-    fs._remote_confs = {
+    gfs._remote_confs = {
         'host1': Bunch(ip_a_s = {'lo': ('1.2.3.5/32', None)}),
     }
-    assert_raises(AssertionError, fs._check_ifaces)
+    assert_raises(AssertionError, gfs._check_ifaces)
 
-def test_gitfireset_check_ifaces_correct(repodir):
-    fs = GitFireSet(repodir=repodir)
-    fs.hosts = [
+def test_gitfireset_check_ifaces_correct(gfs):
+    gfs.hosts = [
         Bunch(hostname='host1', iface='lo', ip_addr='1.2.3.4', mng='1'),
     ]
-    fs._remote_confs = {
+    gfs._remote_confs = {
         'host1': Bunch(
             ip_a_s = {'lo': ('1.2.3.4/32', None)},
             iptables_p = Bunch()
         ),
     }
-    fs._check_ifaces(stop_on_extra_interfaces=False)
+    gfs._check_ifaces(stop_on_extra_interfaces=False)
 
-def test_gitfireset_check_ifaces_correct2(repodir):
+def test_gitfireset_check_ifaces_correct2(gfs):
     """gitfireset_check_ifaces_correct2 has stop_on_extra_interfaces = True"""
-    fs = GitFireSet(repodir=repodir)
-    fs.hosts = [
+    gfs.hosts = [
         Bunch(hostname='host1', iface='lo', ip_addr='1.2.3.4', mng=1),
     ]
-    fs._remote_confs = {
+    gfs._remote_confs = {
         'host1': Bunch(
             ip_a_s = {'lo': ('1.2.3.4/32', None)},
             iptables_p = Bunch()
         ),
     }
-    fs._check_ifaces(stop_on_extra_interfaces=True)
+    gfs._check_ifaces(stop_on_extra_interfaces=True)
 
-def test_gitfireset_check_ifaces_alert(repodir):
+def test_gitfireset_check_ifaces_alert(gfs):
     """gitfireset_check_ifaces_correct3 should raise Alert
     'Alert: One or more firewalls have extra interfaces: host1: eth0'
     """
-    fs = GitFireSet(repodir=repodir)
-    fs.hosts = [
+    gfs.hosts = [
         Bunch(hostname='host1', iface='lo', ip_addr='1.2.3.4', mng=1),
     ]
-    fs._remote_confs = {
+    gfs._remote_confs = {
         'host1': Bunch(
             ip_a_s = {
                 'lo': ('1.2.3.4/32', None),
@@ -497,20 +492,18 @@ def test_gitfireset_check_ifaces_alert(repodir):
             iptables_p = Bunch()
         ),
     }
-    assert_raises(Alert, fs._check_ifaces, stop_on_extra_interfaces=True)
+    assert_raises(Alert, gfs._check_ifaces, stop_on_extra_interfaces=True)
 
 
-def test_gitfireset_sibling_names(repodir):
-    fs = GitFireSet(repodir=repodir)
+def test_gitfireset_sibling_names(gfs):
     names = ['AllSystems', 'BorderFW:eth0', 'BorderFW:eth1', 'BorderFW:eth2', 'Clients', 'InternalFW:eth0', \
         'InternalFW:eth1', 'SSHnodes', 'Server001:eth0', 'Servers', 'Smeagol:eth0', 'Tester:eth1', 'WebServers']
 
-    sn = fs.list_sibling_names()
+    sn = gfs.list_sibling_names()
     assert sorted(sn) == sorted(names), "list_sibling_names generating incorrect output: %s" % repr(sorted(sn))
 
-def test_gitfireset_get_firewalls(repodir):
-    fs = GitFireSet(repodir=repodir)
-    hosts = fs._get_firewalls()
+def test_gitfireset_get_firewalls(gfs):
+    hosts = gfs._get_firewalls()
     hostnames = sorted((h.hostname, h.iface) for h in hosts)
     ok = [('BorderFW', 'eth0'), ('BorderFW', 'eth1'), ('BorderFW', 'eth2'), ('InternalFW', 'eth0'),
         ('InternalFW', 'eth1'), ('Server001', 'eth0'), ('Smeagol', 'eth0')]
@@ -518,48 +511,46 @@ def test_gitfireset_get_firewalls(repodir):
 
 #def test_dumbfireset(repodir):
 #    fs = DumbFireSet(repodir=repodir)
-#    assert fs.save_needed() == False
-#    fs.save('save')
-#    assert fs.save_needed() == False
-#    fs.reset()
-#    assert fs.save_needed() == False
-#    fs.rollback(2)
-#    assert fs.save_needed() == False
-#    vl = fs.version_list()
+#    assert gfs.save_needed() == False
+#    gfs.save('save')
+#    assert gfs.save_needed() == False
+#    gfs.reset()
+#    assert gfs.save_needed() == False
+#    gfs.rollback(2)
+#    assert gfs.save_needed() == False
+#    vl = gfs.version_list()
 #    # assert
 #    for t in ('rules', 'hosts', 'hostgroups', 'services', 'networks'):
-#        tmp = len(fs.__dict__[t])
-#        fs.delete(t, 0)
-#        assert fs.save_needed() == True, t
-#        assert tmp == len(fs.__dict__[t]) + 1, t
-#    fs.save('test')
-#    assert fs.save_needed() == False
-#    orig_rules = fs.rules[:] # copy
-#    fs.rules.moveup(2)
-#    assert fs.save_needed() == True
-#    assert orig_rules != fs.rules
-#    fs.rules.movedown(1)
-#    assert orig_rules == fs.rules
+#        tmp = len(gfs.__dict__[t])
+#        gfs.delete(t, 0)
+#        assert gfs.save_needed() == True, t
+#        assert tmp == len(gfs.__dict__[t]) + 1, t
+#    gfs.save('test')
+#    assert gfs.save_needed() == False
+#    orig_rules = gfs.rules[:] # copy
+#    gfs.rules.moveup(2)
+#    assert gfs.save_needed() == True
+#    assert orig_rules != gfs.rules
+#    gfs.rules.movedown(1)
+#    assert orig_rules == gfs.rules
 #
-#    fs.rules.movedown(1)
-#    assert orig_rules != fs.rules
-#    assert fs.save_needed() == True
-#    fs.reset()
-#    assert fs.save_needed() == False
-#    assert orig_rules == fs.rules
+#    gfs.rules.movedown(1)
+#    assert orig_rules != gfs.rules
+#    assert gfs.save_needed() == True
+#    gfs.reset()
+#    assert gfs.save_needed() == False
+#    assert orig_rules == gfs.rules
 
 
-def test_DemoGitFireSet_get_confs(repodir):
-    fs = DemoGitFireSet(repodir=repodir)
+def test_DemoGitFireSet_get_confs(fs):
     fs._get_confs(keep_sessions=False)
     for hostname, v in fs._remote_confs.iteritems():
         assert isinstance(v, Bunch)
     for h in fs._get_firewalls():
         assert h.hostname in fs._remote_confs, "Missing host %s" % h.hostname
 
-def test_DemoGitFireSet_deployment(repodir):
+def test_DemoGitFireSet_deployment(fs):
     """Deploy confs, then check"""
-    fs = DemoGitFireSet(repodir=repodir)
     fs.deploy()
     diff = fs.check()
     assert diff == {}, repr(diff)[:400]
@@ -567,17 +558,15 @@ def test_DemoGitFireSet_deployment(repodir):
 
 # # Rule compliation and deployment testing # #
 
-def test_DemoGitFireSet_compile_rules_basic(repodir):
+def test_DemoGitFireSet_compile_rules_basic(fs):
     """Compile rules and perform basic testing"""
-    fs = DemoGitFireSet(repodir=repodir)
     rset = fs.compile_rules()
     for hn, d in rset.iteritems():
         for chain,  rules in d.iteritems():
             assert testingutils.string_in_list('-j DROP', rules), "-j DROP not in %s" % repr(rules)
 
-def test_DemoGitFireSet_compile_rules_full(repodir):
-    fs = GitFireSet(repodir=repodir)
-    rd = fs.compile_rules()
+def test_DemoGitFireSet_compile_rules_full(gfs):
+    rd = gfs.compile_rules()
     ok = {
         "InternalFW": {
         "FORWARD": [
@@ -757,9 +746,8 @@ def test_DemoGitFireSet_compile_rules_full(repodir):
 
 
 @SkipTest
-def test_DemoGitFireSet_build_ipt_restore(repodir):
+def test_DemoGitFireSet_build_ipt_restore(fs):
     """Run diff between compiled rules and empty remote confs"""
-    fs = DemoGitFireSet(repodir=repodir)
     rset = fs.compile_rules()
     m = map(fs._build_ipt_restore, rset.iteritems())
     m = dict(m)
@@ -921,7 +909,7 @@ def test_DemoGitFireSet_build_ipt_restore(repodir):
 
 
 #@with_setup(setup_dir, teardown_dir)
-#def test_DemoGitFireSet_diff_table_simple(repodir):
+#def test_DemoGitFireSet_diff_table_simple(fs):
 #    """Run diff between compiled rules and empty remote confs"""
 #    fs = DemoGitFireSet(repodir=repodir)
 #    new_confs = fs.compile_rules()
@@ -931,8 +919,7 @@ def test_DemoGitFireSet_build_ipt_restore(repodir):
     #FIXME:  deployment IS needed
 
 
-def test_DemoGitFireSet_extract_iptables_rules(repodir):
-    fs = DemoGitFireSet(repodir=repodir)
+def test_DemoGitFireSet_extract_iptables_rules(fs):
     #FIXME: the _get_confs implementation in DemoGitFireSet is broken
     fs._get_confs(keep_sessions=False)
     rules_d = fs._extract_ipt_filter_rules(fs._remote_confs)
@@ -943,8 +930,7 @@ def test_DemoGitFireSet_extract_iptables_rules(repodir):
             assert rule not in ('COMMIT', '*filter', '*nat')
 
 #TODO: review this test, ensure it's using real data
-def test_DemoGitFireSet_extract_iptables_rules_2(repodir):
-    fs = DemoGitFireSet(repodir=repodir)
+def test_DemoGitFireSet_extract_iptables_rules_2(fs):
     remote_confs = {
         'InternalFW': {
             'iptables': {'filter': [], 'nat': []},
@@ -959,37 +945,32 @@ def test_DemoGitFireSet_extract_iptables_rules_2(repodir):
     assert rules_d == {'InternalFW': [], 'BorderFW': ['a', 'b', 'c']}, repr(rules_d)
 
 
-def test_DemoGitFireSet_diff_table_generation_1(repodir):
+def test_DemoGitFireSet_diff_table_generation_1(fs):
     """Test diff with no changes"""
-    fs = DemoGitFireSet(repodir=repodir)
     diff_dict = fs._diff({}, {})
     assert diff_dict == {}
 
-def test_DemoGitFireSet_diff_table_generation_2(repodir):
+def test_DemoGitFireSet_diff_table_generation_2(fs):
     """Test diff with no changes"""
-    fs = DemoGitFireSet(repodir=repodir)
     diff_dict = fs._diff({'InternalFW':['']}, {'InternalFW':['']})
     assert diff_dict == {}
 
-def test_DemoGitFireSet_diff_table_generation_3(repodir):
-    fs = DemoGitFireSet(repodir=repodir)
+def test_DemoGitFireSet_diff_table_generation_3(fs):
     diff_dict = fs._diff({'InternalFW':['old item', 'static item', 'old item2']},
                                 {'InternalFW':['static item', 'new item', 'new item2']})
     assert diff_dict == {'InternalFW': (['new item', 'new item2'], ['old item', 'old item2'])}
 
-def test_DemoGitFireSet_diff_table_generation_all_fw_removed(repodir):
+def test_DemoGitFireSet_diff_table_generation_all_fw_removed(fs):
     """Test diff where all the firewalls has been removed.
     An empty diff should be generated."""
-    fs = DemoGitFireSet(repodir=repodir)
     fs._get_confs(keep_sessions=False)
     existing_rules = fs._extract_ipt_filter_rules(fs._remote_confs)
     diff_dict = fs._diff(existing_rules,   {})
     assert diff_dict == {}, "An empty diff should be generated."
 
-def test_DemoGitFireSet_diff_table_generation_all_fw_added(repodir):
+def test_DemoGitFireSet_diff_table_generation_all_fw_added(fs):
     """Test diff right after all the firewalls has been added.
     An empty diff should be generated."""
-    fs = DemoGitFireSet(repodir=repodir)
     comp_rules = fs.compile_rules()
     new_rules = {}
     for hn, b in comp_rules.iteritems():
@@ -1002,18 +983,16 @@ def test_DemoGitFireSet_diff_table_generation_all_fw_added(repodir):
 # Used during development with test/rebuild.sh #
 # to generate new sets of  test files #
 #
-#def test_DemoGitFireSet_rebuild(repodir):
-#    fs = DemoGitFireSet(repodir=repodir)
+#def test_DemoGitFireSet_rebuild(fs):
 #    comp_rules = fs.compile_rules()
 #    for hn, b in comp_rules.iteritems():
 #        li = fs._build_ipt_restore((hn, b))[1]
 #        open("test/new-iptables-save-%s" % hn, 'w').write('\n'.join(li)+'\n')
 
 
-def test_DemoGitFireSet_check(repodir):
+def test_DemoGitFireSet_check(fs):
     """Run diff between complied rules and remote confs using DemoGitFireSet
     Given the test files, the check should be ok and require no deployment"""
-    fs = DemoGitFireSet(repodir=repodir)
     diff_dict = fs.check()
 #    assert diff_dict == {},  repr(diff_dict)[:300]
 
@@ -1021,10 +1000,9 @@ def test_DemoGitFireSet_check(repodir):
 
 
 
-def test_DemoGitFireSet_deploy(repodir):
+def test_DemoGitFireSet_deploy(repodir, fs):
     """Run diff between complied rules and remote confs.
     Given the test files, the check should be ok and require no deployment"""
-    fs = DemoGitFireSet(repodir=repodir)
     log.debug("Test deployment in %s" % repodir)
     fs.deploy()
     for h in fs._get_firewalls():
@@ -1038,9 +1016,8 @@ def test_DemoGitFireSet_deploy(repodir):
         % repr(diff_dict)[:300]
 
 
-def test_DemoGitFireSet_deploy_then_check(repodir):
+def test_DemoGitFireSet_deploy_then_check(repodir, fs):
     """Deploy conf then run check again"""
-    fs = DemoGitFireSet(repodir=repodir)
     assert not fs.save_needed()
     log.debug("Running deployment using repository in %s" % repodir)
     fs.deploy()
@@ -1055,12 +1032,11 @@ def test_DemoGitFireSet_deploy_then_check(repodir):
 
 
 
-#def test_GitFireSet_deployment(repodir):
+#def test_GitFireSet_deployment(fs):
 #    fs = GitFireSet(repodir=repodir)
 #    fs.deploy()
 
-#def test_DemoGitFireSet_deploy(repodir):
-#    fs = DemoGitFireSet(repodir=repodir)
+#def test_DemoGitFireSet_deploy(fs):
 #    dt = fs.deploy()
 #    for h in fs.hosts:
 #        r = map(str.rstrip, open(repodir + '/iptables-save-%s' % h.hostname))
@@ -1070,7 +1046,7 @@ def test_DemoGitFireSet_deploy_then_check(repodir):
 #
 #
 
-#def test_get_confs_local_dummy(repodir):
+#def test_get_confs_local_dummy(fs):
 #    from firelet.flssh import SSHConnector, MockSSHConnector
 #
 #    sshconn = SSHConnector(targets={'localhost':['127.0.0.1']} )
@@ -1081,82 +1057,67 @@ def test_DemoGitFireSet_deploy_then_check(repodir):
 
 # fs.services.update() testing
 
-def test_DemoGitFireSet_service_update_error1(repodir):
-    fs = DemoGitFireSet(repodir=repodir)
+def test_DemoGitFireSet_service_update_error1(fs):
     with raises(AssertionError):
         fs.services.update({})
 
-def test_DemoGitFireSet_service_update_incorrect_tcp_ports(repodir):
-    fs = DemoGitFireSet(repodir=repodir)
+def test_DemoGitFireSet_service_update_incorrect_tcp_ports(fs):
     with raises(Alert):
         fs.services.update(dict(protocol='TCP', ports='foo,foo'), rid=0)
 
-def test_DemoGitFireSet_service_update_missing_tcp_ports(repodir):
-    fs = DemoGitFireSet(repodir=repodir)
+def test_DemoGitFireSet_service_update_missing_tcp_ports(fs):
     with raises(Alert):
         fs.services.update(dict(protocol='TCP', ports=','), rid=0)
 
-def test_DemoGitFireSet_service_update_reversed_tcp_ports(repodir):
-    fs = DemoGitFireSet(repodir=repodir)
+def test_DemoGitFireSet_service_update_reversed_tcp_ports(fs):
     with raises(AssertionError):
         fs.services.update(dict(protocol='TCP', ports='10:1'), rid=0)
 
-def test_DemoGitFireSet_service_update_tcp(repodir):
-    fs = DemoGitFireSet(repodir=repodir)
+def test_DemoGitFireSet_service_update_tcp(fs):
     fs.services.update(dict(protocol='TCP', ports='8888', name='HTTP'), rid=0)
     assert fs.services[0].ports == '8888'
 
-def test_DemoGitFireSet_service_update_ip(repodir):
-    fs = DemoGitFireSet(repodir=repodir)
+def test_DemoGitFireSet_service_update_ip(fs):
     fs.services.update(dict(protocol='IP', ports='', name='IP'), rid=0)
     assert fs.services[0].ports == ''
 
-def test_DemoGitFireSet_service_update_incorrect_icmp_type(repodir):
-    fs = DemoGitFireSet(repodir=repodir)
+def test_DemoGitFireSet_service_update_incorrect_icmp_type(fs):
     with raises(Alert):
         fs.services.update(dict(protocol='ICMP', ports='foo'), rid=0)
 
-def test_DemoGitFireSet_service_update_incorrect_protocol(repodir):
-    fs = DemoGitFireSet(repodir=repodir)
+def test_DemoGitFireSet_service_update_incorrect_protocol(fs):
     with raises(Alert):
         fs.services.update(dict(protocol='foo', ports=''), rid=0)
 
-def test_DemoGitFireSet_service_update_icmp(repodir):
-    fs = DemoGitFireSet(repodir=repodir)
+def test_DemoGitFireSet_service_update_icmp(fs):
     fs.services.update(dict(protocol='ICMP', ports='8', name='NewName'), rid=0)
     assert fs.services[0].ports == '8'
     assert fs.services[0].name == 'NewName'
 
 # fs.services.update() testing
 
-def test_DemoGitFireSet_service_add(repodir):
-    fs = DemoGitFireSet(repodir=repodir)
+def test_DemoGitFireSet_service_add(fs):
     fs.services.add(dict(protocol='ICMP', ports='8', name='NewName'))
 
-def test_DemoGitFireSet_service_add_duplicate(repodir):
-    fs = DemoGitFireSet(repodir=repodir)
+def test_DemoGitFireSet_service_add_duplicate(fs):
     with raises(AssertionError):
         fs.services.add(dict(protocol='ICMP', ports='8', name='HTTP'))
 
 # fs.rules.update() testing
 
-def test_DemoGitFireSet_rules_update_missing_rid(repodir):
-    fs = DemoGitFireSet(repodir=repodir)
+def test_DemoGitFireSet_rules_update_missing_rid(fs):
     with raises(AssertionError):
         fs.rules.update({})
 
-def test_DemoGitFireSet_rules_update_missing_rule(repodir):
-    fs = DemoGitFireSet(repodir=repodir)
+def test_DemoGitFireSet_rules_update_missing_rule(fs):
     with raises(Alert):
         fs.rules.update({}, rid=1000)
 
-def test_DemoGitFireSet_rules_update_missing_param(repodir):
-    fs = DemoGitFireSet(repodir=repodir)
+def test_DemoGitFireSet_rules_update_missing_param(fs):
     with raises(KeyError):
         fs.rules.update({}, rid=0)
 
-def test_DemoGitFireSet_rules_update(repodir):
-    fs = DemoGitFireSet(repodir=repodir)
+def test_DemoGitFireSet_rules_update(fs):
     d = dict(
         action='',
         desc='desc_foo',
@@ -1172,8 +1133,7 @@ def test_DemoGitFireSet_rules_update(repodir):
 
 # fs.rules.add() testing
 
-def test_DemoGitFireSet_rules_add(repodir):
-    fs = DemoGitFireSet(repodir=repodir)
+def test_DemoGitFireSet_rules_add(fs):
     d = dict(
         action='',
         desc='desc_foo',
@@ -1187,12 +1147,10 @@ def test_DemoGitFireSet_rules_add(repodir):
     )
     fs.rules.add(d, rid=0)
 
-def test_DemoGitFireSet_rules_add_empty(repodir):
-    fs = DemoGitFireSet(repodir=repodir)
+def test_DemoGitFireSet_rules_add_empty(fs):
     fs.rules.add({}, rid=0)
 
-def test_DemoGitFireSet_rules_add_duplicate(repodir):
-    fs = DemoGitFireSet(repodir=repodir)
+def test_DemoGitFireSet_rules_add_duplicate(fs):
     d = dict(
         action='',
         desc='desc_foo',
@@ -1209,24 +1167,20 @@ def test_DemoGitFireSet_rules_add_duplicate(repodir):
 
 # fs.rules.moveup()/movedown() testing
 
-def test_DemoGitFireSet_rules_moveup(repodir):
-    fs = DemoGitFireSet(repodir=repodir)
+def test_DemoGitFireSet_rules_moveup(fs):
     r0 = fs.rules[0]
     fs.rules.moveup(1)
     assert fs.rules[1] == r0
 
-def test_DemoGitFireSet_rules_moveup_alert(repodir):
-    fs = DemoGitFireSet(repodir=repodir)
+def test_DemoGitFireSet_rules_moveup_alert(fs):
     with raises(Alert):
         fs.rules.moveup(0)
 
-def test_DemoGitFireSet_rules_movedown(repodir):
-    fs = DemoGitFireSet(repodir=repodir)
+def test_DemoGitFireSet_rules_movedown(fs):
     last_rid = len(fs.rules) - 1
     fs.rules.movedown(last_rid - 1)
 
-def test_DemoGitFireSet_rules_movedown_alert(repodir):
-    fs = DemoGitFireSet(repodir=repodir)
+def test_DemoGitFireSet_rules_movedown_alert(fs):
     last_rid = len(fs.rules) - 1
     with raises(Alert):
         fs.rules.movedown(last_rid)
@@ -1234,21 +1188,18 @@ def test_DemoGitFireSet_rules_movedown_alert(repodir):
 # fs.rules.update() testing
 
 @SkipTest
-def test_DemoGitFireSet_rules_update_using_token(repodir):
-    fs = DemoGitFireSet(repodir=repodir)
+def test_DemoGitFireSet_rules_update_using_token(fs):
     token = fs.rules[1]._token()
     fs.rules.update({'Name': 'foo'}, rid=1, token=token)
 
-def test_DemoGitFireSet_rules_update_using_token_failing(repodir):
-    fs = DemoGitFireSet(repodir=repodir)
+def test_DemoGitFireSet_rules_update_using_token_failing(fs):
     token = 'bogustoken'
     with raises(Exception):
         fs.rules.update({'Name': 'foo'}, rid=1, token=token)
 
 # fs.hosts.add() testing
 
-def test_DemoGitFireSet_hosts_add(repodir):
-    fs = DemoGitFireSet(repodir=repodir)
+def test_DemoGitFireSet_hosts_add(fs):
     d = dict(
         hostname='',
         iface='',
@@ -1261,8 +1212,7 @@ def test_DemoGitFireSet_hosts_add(repodir):
     )
     fs.hosts.add(d)
 
-def test_DemoGitFireSet_hosts_add_duplicate(repodir):
-    fs = DemoGitFireSet(repodir=repodir)
+def test_DemoGitFireSet_hosts_add_duplicate(fs):
     d = dict(
         hostname='InternalFW',
         iface='eth0',
@@ -1278,16 +1228,14 @@ def test_DemoGitFireSet_hosts_add_duplicate(repodir):
 
 # fs.hostgroups.add() testing
 
-def test_DemoGitFireSet_hostgroups_add(repodir):
-    fs = DemoGitFireSet(repodir=repodir)
+def test_DemoGitFireSet_hostgroups_add(fs):
     d = dict(
         name='',
         childs=[],
     )
     fs.hostgroups.add(d)
 
-def test_DemoGitFireSet_hostgroups_add_duplicate(repodir):
-    fs = DemoGitFireSet(repodir=repodir)
+def test_DemoGitFireSet_hostgroups_add_duplicate(fs):
     d = dict(
         name='AllSystems',
         childs=[],
@@ -1297,21 +1245,18 @@ def test_DemoGitFireSet_hostgroups_add_duplicate(repodir):
 
 # fs.hostgroups.update() testing
 
-def test_DemoGitFireSet_hostgroups_update(repodir):
-    fs = DemoGitFireSet(repodir=repodir)
+def test_DemoGitFireSet_hostgroups_update(fs):
     d = dict(name='foo', childs=[])
     fs.hostgroups.update(d, rid=0)
 
-def test_DemoGitFireSet_hostgroups_update_missing(repodir):
-    fs = DemoGitFireSet(repodir=repodir)
+def test_DemoGitFireSet_hostgroups_update_missing(fs):
     d = dict(name='foo', childs=[])
     with raises(Alert):
         fs.hostgroups.update(d, rid=1000)
 
 # fs.networks.add() testing
 
-def test_DemoGitFireSet_networks_add(repodir):
-    fs = DemoGitFireSet(repodir=repodir)
+def test_DemoGitFireSet_networks_add(fs):
     d = dict(
         name='',
         ip_addr='1.2.0.0',
@@ -1319,8 +1264,7 @@ def test_DemoGitFireSet_networks_add(repodir):
     )
     fs.networks.add(d)
 
-def test_DemoGitFireSet_networks_add_duplicate(repodir):
-    fs = DemoGitFireSet(repodir=repodir)
+def test_DemoGitFireSet_networks_add_duplicate(fs):
     d = dict(
         name='Internet',
         ip_addr='1.2.0.0',
@@ -1329,8 +1273,7 @@ def test_DemoGitFireSet_networks_add_duplicate(repodir):
     with raises(AssertionError):
         fs.networks.add(d)
 
-def test_DemoGitFireSet_networks_add_incorrect_ipaddr(repodir):
-    fs = DemoGitFireSet(repodir=repodir)
+def test_DemoGitFireSet_networks_add_incorrect_ipaddr(fs):
     d = dict(
         name='',
         ip_addr='foo',
@@ -1339,8 +1282,7 @@ def test_DemoGitFireSet_networks_add_incorrect_ipaddr(repodir):
     with raises(Exception):
         fs.networks.add(d)
 
-def test_DemoGitFireSet_networks_add_incorrect_netmask(repodir):
-    fs = DemoGitFireSet(repodir=repodir)
+def test_DemoGitFireSet_networks_add_incorrect_netmask(fs):
     d = dict(
         name='',
         ip_addr='1.2.0.0',
@@ -1562,19 +1504,19 @@ def rss_msg():
         ['success', datetime(2011,01,01,10,10,30), 'Configuration deployed.'],
     ]
 
-def test_get_rss_messages(repodir, rss_msg):
+def test_get_rss_messages(rss_msg):
     d = get_rss_channels('messages', 'url', msg_list=rss_msg)
     assert 'items' in d
     items = d['items']
     assert len(items) == 3
 
-def test_get_rss_confsaves(repodir, rss_msg):
+def test_get_rss_confsaves(rss_msg):
     d = get_rss_channels('confsaves', 'url', msg_list=rss_msg)
     assert 'items' in d
     items = d['items']
     assert len(items) == 1
 
-def test_get_rss_deployments(repodir, rss_msg):
+def test_get_rss_deployments(rss_msg):
     d = get_rss_channels('deployments', 'url', msg_list=rss_msg)
     assert 'items' in d
     items = d['items']
