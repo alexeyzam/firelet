@@ -17,7 +17,7 @@ install:
   - pip install -e . --use-mirrors
 
 script:
-  - nosetests tests/test.py
+  - py.test tests/test.py tests/test_cli.py tests/test_webapp.py
   - coverage run --source=firelet tests/test.py
 
 after_success:
