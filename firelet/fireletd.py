@@ -26,6 +26,7 @@ from os import urandom
 from setproctitle import setproctitle
 import bottle
 import logging
+import logging.handlers
 import time
 import sys
 
@@ -38,31 +39,45 @@ from firelet.flutils import flag, get_rss_channels
 log = logging.getLogger()
 log.success = log.info
 
-#TODO: setup three roles
-#TODO: store a local copy of the deployed confs
+# TODO: setup three roles
+# TODO: store a local copy of the deployed confs
 #              - compare in with the fetched conf
 #              - show it on the webapp
 
-#TODO: new rule creation
+# TODO: new rule creation
 
-#TODO: Reset not working, temporily disabled - FireSet files must be read on
+# TODO: Reset not working, temporily disabled - FireSet files must be read on
 # each client request
-#TODO: localhost and local networks autosetup
+# TODO: localhost and local networks autosetup
 
 app = bottle.app()
 
+session_opts = {
+    'session.cookie_expires': True,
+    'session.encrypt_key': urandom(32),
+    'session.timeout': 3600 * 24,  # 1 day
+    'session.type': 'cookie',
+    'session.validate_key': True,
+}
+
+app = SessionMiddleware(app, session_opts)
+
+
 # Setup Python error logging
 class LoggedHTTPError(bottle.HTTPResponse):
+
     """Log a full traceback"""
+
     def __init__(self, code=500, output='Unknown Error', exception=None,
-            traceback=None, header=None):
+                 traceback=None, header=None):
         super(bottle.HTTPError, self).__init__(output, code, header)
         self.exception = None
         self.traceback = []
         log.error("""Internal error '%s':\n  Output: %s\n  Header: %s\n  %s \
---- End of traceback ---""", exception, output, header, traceback, exc_info=True)
+--- End of traceback ---""", exception, output, header, traceback,
+                  exc_info=True)
 
-    def __repr__(self):
+    def __repr__(self):  # pragma: no cover
         ts = datetime.now()
         return "%s: An error occourred and has been logged." % ts
 
@@ -85,10 +100,13 @@ def success(s, *args, **kwargs):
 
 log.success = success
 
+
 class WebLogHandler(logging.Handler):
+
     """Log messages and store them to be displayed to the user
     Inherits from logging.Handler
     """
+
     def __init__(self):
         logging.Handler.__init__(self)
         self._msg_buffer = []
@@ -126,11 +144,13 @@ web_log_handler = WebLogHandler()
 
 # Miscellaneous functions
 
+
 def ack(s=None):
     """Acknowledge successful processing and return ajax confirmation."""
     if s:
         log.success(s)
     return {'ok': True}
+
 
 def ret_warn(s=None):
     """Generate warn message and return ajax 'ok: False'."""
@@ -138,16 +158,19 @@ def ret_warn(s=None):
         log.warn(s)
     return {'ok': False}
 
+
 def ret_alert(s=None):
     """Generate alert message and return ajax 'ok: False'."""
     if s:
         log.error(s)
     return {'ok': False}
 
+
 def pg(name, default=''):
     """Retrieve an element from a POST request"""
     s = request.POST.get(name, default)[:64]
     return clean(s).strip()
+
 
 def pg_list(name, default=''):
     """Retrieve a serialized (comma-separated) list from a POST request.
@@ -160,15 +183,21 @@ def pg_list(name, default=''):
         item_set.remove('')
     return list(item_set)
 
+
 def int_pg(name, default=None):
     """Retrieve an element from a POST request and return it as an integer"""
     v = request.POST.get(name, default)
     if v == '':
         return None
+
     try:
         return int(v)
+
     except Exception:
-        raise Exception("Expected int as POST parameter, got string: '%s'." % v)
+        raise Exception(
+            "Expected int as POST parameter, got string: '%s'." %
+            v)
+
 
 def pcheckbox(name):
     """Retrieve a checkbox status from a POST request generated
@@ -176,6 +205,7 @@ def pcheckbox(name):
     """
     if name in request.POST:
         return '1'
+
     return '0'
 
 
@@ -192,7 +222,7 @@ def _require(role='readonly'):
     s = bottle.request.environ.get('beaker.session')
     if not s:
         log.warn("User needs to be authenticated.")
-        #TODO: not really explanatory in a multiuser session.
+        # TODO: not really explanatory in a multiuser session.
         raise Alert("User needs to be authenticated.")
 
     myrole = s.get('role', None)
@@ -211,7 +241,7 @@ def _require(role='readonly'):
 def serve_login():
     """Log user in if authorized"""
     s = bottle.request.environ.get('beaker.session')
-    if 'username' in s:  # user is authenticated <--> username is set
+    if s and 'username' in s:  # user is authenticated <--> username is set
         log.info("Already logged in as %r.", s['username'])
         return {'logged_in': True}
 
@@ -227,14 +257,18 @@ def serve_login():
 
         bottle.redirect('/')
 
-    except (Alert, AssertionError), e:
+    except (Alert, AssertionError) as e:
         log.info("Login denied for %r: %s", user, e)
         bottle.redirect('/')
+
 
 @bottle.route('/logout')
 def serve_logout():
     """Log user out"""
     s = bottle.request.environ.get('beaker.session')
+    if not s:
+        bottle.redirect('/')
+
     u = s.get('username', None)
     if u:
         log.info("User %s logged out.", u)
@@ -242,12 +276,6 @@ def serve_logout():
     s.delete()
     bottle.redirect('/')
 
-#
-#class WebApp(object):
-#
-#def __init__(self, conf):
-#    self.conf = conf
-#    self.messages = []
 
 @bottle.route('/messages')
 @view('messages')
@@ -255,6 +283,7 @@ def serve_messages():
     """Populate log message pane"""
     _require()
     return dict(messages=web_log_handler.get_msgs())
+
 
 @bottle.route('/')
 @view('index')
@@ -281,12 +310,59 @@ def serve_index():
 #   - edit: updates an element if rid is not null, otherwise creates
 #             a new one
 
+
 @bottle.route('/ruleset')
 @view('ruleset')
 def serve_ruleset():
     """Serve ruleset tab"""
     _require()
     return dict(rules=enumerate(fs.rules))
+
+def update_ruleset(action, rid):
+    """Update ruleset"""
+    # FIXME: the token is not being set by the UI
+    if action == 'delete':
+        item = fs.fetch('rules', rid)
+        name = item.name
+        fs.delete('rules', rid)
+        return ack("Rule %s deleted." % name)
+
+    elif action == 'moveup':
+        fs.rules.moveup(rid)
+        return ack("Rule moved up.")
+
+    elif action == 'movedown':
+        fs.rules.movedown(rid)
+        return ack("Rule moved down.")
+
+    elif action == 'enable':
+        fs.rules.enable(rid)
+        return ack("Rule %d enabled." % rid)
+
+    elif action == 'disable':
+        fs.rules.disable(rid)
+        return ack("Rule %d disabled." % rid)
+
+    elif action == "save":
+        fields = ('name', 'src', 'src_serv', 'dst', 'dst_serv', 'desc')
+        d = dict((f, pg(f)) for f in fields)
+        d['enabled'] = flag(pg('enabled'))
+        d['action'] = pg('rule_action')
+        d['log_level'] = pg('log')
+        fs.rules.update(d, rid=pg('rid'), token=pg('token'))
+
+    elif action == "newabove":
+        action = "create new rule above"
+        d = {}
+        fs.rules.add(d, rid=rid)
+
+    elif action == "newbelow":
+        action = "create new rule below"
+        d = {}
+        fs.rules.add(d, rid=rid+1)
+    else:
+        log.error("Unknown action requested: %r", action)
+        abort(500)
 
 @bottle.route('/ruleset', method='POST')
 def serve_ruleset_post():
@@ -296,52 +372,12 @@ def serve_ruleset_post():
     rid = int_pg('rid')
     assert rid is not None, "Item number not provided"
     try:
-        if action == 'delete':
-            item = fs.fetch('rules', rid)
-            name = item.name
-            fs.delete('rules', rid)
-            return ack("Rule %s deleted." % name)
+        return update_ruleset(action, rid)
 
-        elif action == 'moveup':
-            fs.rules.moveup(rid)
-            return ack("Rule moved up.")
-
-        elif action == 'movedown':
-            fs.rules.movedown(rid)
-            return ack("Rule moved down.")
-
-        elif action == 'enable':
-            fs.rules.enable(rid)
-            return ack("Rule %d enabled." % rid)
-
-        elif action == 'disable':
-            fs.rules.disable(rid)
-            return ack("Rule %d disabled." % rid)
-
-        elif action == "save":
-            fields = ('name', 'src', 'src_serv', 'dst', 'dst_serv', 'desc')
-            d = dict((f, pg(f)) for f in fields)
-            d['enabled'] = flag(pg('enabled'))
-            d['action'] = pg('rule_action')
-            d['log_level'] = pg('log')
-            # FIXME: the token is not being set by the UI
-            # assert pg('token')
-            fs.rules.update(d, rid=pg('rid'), token=pg('token'))
-
-        elif action == "newabove":
-            action = "create new rule above"
-            d = {}
-            fs.rules.add(d, rid=rid)
-
-        elif action == "newbelow":
-            action = "create new rule below"
-            d = {}
-            fs.rules.add(d, rid=rid+1)
-        else:
-            log.error("Unknown action requested: %r", action)
-    except Exception, e:
+    except Exception as e:
         log.error("Unable to %s rule n. %s - %s", action, rid, e)
         abort(500)
+
 
 @bottle.route('/ruleset_form', method='POST')
 @view('ruleset_form')
@@ -356,6 +392,7 @@ def serve_ruleset_form():
         [n.name for n in fs.networks]
     return dict(rule=rule, rid=rid, services=services_list, objs=objs)
 
+
 @bottle.route('/sib_names', method='POST')
 def serve_sib_names():
     """Return a list of all the available siblings for a hostgroup
@@ -365,6 +402,7 @@ def serve_sib_names():
     sib_names_list = fs.list_sibling_names()
     return dict(sib_names=sib_names_list)
 
+
 @bottle.route('/hostgroups')
 @view('hostgroups')
 def serve_hostgroups():
@@ -372,8 +410,9 @@ def serve_hostgroups():
     _require()
     return dict(hostgroups=enumerate(fs.hostgroups))
 
+
 @bottle.route('/hostgroups', method='POST')
-def serve_hostgroups():
+def serve_hostgroups_post():
     """Add/edit/delete a hostgroup"""
     _require('editor')
     action = pg('action', '')
@@ -384,25 +423,31 @@ def serve_hostgroups():
             name = item.name
             fs.delete('hostgroups', rid)
             return ack("Hostgroup %s deleted." % name)
+
         elif action == 'save':
             childs = pg_list('siblings')
             d = {'name': pg('name'),
-                    'childs': childs}
-            if rid == None:     # new item
+                 'childs': childs}
+            if rid is None:     # new item
                 fs.hostgroups.add(d)
                 return ack('Hostgroup %s added.' % d['name'])
+
             else:                     # update item
                 fs.hostgroups.update(d, rid=rid, token=pg('token'))
                 return ack('Hostgroup %s updated.' % d['name'])
+
         elif action == 'fetch':
             item = fs.fetch('hostgroups', rid)
             return item.attr_dict()
+
         else:
             log.error("Unknown action requested: %r", action)
+            abort(500)
 
-    except Exception, e:
+    except Exception as e:
         log.error("Unable to %s hostgroup n. %s - %s", action, rid, e)
         abort(500)
+
 
 @bottle.route('/hosts')
 @view('hosts')
@@ -411,8 +456,9 @@ def serve_hosts():
     _require()
     return dict(hosts=enumerate(fs.hosts))
 
+
 @bottle.route('/hosts', method='POST')
-def serve_hosts():
+def serve_hosts_post():
     """Add/edit/delete a host"""
     _require('editor')
     action = pg('action', '')
@@ -423,32 +469,39 @@ def serve_hosts():
             name = h.hostname
             fs.delete('hosts', rid)
             log.success("Host %s deleted." % name)
+
         elif action == 'save':
             d = {}
             for f in ('hostname', 'iface', 'ip_addr', 'masklen'):
                 d[f] = pg(f)
+
             for f in ('local_fw', 'network_fw', 'mng'):
                 d[f] = pcheckbox(f)
+
             d['routed'] = pg_list('routed')
-            if rid == None:     # new host
+            if rid is None:     # new host
                 fs.hosts.add(d)
                 return ack('Host %s added.' % d['hostname'])
+
             else:   # update host
                 fs.hosts.update(d, rid=rid, token=pg('token'))
                 return ack('Host %s updated.' % d['hostname'])
+
         elif action == 'fetch':
             h = fs.fetch('hosts', rid)
             d = h.attr_dict()
             for x in ('local_fw', 'network_fw', 'mng'):
                 d[x] = int(d[x])
+
             return d
+
         else:
             log.error("Unknown action requested: %r", action)
+            abort(500)
 
-    except Exception, e:
+    except Exception as e:
         log.error("Unable to %s host n. %s - %s", action, rid, e)
         abort(500)
-
 
 
 @bottle.route('/net_names', method='POST')
@@ -458,6 +511,7 @@ def serve_net_names():
     nn = [n.name for n in fs.networks]
     return dict(net_names=nn)
 
+
 @bottle.route('/networks')
 @view('networks')
 def serve_networks():
@@ -465,8 +519,9 @@ def serve_networks():
     _require()
     return dict(networks=enumerate(fs.networks))
 
+
 @bottle.route('/networks', method='POST')
-def serve_networks():
+def serve_networks_post():
     """Add/edit/delete a network"""
     _require('editor')
     action = pg('action', '')
@@ -477,25 +532,31 @@ def serve_networks():
             name = item.name
             fs.delete('networks', rid)
             log.success("Network %s deleted." % name)
+
         elif action == 'save':
             d = {}
             for f in ('name', 'ip_addr', 'masklen'):
                 d[f] = pg(f)
-            if rid == None:     # new item
+
+            if rid is None:     # new item
                 fs.networks.add(d)
                 return ack('Network %s added.' % d['name'])
+
             else:                     # update item
                 fs.networks.update(d, rid=rid, token=pg('token'))
                 return ack('Network %s updated.' % d['name'])
+
         elif action == 'fetch':
             item = fs.fetch('networks', rid)
             return item.attr_dict()
+
         else:
             log.error("Unknown action requested: %r", action)
-    except Exception, e:
+            abort(500)
+
+    except Exception as e:
         log.error("Unable to %s network n. %s - %s" % (action, rid, e))
         abort(500)
-
 
 
 @bottle.route('/services')
@@ -505,8 +566,9 @@ def serve_services():
     _require()
     return dict(services=enumerate(fs.services))
 
+
 @bottle.route('/services', method='POST')
-def serve_services():
+def serve_services_post():
     """Add/edit/delete a service"""
     _require('editor')
     action = pg('action', '')
@@ -517,28 +579,36 @@ def serve_services():
             name = item.name
             fs.delete('services', rid)
             log.success("service %s deleted." % name)
+
         elif action == 'save':
             d = {'name': pg('name'),
-                    'protocol': pg('protocol')}
+                 'protocol': pg('protocol')}
             if d['protocol'] in ('TCP', 'UDP'):
                 d['ports'] = pg('ports')
+
             elif d['protocol'] == 'ICMP':
                 d['ports'] = pg('icmp_type')
+
             else:
                 d['ports'] = ''
-            if rid == None:     # new item
+
+            if rid is None:     # new item
                 fs.services.add(d)
                 return ack('Service %s added.' % d['name'])
+
             else:                     # update item
                 fs.services.update(d, rid=rid, token=pg('token'))
                 return ack('Service %s updated.' % d['name'])
+
         elif action == 'fetch':
             item = fs.fetch('services', rid)
             return item.attr_dict()
+
         else:
             log.error("Unknown action requested: %r", action)
+            abort(500)
 
-    except Exception, e:
+    except Exception as e:
         log.error("Unable to %s service n. %s - %s", action, rid, e)
         abort(500)
 
@@ -555,11 +625,13 @@ def serve_manage():
     cd = True if myrole == 'admin' else False
     return dict(can_deploy=cd)
 
+
 @bottle.route('/save_needed')
 def serve_save_needed():
     """Serve fs.save_needed() output"""
     _require()
     return {'sn': fs.save_needed()}
+
 
 @bottle.route('/save', method='POST')
 def serve_savebtn():
@@ -568,15 +640,17 @@ def serve_savebtn():
     msg = pg('msg', '')
     if not fs.save_needed():
         ret_warn('Save not needed.')
+
     log.info("Commit msg: %r. Saving configuration...", msg)
     saved = fs.save(msg)
-    ack("Configuration saved: %r" % msg)
     s = bottle.request.environ.get('beaker.session')
     username = s.get('username', None)
     mailer.send_msg(
         sbj="Configuration saved by %s" % username,
         body_txt="Commit msg: %s" % msg
     )
+    return ack("Configuration saved: %r" % msg)
+
 
 @bottle.route('/reset', method='POST')
 def serve_resetbtn():
@@ -584,9 +658,11 @@ def serve_resetbtn():
     _require()
     if not fs.save_needed():
         ret_warn('Reset not needed.')
+
     log.info("Resetting configuration changes...")
     fs.reset()
-    ack('Configuration reset.')
+    return ack('Configuration reset.')
+
 
 @bottle.route('/api/1/check', method='POST')
 @view('rules_diff_table')
@@ -595,12 +671,16 @@ def serve_checkbtn():
     _require()
     log.info('Configuration check started...')
     try:
-        diff_dict = fs.check(stop_on_extra_interfaces=conf.stop_on_extra_interfaces)
+        diff_dict = fs.check(
+            stop_on_extra_interfaces=conf.
+            stop_on_extra_interfaces)
         log.success('Configuration check successful.')
         return dict(diff_dict=diff_dict, error=None)
-    except (Alert, AssertionError), e:
+
+    except (Alert, AssertionError) as e:
         log.error("Check failed: %s", e)
         return dict(diff_dict={}, error="Check failed: %s" % e)
+
 
 @bottle.route('/api/1/deploy', method='POST')
 def serve_deploybtn():
@@ -616,8 +696,9 @@ def serve_deploybtn():
             sbj="Configuration deployed by %s" % username,
             body_txt="Configuration deployed by %s" % username
         )
-    except (Alert, AssertionError), e:
+    except (Alert, AssertionError) as e:
         ret_alert("Deployment failed: %s" % e)
+
 
 @bottle.route('/api/1/get_compiled_rules')
 def serve_get_compiled_rules():
@@ -628,9 +709,9 @@ def serve_get_compiled_rules():
         comp_rules = fs.get_compiled_rules()
         ack('Rules compiled')
         return dict(rules=comp_rules, ok=True)
-    except Alert, e:
-        return ret_alert("Compilation failed: %s" % e)
 
+    except Alert as e:
+        return ret_alert("Compilation failed: %s" % e)
 
 
 @bottle.route('/api/1/version_list')
@@ -641,27 +722,31 @@ def serve_version_list():
     li = fs.version_list()
     return dict(version_list=li)
 
+
 @bottle.route('/api/1/version_diff', method='POST')
 @view('version_diff')
 def serve_version_diff():
     """Serve version diff"""
     _require()
-    cid = pg('commit_id') #TODO validate cid?
+    cid = pg('commit_id')  # TODO validate cid?
     li = fs.version_diff(cid)
     if li:
         return dict(li=li)
+
     return dict(li=(('(No changes.)', 'title')))
+
 
 @bottle.route('/api/1/rollback', method='POST')
 def serve_rollback():
     """Rollback configuration"""
     _require('admin')
-    cid = pg('commit_id') #TODO validate cid?
+    cid = pg('commit_id')  # TODO validate cid?
     log.info("Rolling back to commit ID %s" % cid)
     fs.rollback(commit_id=cid)
     ack("Configuration rolled back.")
 
 # serving static files
+
 
 @bottle.route('/static/:filename#[a-zA-Z0-9_\.?\/?]+#')
 def serve_static(filename):
@@ -672,12 +757,16 @@ def serve_static(filename):
     # Authenticated users contents:
     _require()
     if filename == '/jquery-ui.js':
-        return static_file('jquery-ui/jquery-ui.js',
-            '/usr/share/javascript/') #TODO: support other distros
+        return static_file(
+            'jquery-ui/jquery-ui.js',
+            '/usr/share/javascript/')  # TODO: support other distros
+
     elif filename == 'jquery.min.js':
         return static_file('jquery/jquery.min.js', '/usr/share/javascript/')
-    elif filename == 'jquery-ui.custom.css': #TODO: support version change
-        return static_file('jquery-ui/css/smoothness/jquery-ui-1.7.2.custom.css',
+
+    elif filename == 'jquery-ui.custom.css':  # TODO: support version change
+        return static_file(
+            'jquery-ui/css/smoothness/jquery-ui-1.7.2.custom.css',
             '/usr/share/javascript/')
     else:
         return static_file(filename, 'static')
@@ -687,24 +776,28 @@ def serve_static(filename):
 def serve_favicon():
     static_file('favicon.ico', 'static')
 
-@bottle.route('/map') #FIXME: the SVG map is not shown inside the jQuery tab.
+
+@bottle.route('/map')  # FIXME: the SVG map is not shown inside the jQuery tab.
 def serve_flmap():
     return """<img src="map.png" width="700px" style="margin: 10px">"""
+
 
 @bottle.route('/map.png')
 def serve_flmap_png():
     bottle.response.content_type = 'image/png'
     return draw_png_map(fs)
 
+
 @bottle.route('/svgmap')
 def serve_flmap_svg():
     bottle.response.content_type = 'image/svg+xml'
     return draw_svg_map(fs)
 
-#TODO: provide PNG fallback for browser without SVG support?
-#TODO: html links in the SVG map
+# TODO: provide PNG fallback for browser without SVG support?
+# TODO: html links in the SVG map
 
 # RSS feeds
+
 
 @bottle.route('/rss')
 @view('rss_index')
@@ -724,6 +817,7 @@ def serve_rss_channels(channel=None):
     bottle.response.content_type = 'application/rss+xml'
     if channel.endswith('.xml') or channel.endswith('.rss'):
         channel = channel[:-4]
+
     if conf.public_url:
         url = conf.public_url.rstrip('/') + '/rss'
 
@@ -737,7 +831,8 @@ def serve_rss_channels(channel=None):
 def serve_test_email_delivery():
     """Send a test email
     """
-    mailer.send_msg(body_txt='Email delivery test - please ignore this message.')
+    mailer.send_msg(
+        body_txt='Email delivery test - please ignore this message.')
     log.info('Test email sent.')
     bottle.redirect('/')
 
@@ -747,9 +842,13 @@ def parse_args():
     :returns: args instance
     """
     parser = ArgumentParser(description='Firelet daemon')
-    parser.add_argument('-d', '--debug', action='store_true', help='debug mode')
+    parser.add_argument(
+        '-d',
+        '--debug',
+        action='store_true',
+        help='debug mode')
     parser.add_argument('-c', '--cf', nargs='?',
-                        default = '/etc/firelet/firelet.ini',
+                        default='/etc/firelet/firelet.ini',
                         help='configuration file')
     parser.add_argument('-r', '--repodir', nargs='?',
                         help='repository directory')
@@ -757,36 +856,21 @@ def parse_args():
                         help='root directory')
     parser.add_argument('-l', '--logfile', nargs='?',
                         help='log file name')
-    #parser.add_argument('-p', '--pidfile',  nargs='?',
+    # parser.add_argument('-p', '--pidfile',  nargs='?',
     #                    default='/var/run/firelet.pid', help='pid file name')
     args = parser.parse_args()
     return args
 
-def main():
-    global app
-    global conf
-    global fs
-    global mailer
-    global users
 
-    setproctitle('firelet')
-    args = parse_args()
+def setup_logging(args, conf):
+    """Setup logging
+    """
+    logfile = args.logfile or conf.logfile
 
-    try:
-        conf = ConfReader(fn=args.cf)
-    except Exception, e:
-        logging.error("Exception %s while reading configuration file %r", e, args.cf)
-        sys.exit(1)
-
-    if args.repodir:
-        conf.data_dir = args.repodir
-    logfile = args.logfile if args.logfile else conf.logfile
-
-    # setup logging
     logging.basicConfig(
         level=logging.DEBUG,
         format='%(asctime)s [%(process)d] %(levelname)s %(name)s (%(funcName)s) %(message)s',
-        datefmt = '%Y-%m-%d %H:%M:%S' # %z for timezone
+        datefmt='%Y-%m-%d %H:%M:%S'  # %z for timezone
     )
     log.addHandler(web_log_handler)
     if args.debug:
@@ -805,47 +889,54 @@ def main():
             utc=True,
         )
         fh.setLevel(logging.DEBUG)
-        fh.setFormatter(logging.Formatter(
-            '%(asctime)s [%(process)d] %(levelname)s %(name)s %(module)s:%(funcName)s:%(lineno)s %(message)s'))
+        fh.setFormatter(
+            logging.Formatter(
+                '%(asctime)s [%(process)d] %(levelname)s %(name)s %(module)s:%(funcName)s:%(lineno)s %(message)s'))
         log.addHandler(fh)
+
+
+def main():
+    global app
+    global conf
+    global fs
+    global mailer
+    global users
+
+    setproctitle('firelet')
+    args = parse_args()
+
+    try:
+        conf = ConfReader(fn=args.cf)
+    except Exception as e:
+        logging.error("Exception %s while reading configuration file %r", e,
+                      args.cf)
+        sys.exit(1)
+
+    if args.repodir:
+        conf.data_dir = args.repodir
+
+    setup_logging(args, conf)
 
     log.success("Firelet started.")
 
     users = Users(d=conf.data_dir)
     mailer = Mailer(
-        sender = conf.email_sender,
-        recipients = conf.email_recipients,
-        smtp_server = conf.email_smtp_server,
+        sender=conf.email_sender,
+        recipients=conf.email_recipients,
+        smtp_server=conf.email_smtp_server,
     )
-
-    session_opts = {
-        'session.type': 'cookie',
-        'session.validate_key': True,
-        'session.cookie_expires': True,
-        'session.timeout': 3600 * 24,  # 1 day
-        'session.encrypt_key': urandom(32),
-    }
 
     if conf.demo_mode:
         fs = DemoGitFireSet(conf.data_dir)
         log.info("Configuration loaded. Demo mode.")
-        #session_opts['session.secure'] = True
-        session_opts['session.type'] = 'memory'
 
     else:
         fs = GitFireSet(conf.data_dir)
         log.info("Configuration loaded.")
-        # Instruct the browser to sever send the cookie over unencrypted
-        # connections
-        #session_opts['session.secure'] = True
-        session_opts['session.type'] = 'memory'
 
     log.info("%d users, %d hosts, %d rules, %d networks loaded.",
-        *map(len, (users, fs.hosts, fs.rules, fs.networks))
-    )
-
-    #app = bottle.default_app()
-    app = SessionMiddleware(app, session_opts)
+             *map(len, (users, fs.hosts, fs.rules, fs.networks))
+             )
 
     logging.getLogger('paste.httpserver.ThreadPool').setLevel(logging.WARN)
     try:
@@ -859,23 +950,12 @@ def main():
         )
     except:
         logging.error("Unhandled exception", exc_info=True)
-        raise #TODO: wrap this around main() ?
-              #is it a duplicate of HTTPError logging?
+        raise  # TODO: wrap this around main() ?
+               # is it a duplicate of HTTPError logging?
 
     # Run until terminated by SIGKILL or SIGTERM
     mailer.join()
-    #daemoncontext.close()
 
 
 if __name__ == "__main__":
     main()
-
-
-
-
-
-
-
-
-
-
