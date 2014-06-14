@@ -45,7 +45,7 @@ class Bunch(object):
 
     def keys(self):
         """Get the instance attributes
-        
+
         :rtype: list
         """
         return self.__dict__.keys()
@@ -54,16 +54,16 @@ class Bunch(object):
         """Generate a simple hash"""
         return hex(abs(hash(str(self.__dict__))))[2:]
 
-    def validate_token(self, t):
+    def validate_token(self, token):
         """Check if the given token matches the instance own token to ensure
         that the instance attributes has not been modified.
         The token is a hash of the instance's attributes.
-        
-        :arg t: token
-        :type t: str
+
+        :param token: token
+        :type token: str
         :returns: True or False
         """
-        assert t == self._token(), \
+        assert token == self._token(), \
         "Unable to update: one or more items has been modified in the meantime."
 
     def attr_dict(self):
