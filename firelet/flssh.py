@@ -17,7 +17,6 @@
 from datetime import datetime
 import logging
 import paramiko
-import socket
 from time import time
 from threading import Thread
 
