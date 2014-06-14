@@ -1478,7 +1478,7 @@ class GitFireSet(FireSet):
         """True if commit is required: files has been changed"""
         self._git("add *.csv *.json")
         o, e = self._git('status -uno')
-        #log.debug("Git status: '%s'" % (o))
+        #log.debug("Git status: %r" % o)
         if 'nothing to commit ' in o:
             return False
 
