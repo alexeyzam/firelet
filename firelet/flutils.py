@@ -1,6 +1,19 @@
+# Firelet - Distributed firewall management.
+# Copyright (C) 2014 Federico Ceratto
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+from Crypto.Cipher import AES
 from copy import deepcopy
 from datetime import datetime
 from optparse import OptionParser
+import base64
+import hmac
+import json
+import os
 
 def cli_args(args=None): # pragma: no cover
     """Parse command line arguments"""
@@ -146,4 +159,59 @@ def get_rss_channels(channel, url, msg_list=[]):
 
 
 
+
+def encrypt_cookie(key, data):
+    """Generate encrypted and signed cookie content
+    :returns: str
+    """
+    block_size = 16
+
+    # Convert to padded JSON
+    cleartext = json.dumps(data)
+    padding = ' ' * (block_size - len(cleartext) % block_size)
+    cleartext += padding
+    assert len(cleartext) % block_size == 0
+
+    # Encrypt using AES in CBC mode with random IV
+    iv = os.urandom(block_size)
+    assert len(iv) == block_size
+    aes = AES.new(key, AES.MODE_CBC, iv)
+    ciphertext = aes.encrypt(cleartext)
+    assert len(ciphertext) % block_size == 0
+
+    # Sign the ciphertext with HMAC
+    sig = hmac.new(key, ciphertext).digest()
+    assert len(sig) == block_size
+
+    # Concatenate IV, signature, ciphertext
+    return base64.b64encode(iv + sig + ciphertext)
+
+def decrypt_cookie(key, enc):
+    """Decrypt cookie content and check signature
+    """
+    block_size = 16
+
+    # Split string
+    enc = base64.b64decode(enc)
+    iv = enc[:block_size]
+    sig = enc[block_size:block_size * 2]
+    ciphertext = enc[block_size * 2:]
+
+    # Regenerate signature
+    correct_sig = hmac.new(key, ciphertext).digest()
+
+    # Compare signatures using a time-constant function
+    # http://bugs.python.org/issue15061
+    sig_is_valid = hmac.compare_digest(sig, correct_sig)
+    if not sig_is_valid:
+        log.debug('%r', sig)
+        log.debug('%r', correct_sig)
+        raise Exception("Invalid signature")
+
+    # Decrypt ciphertext
+    aes = AES.new(key, AES.MODE_CBC, iv)
+    cleartext = aes.decrypt(ciphertext)
+
+    # Parse JSON contents
+    return json.loads(cleartext)
 

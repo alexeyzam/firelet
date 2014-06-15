@@ -33,7 +33,7 @@ from firelet.flcore import clean, GitFireSet, DemoGitFireSet, savejson, loadjson
 from firelet.flcore import readcsv, savecsv, Hosts
 from firelet.flmap import draw_svg_map
 from firelet.flssh import SSHConnector, MockSSHConnector
-from firelet.flutils import flag, Bunch, get_rss_channels
+from firelet.flutils import flag, Bunch
 from firelet.mailer import Mailer
 
 log = getLogger(__name__)
@@ -1513,34 +1513,4 @@ def test_flag_raise():
     for x in ('true', 'false'):
         with raises(Exception):
             flag(x)
-
-# RSS generation
-
-@pytest.fixture
-def rss_msg():
-    return [
-        ['success', datetime(2011,01,01,10,10,10), 'Blah'],
-        ['success', datetime(2011,01,01,10,10,20), 'Configuation saved: line'],
-        ['success', datetime(2011,01,01,10,10,30), 'Configuration deployed.'],
-    ]
-
-def test_get_rss_messages(rss_msg):
-    d = get_rss_channels('messages', 'url', msg_list=rss_msg)
-    assert 'items' in d
-    items = d['items']
-    assert len(items) == 3
-
-def test_get_rss_confsaves(rss_msg):
-    d = get_rss_channels('confsaves', 'url', msg_list=rss_msg)
-    assert 'items' in d
-    items = d['items']
-    assert len(items) == 1
-
-def test_get_rss_deployments(rss_msg):
-    d = get_rss_channels('deployments', 'url', msg_list=rss_msg)
-    assert 'items' in d
-    items = d['items']
-    assert len(items)
-    assert 'title' in items[-1]
-    assert 'Firelet success: Configuration deployed.' in items[-1]['title']
 

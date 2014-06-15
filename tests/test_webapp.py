@@ -17,6 +17,7 @@
 from pytest import raises
 from webtest import TestApp, AppError
 import bottle
+import logging
 import pytest
 
 from firelet import fireletd
@@ -25,7 +26,7 @@ from firelet.flssh import MockSSHConnector
 from firelet.mailer import Mailer
 import firelet.flssh
 
-bottle.debug(True)
+log = logging.getLogger(__name__)
 
 # TODO: fix skipped tests
 skip = pytest.mark.skipif("True")
@@ -71,7 +72,7 @@ def webapp(raw_app):
     """Create app and log in"""
     assert not raw_app.cookies
     raw_app.post('/login', {'user': 'Ada', 'pwd': 'ada'})
-    assert raw_app.cookies.keys() == ['beaker.session.id']
+    assert raw_app.cookies.keys() == ['fireletd']
     return raw_app
 
 # Unauthenticated tests
@@ -97,7 +98,7 @@ def test_login_incorrect(raw_app):
 def test_login_correct(raw_app):
     assert not raw_app.cookies
     raw_app.post('/login', {'user': 'Ada', 'pwd': 'ada'})
-    assert raw_app.cookies.keys() == ['beaker.session.id']
+    assert raw_app.cookies.keys() == ['fireletd']
 
 def test_logout_unauth(raw_app):
     out = raw_app.get('/logout')
@@ -114,15 +115,15 @@ def test_index_page(webapp):
     assert '</html>' in out
 
 def test_logout(webapp):
-    assert webapp.cookies.keys() == ['beaker.session.id']
+    assert webapp.cookies.keys() == ['fireletd']
     webapp.get('/logout')
     assert not webapp.cookies.keys()
 
 def test_double_login(webapp):
     # log in again
-    assert webapp.cookies.keys() == ['beaker.session.id']
+    assert webapp.cookies.keys() == ['fireletd']
     webapp.post('/login', {'user': 'Ada', 'pwd': 'ada'})
-    assert webapp.cookies.keys() == ['beaker.session.id']
+    assert webapp.cookies.keys() == ['fireletd']
 
 def test_messages(webapp):
     out = webapp.get('/messages')
@@ -516,7 +517,7 @@ def test_save_needed(webapp):
 
 def test_save_post(webapp):
     out = webapp.post('/save', dict(
-        msg='test'
+        msg='test',
     ))
     assert out.json['ok'] == True
 

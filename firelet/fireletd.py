@@ -17,11 +17,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from argparse import ArgumentParser
-from beaker.middleware import SessionMiddleware
 from bottle import HTTPResponse, HTTPError
-from bottle import abort, static_file, run, view, request
-from bottle import debug as bottle_debug
-from datetime import datetime
+from bottle import abort, static_file, view, request
+from datetime import datetime, timedelta
 from os import urandom
 from setproctitle import setproctitle
 import bottle
@@ -31,10 +29,11 @@ import time
 import sys
 
 from firelet.confreader import ConfReader
-from firelet.mailer import Mailer
 from firelet.flcore import Alert, GitFireSet, DemoGitFireSet, Users, clean
 from firelet.flmap import draw_png_map, draw_svg_map
+from firelet.flutils import encrypt_cookie, decrypt_cookie
 from firelet.flutils import flag, get_rss_channels
+from firelet.mailer import Mailer
 
 log = logging.getLogger()
 log.success = log.info
@@ -52,16 +51,12 @@ log.success = log.info
 
 app = bottle.app()
 
-session_opts = {
-    'session.cookie_expires': True,
-    'session.encrypt_key': urandom(32),
-    'session.timeout': 3600 * 24,  # 1 day
-    'session.type': 'cookie',
-    'session.validate_key': True,
-}
+session_random_key = urandom(32)
 
-app = SessionMiddleware(app, session_opts)
+SESSION_DURATION = timedelta(days=1).total_seconds()
 
+class AuthAlert(Alert):
+    pass
 
 # Setup Python error logging
 class LoggedHTTPError(bottle.HTTPResponse):
@@ -208,42 +203,77 @@ def pcheckbox(name):
 
     return '0'
 
+# session management
+
+def setup_session_cookie(username, role):
+    """Set a valid session cookie in the browser"""
+    d = dict(
+        username=username,
+        role=role,
+        expiration=time.time() + SESSION_DURATION,
+    )
+    ciphertext = encrypt_cookie(session_random_key, d)
+    bottle.response.set_cookie('fireletd', ciphertext, httponly=True)
+
+def _require(role='readonly'):
+    """Ensure the user has the required role (or higher).
+    Order is: admin > editor > readonly
+
+    :returns: session
+    """
+    m = {'admin': 15, 'editor': 10, 'readonly': 5}
+
+    try:
+        enc = bottle.request.get_cookie('fireletd')
+        s = decrypt_cookie(session_random_key, enc)
+    except Exception as e:
+        raise AuthAlert("Expired or invalid cookie.")
+
+    expiration = s['expiration']
+    now = time.time()
+    if expiration < now:
+        bottle.response.delete_cookie('fireletd')
+        raise AuthAlert("Expired cookie.")
+
+    if expiration < now + (SESSION_DURATION / 2):
+        # Renew expiration by refreshing the cookie
+        setup_session_cookie(s['username'], s['role'])
+
+    if not s:
+        log.warn("User needs to be authenticated.")
+        # TODO: not really explanatory in a multiuser session.
+        raise AuthAlert("User needs to be authenticated.")
+
+    myrole = s.get('role', None)
+    if not myrole:
+        raise AuthAlert("User needs to be authenticated.")
+
+    if m[myrole] >= m[role]:
+        return s
+
+    log.info("An account with %r level or higher is required.", role)
+    raise AuthAlert("Insufficient access permissions.")
+
+def user_is_logged_in():
+    """Return True if the user is logged in"""
+    try:
+        _require()
+        return True
+    except:
+        return False
+
 
 # # #  web services  # # #
 
 
 # #  authentication  # #
 
-def _require(role='readonly'):
-    """Ensure the user has the required role (or higher).
-    Order is: admin > editor > readonly
-    """
-    m = {'admin': 15, 'editor': 10, 'readonly': 5}
-    s = bottle.request.environ.get('beaker.session')
-    if not s:
-        log.warn("User needs to be authenticated.")
-        # TODO: not really explanatory in a multiuser session.
-        raise Alert("User needs to be authenticated.")
-
-    myrole = s.get('role', None)
-    if not myrole:
-        raise Alert("User needs to be authenticated.")
-
-    if m[myrole] >= m[role]:
-        return
-
-    log.info("An account with %r level or higher is required.", role)
-    raise Exception
-
-
 @bottle.route('/login')
 @bottle.route('/login', method='POST')
 def serve_login():
     """Log user in if authorized"""
-    s = bottle.request.environ.get('beaker.session')
-    if s and 'username' in s:  # user is authenticated <--> username is set
-        log.info("Already logged in as %r.", s['username'])
-        return {'logged_in': True}
+    if user_is_logged_in():
+        return dict(logged_in=True)
 
     user = pg('user', '')
     pwd = pg('pwd', '')
@@ -251,10 +281,7 @@ def serve_login():
         users.validate(user, pwd)
         role = users._users[user][0]
         log.success("User %s with role %s logged in.", user, role)
-        s['username'] = user
-        s['role'] = role
-        s.save()
-
+        setup_session_cookie(user, role)
         bottle.redirect('/')
 
     except (Alert, AssertionError) as e:
@@ -265,17 +292,14 @@ def serve_login():
 @bottle.route('/logout')
 def serve_logout():
     """Log user out"""
-    s = bottle.request.environ.get('beaker.session')
-    if not s:
-        bottle.redirect('/')
+    try:
+        s = _require()
+        log.info("User %s logged out.", s['username'])
+        bottle.response.delete_cookie('fireletd')
+    except AuthAlert as e:
+        pass
 
-    u = s.get('username', None)
-    if u:
-        log.info("User %s logged out.", u)
-
-    s.delete()
     bottle.redirect('/')
-
 
 @bottle.route('/messages')
 @view('messages')
@@ -289,15 +313,12 @@ def serve_messages():
 @view('index')
 def serve_index():
     """Serve main page"""
-    s = bottle.request.environ.get('beaker.session')
-    logged_in = True if s and 'username' in s else False
-
     try:
         title = conf.title
     except Exception:
         title = 'test'
 
-    return dict(msg=None, title=title, logged_in=logged_in)
+    return dict(msg=None, title=title, logged_in=user_is_logged_in())
 
 # #  tables interaction  # #
 #
@@ -555,7 +576,7 @@ def serve_networks_post():
             abort(500)
 
     except Exception as e:
-        log.error("Unable to %s network n. %s - %s" % (action, rid, e))
+        log.error("Unable to %s network n. %s - %s", action, rid, e)
         abort(500)
 
 
@@ -619,8 +640,7 @@ def serve_services_post():
 @view('manage')
 def serve_manage():
     """Serve manage tab"""
-    _require()
-    s = bottle.request.environ.get('beaker.session')
+    s = _require()
     myrole = s.get('role', '')
     cd = True if myrole == 'admin' else False
     return dict(can_deploy=cd)
@@ -636,14 +656,13 @@ def serve_save_needed():
 @bottle.route('/save', method='POST')
 def serve_savebtn():
     """Save configuration"""
-    _require()
+    s = _require()
     msg = pg('msg', '')
     if not fs.save_needed():
         ret_warn('Save not needed.')
 
     log.info("Commit msg: %r. Saving configuration...", msg)
     saved = fs.save(msg)
-    s = bottle.request.environ.get('beaker.session')
     username = s.get('username', None)
     mailer.send_msg(
         sbj="Configuration saved by %s" % username,
@@ -685,12 +704,11 @@ def serve_checkbtn():
 @bottle.route('/api/1/deploy', method='POST')
 def serve_deploybtn():
     """Deploy configuration"""
-    _require('admin')
+    s = _require('admin')
     log.info('Configuration deployment started...')
     try:
         fs.deploy(stop_on_extra_interfaces=conf.stop_on_extra_interfaces)
         ack('Configuration deployed.')
-        s = bottle.request.environ.get('beaker.session')
         username = s.get('username', None)
         mailer.send_msg(
             sbj="Configuration deployed by %s" % username,
@@ -754,8 +772,7 @@ def serve_static(filename):
     bottle.response.headers['Cache-Control'] = 'max-age=3600, public'
     if filename == 'rss.png':
         return static_file(filename, 'static')
-    # Authenticated users contents:
-    _require()
+
     if filename == '/jquery-ui.js':
         return static_file(
             'jquery-ui/jquery-ui.js',
@@ -769,6 +786,8 @@ def serve_static(filename):
             'jquery-ui/css/smoothness/jquery-ui-1.7.2.custom.css',
             '/usr/share/javascript/')
     else:
+        # Authenticated users contents:
+        _require()
         return static_file(filename, 'static')
 
 
@@ -877,7 +896,7 @@ def setup_logging(args, conf):
         log.debug("Debug mode")
         log.debug("Configuration file: %r", args.cf)
         log.debug("Logfile (unused in debug mode): %r", logfile)
-        bottle_debug(True)
+        bottle.debug(True)
 
     else:
         logging.basicConfig(
@@ -940,7 +959,7 @@ def main():
 
     logging.getLogger('paste.httpserver.ThreadPool').setLevel(logging.WARN)
     try:
-        run(
+        bottle.run(
             app=app,
             host=conf.listen_address,
             port=conf.listen_port,
