@@ -345,6 +345,7 @@ def test_gitfireset_git_basics(gfs):
     print '------ git top level ------'
     print gfs._git('rev-parse --show-toplevel')
     print '-' * 27
+    assert False
 
 @require_git
 def test_gitfireset_simple(gfs):
