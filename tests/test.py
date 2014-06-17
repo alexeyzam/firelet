@@ -41,6 +41,9 @@ deb = log.debug
 
 SkipTest = pytest.mark.skipif(True, reason='skipped')
 
+# mark tests that require Git to be installed
+require_git = pytest.mark.require_git
+
 #TODO: migration to network objects
 #TODO: parallel SSH
 #TODO: SSH check and deployment
@@ -326,6 +329,24 @@ def test_gitfireset_otp(gfs):
     assert isinstance(otp, str)
     assert len(otp) == 10
 
+@require_git
+def test_gitfireset_git_basics(gfs):
+    assert gfs._git_executable.endswith('git')
+    assert os.path.isfile(gfs._git_executable)
+    assert os.access(gfs._git_executable, os.X_OK)
+
+    out = gfs._git('config -l')
+    print '------ git config -l ------'
+    for x in out:
+        print x
+
+    print '-' * 27
+
+    print '------ git top level ------'
+    print gfs._git('rev-parse --show-toplevel')
+    print '-' * 27
+
+@require_git
 def test_gitfireset_simple(gfs):
     assert gfs.save_needed() == False
     gfs.save('test')
@@ -333,6 +354,7 @@ def test_gitfireset_simple(gfs):
     gfs.reset()
     assert gfs.save_needed() == False
 
+@require_git
 def test_gitfireset_long(gfs):
     # Delete first item in every table
     for t in ('rules', 'hosts', 'hostgroups', 'services', 'networks'):
@@ -564,6 +586,7 @@ def test_DemoGitFireSet_get_confs(fs):
     for h in fs._get_firewalls():
         assert h.hostname in fs._remote_confs, "Missing host %s" % h.hostname
 
+@require_git
 def test_DemoGitFireSet_deployment(fs):
     """Deploy confs, then check"""
     fs.deploy()
@@ -573,6 +596,7 @@ def test_DemoGitFireSet_deployment(fs):
 
 # # Rule compliation and deployment testing # #
 
+@require_git
 def test_DemoGitFireSet_compile_rules_basic(fs):
     """Compile rules and perform basic testing"""
     rset = fs.compile_rules()
@@ -983,6 +1007,7 @@ def test_DemoGitFireSet_diff_table_generation_all_fw_removed(fs):
     diff_dict = fs._diff(existing_rules,   {})
     assert diff_dict == {}, "An empty diff should be generated."
 
+@require_git
 def test_DemoGitFireSet_diff_table_generation_all_fw_added(fs):
     """Test diff right after all the firewalls has been added.
     An empty diff should be generated."""
@@ -1004,17 +1029,16 @@ def test_DemoGitFireSet_diff_table_generation_all_fw_added(fs):
 #        li = fs._build_ipt_restore((hn, b))[1]
 #        open("test/new-iptables-save-%s" % hn, 'w').write('\n'.join(li)+'\n')
 
-
+@require_git
+@SkipTest
 def test_DemoGitFireSet_check(fs):
     """Run diff between complied rules and remote confs using DemoGitFireSet
     Given the test files, the check should be ok and require no deployment"""
     diff_dict = fs.check()
-#    assert diff_dict == {},  repr(diff_dict)[:300]
-
+    assert diff_dict == {},  repr(diff_dict)[:300]
     #FIXME: enable the test again
 
-
-
+@require_git
 def test_DemoGitFireSet_deploy(repodir, fs):
     """Run diff between complied rules and remote confs.
     Given the test files, the check should be ok and require no deployment"""
@@ -1030,7 +1054,7 @@ def test_DemoGitFireSet_deploy(repodir, fs):
     assert diff_dict == {}, "Check should be giving empty result instead of: %s" \
         % repr(diff_dict)[:300]
 
-
+@require_git
 def test_DemoGitFireSet_deploy_then_check(repodir, fs):
     """Deploy conf then run check again"""
     assert not fs.save_needed()
