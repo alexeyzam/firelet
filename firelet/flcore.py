@@ -1585,7 +1585,11 @@ class Users(object):
         self._save()
 
     def delete(self, username):
-        """Delete an username"""
+        """Delete an username
+
+        :param username: username
+        :type username: str
+        """
         try:
             self._users.pop(username)
 
@@ -1595,14 +1599,23 @@ class Users(object):
         self._save()
 
     def validate(self, username, pwd):
-        """Validate an username and password"""
+        """Validate an username and password
+
+        :param username: username
+        :type username: str
+        :param password: password
+        :type password: str
+        """
         assert username, "Missing username."
         assert username in self._users, "Incorrect user or password."
         assert self._hash(username, pwd) == self._users[username][1], \
             "Incorrect user or password."
 
     def __len__(self):
-        """Count users"""
+        """Count users
+
+        :returns: number of users (int)
+        """
         return len(self._users)
 
 
