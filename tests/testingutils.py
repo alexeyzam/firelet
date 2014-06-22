@@ -15,13 +15,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from json import dumps
-from os import listdir, mkdir
-from tempfile import mkdtemp
-from time import time
 import inspect
-import logging
-import os
-import sys
 
 import pytest
 repodir = pytest.mark.usefixtures("repodir")
@@ -92,3 +86,22 @@ def duplicates(li):
     """
     return [(i,li.count(i))  for i in set(li) if li.count(i) > 1 ]
 
+def printout(lines, title=None):
+    """Print out lines of text with an optional title
+    """
+    if title:
+        print "------ %s ------" % title
+        footer = '-' * (len(title) + 14)
+
+    else:
+        footer = '-' * 12
+        print footer
+
+    if isinstance(lines, (tuple, list)):
+        for x in lines:
+            print x.rstrip()
+
+    else:
+        print lines.rstrip()
+
+    print footer

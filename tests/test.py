@@ -336,16 +336,19 @@ def test_gitfireset_git_basics(gfs):
     assert os.access(gfs._git_executable, os.X_OK)
 
     out = gfs._git('config -l')
-    print '------ git config -l ------'
-    for x in out:
-        print x
+    testingutils.printout(out, 'git config -l')
+    assert 'core.bare=false' in out[0]
 
-    print '-' * 27
+    out = gfs._git('rev-parse --show-toplevel')
+    testingutils.printout(out, 'git top level')
 
-    print '------ git top level ------'
-    print gfs._git('rev-parse --show-toplevel')
-    print '-' * 27
-    assert False
+    out, err = gfs._git('status -uno')
+    testingutils.printout(out, 'git status uno - output')
+    testingutils.printout(err, 'git status uno - errors')
+
+    assert 'On branch master' in out
+    assert 'nothing to commit' in out
+    assert not err, repr(err)
 
 @require_git
 def test_gitfireset_simple(gfs):
