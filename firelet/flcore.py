@@ -1355,7 +1355,7 @@ class GitFireSet(FireSet):
         self._git('init .')
         self._git('add *.csv *.json')
         self._git('commit -m "Configuration database created."')
-        assert not self.save_needed()
+        assert not self.save_needed(), self._git('status -uno')
 
         out = self._git('rev-parse --show-toplevel')
         git_toplevel_dir = out[0].strip()
