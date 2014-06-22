@@ -1355,6 +1355,9 @@ class GitFireSet(FireSet):
         out, err = self._git('init .')
         assert out.startswith('Initialized empty Git repository')
 
+        out, err = self._git('config user.name Firelet')
+        assert not err, "Config error: %r" % err
+
         out, err = self._git('add *.csv *.json')
 
         out, err = self._git('commit -m "Configuration database created." *.csv *.json')
