@@ -1344,12 +1344,24 @@ class GitFireSet(FireSet):
         self._git_repodir = repodir
         self._locate_git_executable()
         if 'fatal: Not a git repository' in self._git('status')[1]:
-            log.debug('Creating Git repo...')
-            self._git('init .')
-            self._git('add *.csv *.json')
-            self._git('commit -m "Configuration database created."')
+            self._create_new_git_repository()
 
         super(GitFireSet, self).__init__()
+
+    def _create_new_git_repository(self):
+        """Set up new Git configuration repository
+        """
+        log.info('Creating new Git repository...')
+        self._git('init .')
+        self._git('add *.csv *.json')
+        self._git('commit -m "Configuration database created."')
+        assert not self.save_needed()
+
+        out = self._git('rev-parse --show-toplevel')
+        git_toplevel_dir = out[0].strip()
+        assert git_toplevel_dir == self._git_repodir
+
+        log.info('Git repository created')
 
     def _locate_git_executable(self):
         """Locate Git executable"""
