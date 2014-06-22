@@ -1358,6 +1358,7 @@ class GitFireSet(FireSet):
         out, err = self._git('add *.csv *.json')
 
         out, err = self._git('commit -m "Configuration database created." *.csv *.json')
+        assert not err, "Commit error: %r" % err
         assert 'files changed, ' in out
 
         assert not self.save_needed(), self._git('status -uno')
