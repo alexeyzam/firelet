@@ -1354,7 +1354,7 @@ class GitFireSet(FireSet):
         log.info('Creating new Git repository...')
         self._git('init .')
         self._git('add *.csv *.json')
-        self._git('commit -m "Configuration database created."')
+        self._git('commit -a -m "Configuration database created."')
         assert not self.save_needed(), self._git('status -uno')
 
         out = self._git('rev-parse --show-toplevel')
@@ -1448,7 +1448,7 @@ class GitFireSet(FireSet):
             msg = '(no message)'
 
         self._git("add *")
-        self._git("commit -m '%s'" % msg)
+        self._git("commit -a -m '%s'" % msg)
 
     def reload(self):
         """Reload all the tables from disk
