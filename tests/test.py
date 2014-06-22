@@ -21,6 +21,7 @@ from netaddr import IPNetwork
 from paramiko import SSHClient
 from pytest import raises
 import mock
+import os
 import os.path
 import pytest
 
@@ -317,6 +318,9 @@ def test_load_save_csv(repodir):
 
 @pytest.fixture
 def gfs(repodir):
+    assert os.path.isdir(repodir)
+    filenames = os.listdir(repodir)
+    assert len(filenames) == 18, "Unexpected repository contents %r" % filenames
     return GitFireSet(repodir=repodir)
 
 @pytest.fixture
