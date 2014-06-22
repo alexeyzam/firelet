@@ -16,9 +16,8 @@
 
 import pytest
 import glob
-import shutil
 import py
-#@pytest.fixture(scope="module")
+
 @pytest.fixture
 def repodir(tmpdir):
     """Create and populate test repository directory"""
