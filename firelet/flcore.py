@@ -1352,9 +1352,14 @@ class GitFireSet(FireSet):
         """Set up new Git configuration repository
         """
         log.info('Creating new Git repository...')
-        self._git('init .')
-        self._git('add *.csv *.json')
-        self._git('commit -a -m "Configuration database created."')
+        out, err = self._git('init .')
+        assert out.startswith('Initialized empty Git repository')
+
+        out, err = self._git('add *.csv *.json')
+
+        out, err = self._git('commit -m "Configuration database created." *.csv *.json')
+        assert 'files changed, ' in out
+
         assert not self.save_needed(), self._git('status -uno')
 
         out = self._git('rev-parse --show-toplevel')
