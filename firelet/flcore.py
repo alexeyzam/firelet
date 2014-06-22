@@ -1392,6 +1392,8 @@ class GitFireSet(FireSet):
         """Parse git diff <commit_id>
         Returns a list of (line, tag), the tag being 'title', 'add',
         'del,' or empty
+
+        :returns: modified lines (list)
         """
         tags = {'+': 'add', '-': 'del',  ' ': '',  '':''}
         o, e = self._git('diff %s' % commit_id)
