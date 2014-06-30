@@ -109,8 +109,8 @@ def test_logout_unauth(raw_app):
 def test_index_page(webapp):
     out = webapp.get('/')
     assert out.status_code == 200
-    assert 'DOCTYPE' in out
-    assert 'body' in out, repr(out)
+    assert 'DOCTYPE' in out.text
+    assert 'body' in out.text
     assert 'Distributed firewall management' in out
     assert '</html>' in out
 
