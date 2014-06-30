@@ -22,7 +22,7 @@ install:
   - pip install -e .
 
 script:
-  - py.test tests/test.py tests/test_cli.py tests/test_webapp.py
+  - py.test -x tests/test.py tests/test_cli.py tests/test_webapp.py
   - coverage run --source=firelet tests/test.py
 
 after_success:
