@@ -110,7 +110,7 @@ def test_index_page(webapp):
     out = webapp.get('/')
     assert out.status_code == 200
     assert 'DOCTYPE' in out
-    assert 'body' in out
+    assert 'body' in out, repr(out)
     assert 'Distributed firewall management' in out
     assert '</html>' in out
 
