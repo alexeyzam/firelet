@@ -17,6 +17,7 @@ install:
   - pip install netaddr
   - pip install paramiko
   - pip install pytest
+  - pip install pytest-cov
   - pip install setproctitle
   - pip install webtest
   - pip install -e .
