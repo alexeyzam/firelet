@@ -16,7 +16,6 @@
 
 from logging import getLogger
 from nose.tools import assert_raises
-from pytest import raises
 import os.path
 import pytest
 
@@ -100,10 +99,6 @@ class TestCLI(object):
         assert len(out) > 5
         assert out[0].startswith('Firelet')
 
-    def test_rule_list(self, repodir):
-        out = self.run(repodir, 'rule', 'list')
-        assert len(cli.say.output_history) > 5, cli.say.hist()
-
     def test_list(self, repodir):
         for x in ('rule', 'host', 'hostgroup', 'service', 'network'):
             print "Running cli %s list" % x
@@ -186,17 +181,17 @@ class TestCLI(object):
         deb(show('started'))
         out1 = self.run(repodir, '-q', 'user', 'list')
         assert out1 == [
-            u'Rob            readonly        None',
+            u'Ada            admin           None',
             u'Eddy           editor          None',
-            u'Ada            admin           None'], \
+            u'Rob            readonly        None'], \
             "Incorrect user list: %s" % repr(out1) + cli.say.hist()
         out = self.run(repodir, '-q', 'user', 'add', 'Totoro',
             'admin', 'totoro@nowhere.forest')
         out2 = self.run(repodir, '-q', 'user', 'list')
         assert out2 == [
-            u'Rob            readonly        None',
             u'Ada            admin           None',
             u'Eddy           editor          None',
+            u'Rob            readonly        None',
             u'Totoro         admin           totoro@nowhere.forest'], \
             "Incorrect user list" + cli.say.hist()
         self.run(repodir, '-q', 'user', 'validatepwd', 'Totoro')
@@ -209,6 +204,7 @@ class TestCLI(object):
 
     def test_rule_list(self, repodir):
         out = self.run(repodir, '-q', 'rule', 'list')
+        assert len(cli.say.output_history) > 5, cli.say.hist()
         for line in out[1:]:
             li = line.split('|')
             li = map(str.strip, li)

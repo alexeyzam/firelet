@@ -25,7 +25,7 @@ import sys
 import os.path
 
 from . import __version__
-from flcore import GitFireSet, DemoGitFireSet, Users
+from flcore import GitFireSet, Users
 
 #   commands
 #
@@ -318,7 +318,7 @@ def main(mockargs=None):    # pragma: no cover
         users = Users(d=repodir)
         if a2 == 'list' or None:
             whisper("Name           Role            Email ")
-            for name, (role, secret, email) in users._users.iteritems():
+            for name, (role, secret, email) in sorted(users._users.items()):
                 say("%-14s %-15s %s" % (name, role, email))
         elif a2 == 'add':
             if not a3:
