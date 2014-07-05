@@ -14,7 +14,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from datetime import datetime
 from logging import getLogger
 from mock import Mock
 from netaddr import IPNetwork
@@ -28,7 +27,7 @@ import pytest
 import testingutils
 
 from firelet.confreader import ConfReader
-from firelet.flcore import Rule, Host, HostGroup, Network, Service, Users
+from firelet.flcore import Host, HostGroup, Network, Service, Users
 from firelet.flcore import Alert, validc
 from firelet.flcore import clean, GitFireSet, DemoGitFireSet, savejson, loadjson
 from firelet.flcore import readcsv, savecsv, Hosts
@@ -62,6 +61,7 @@ require_git = pytest.mark.require_git
 
 def debug(s, o=None):
     """Log an object representation"""
+    from json import dumps
     try:
         d = dumps(o, indent=2)
     except:
@@ -148,8 +148,9 @@ def test_parse_iptables_save_2():
 COMMIT
 # Completed on Sun Feb 20 15:04:36 2011
     """)
-    assert repr(ret) == """{'filter': ['-A INPUT -s 3.3.3.3/32 -j ACCEPT', '-A INPUT -d 3.3.3.3/32 -p tcp -m tcp --dport 44 -j ACCEPT'], 'nat': []}""", \
-        "Returned: %s" % repr(ret)
+    assert ret['filter'] == ['-A INPUT -s 3.3.3.3/32 -j ACCEPT', '-A INPUT -d 3.3.3.3/32 -p tcp -m tcp --dport 44 -j ACCEPT']
+    assert ret['nat'] == []
+    assert len(ret) == 2
 
 def test_parse_iptables_save_3():
     sx = MockSSHConnector(targets={'localhost':['127.0.0.1']})
@@ -165,8 +166,9 @@ COMMIT
 :OUTPUT ACCEPT [36:4504]
 -A INPUT -d 3.3.3.3/32 -p tcp -m tcp --dport 44 -j ACCEPT
 COMMIT""")
-    assert repr(ret) == """{'filter': ['-A INPUT -d 3.3.3.3/32 -p tcp -m tcp --dport 44 -j ACCEPT'], 'nat': ['-A PREROUTING -d 1.2.3.4/32 -p tcp -m tcp --dport 44 -j ACCEPT']}""", \
-        "Returned: %s" % repr(ret)
+    assert ret['filter'] == ['-A INPUT -d 3.3.3.3/32 -p tcp -m tcp --dport 44 -j ACCEPT']
+    assert ret['nat'] == ['-A PREROUTING -d 1.2.3.4/32 -p tcp -m tcp --dport 44 -j ACCEPT']
+    assert len(ret) == 2
 
 
 #def test_gen_iptables_restore_1(repodir):
@@ -420,7 +422,7 @@ def test_gitfireset_long(gfs):
 
 
 def test_gitfireset_smarttable_methods(gfs):
-    h = gfs.fetch('hosts', 0)
+    gfs.fetch('hosts', 0)
     gfs.delete('hosts', 0)
     #TODO: add other methods
 
@@ -1505,10 +1507,6 @@ def test_bunch_hostgroup2():
 
 
 # Basic Bunch class
-
-def test_bunch_repr():
-    b = Bunch( c=42, a=3, b='44', _a=0)
-    assert repr(b) == "{'a': 3, 'c': 42, 'b': '44', '_a': 0}", "Bunch repr is incorrect: %s" % repr(b)
 
 def test_bunch_set_get():
     b = Bunch( c=42, a=3, b='44', _a=0)
