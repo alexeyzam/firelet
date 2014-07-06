@@ -14,6 +14,9 @@ import base64
 import hmac
 import json
 import os
+import logging
+
+log = logging.getLogger(__name__)
 
 def cli_args(args=None): # pragma: no cover
     """Parse command line arguments"""
@@ -98,7 +101,7 @@ def flag(s):
     elif s in (0, False, '0', 'False', 'n', 'off', ''):
         return '0'
     else:
-        raise Exception, '"%s" is not a valid flag value' % s
+        raise Exception("%r is not a valid flag value" % s)
 
 def extract(d, keys):
     """Returns a new dict with only the chosen keys, if present"""
@@ -125,7 +128,7 @@ def append_rss_item(channel, url, level, msg, ts, items):
 def get_rss_channels(channel, url, msg_list=[]):
     """Generate RSS feeds for different channels"""
     if channel not in ('messages', 'confsaves', 'deployments'):
-        raise Exception, "unexistent RSS channel"
+        raise Exception("Inexistent RSS channel")
 
     utc_rfc822 = datetime.utcnow().strftime("%a, %d %b %Y %H:%M:%S GMT")
 
