@@ -17,13 +17,13 @@ install:
   - pip install netaddr
   - pip install paramiko
   - pip install pytest
+  - pip install pytest-cov
   - pip install setproctitle
   - pip install webtest
   - pip install -e .
 
 script:
-  - py.test -x tests/test.py tests/test_cli.py tests/test_webapp.py
-  - coverage run --source=firelet tests/test.py
+  - py.test tests/test.py tests/test_cli.py tests/test_webapp.py -v --cov firelet --cov-report term-missing
 
 after_success:
   - coveralls
