@@ -19,13 +19,13 @@
 # Firelet Command Line Interface
 
 from argparse import ArgumentParser
-from confreader import ConfReader
+from .confreader import ConfReader
 from getpass import getpass
 import sys
 import os.path
 
 from . import __version__
-from flcore import GitFireSet, Users
+from .flcore import GitFireSet, Users
 
 #   commands
 #
@@ -171,7 +171,7 @@ def prettyprint(li):
 
 def say(s):
     """Print to stdout"""
-    print s
+    print(s)
 
 def open_fs(repodir):
     """Open Git FireSet"""
@@ -200,7 +200,7 @@ def main(mockargs=None):    # pragma: no cover
 
     try:
         conf = ConfReader(fn=fn)
-    except Exception, e:
+    except Exception as e:
         say("Exception %s while reading configuration file '%s'" % (e, fn))
         sys.exit(1)
 
