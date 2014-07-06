@@ -15,7 +15,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from logging import getLogger
-from nose.tools import assert_raises
 import os.path
 import pytest
 
@@ -87,7 +86,9 @@ class TestCLI(object):
         oldrepodir = repodir
         cli.say.reset_history()
         deb(show('cli.main started'))
-        assert_raises(SystemExit, cli.main, cli_args), "Exited without 0 or 1"
+        with pytest.raises(SystemExit):
+            cli.main(cli_args)
+
         deb("Output: %r", cli.say.hist())
         assert oldrepodir == repodir
         return cli.say.output_history
@@ -101,7 +102,6 @@ class TestCLI(object):
 
     def test_list(self, repodir):
         for x in ('rule', 'host', 'hostgroup', 'service', 'network'):
-            print "Running cli %s list" % x
             out = self.run(repodir, x, 'list', '')
             assert len(out) > 3, \
                 "Short or no output from cli %s list: %s" % (x, repr(out))
