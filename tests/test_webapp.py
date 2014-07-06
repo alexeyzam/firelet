@@ -279,7 +279,7 @@ def test_hostgroups_post_fetch(webapp):
         action='fetch',
         rid=1,
     ))
-    assert out.json == {u'token': u'ec0194a392e9c8a', u'childs': [u'Smeagol:eth0'], u'name': u'SSHnodes'}
+    assert out.json == {u'token': u'd74e8fce', u'childs': [u'Smeagol:eth0'], u'name': u'SSHnodes'}
 
 def test_hostgroups_post_unknown_action(webapp):
     with raises(Exception):
@@ -343,7 +343,7 @@ def test_hosts_post_fetch(webapp):
         action='fetch',
         rid=1,
     ))
-    assert out.json == {u'masklen': u'24', u'iface': u'eth1', u'ip_addr': u'10.66.2.1', u'hostname': u'InternalFW', u'routed': [], u'local_fw': 1, u'token': u'3085af0c32f194b2', u'network_fw': 1, u'mng': 1}
+    assert out.json == {u'masklen': u'24', u'iface': u'eth1', u'ip_addr': u'10.66.2.1', u'hostname': u'InternalFW', u'routed': [], u'local_fw': 1, u'token': u'db9018c1', u'network_fw': 1, u'mng': 1}
 
 def test_hosts_post_unknown_action(webapp):
     with raises(Exception):
@@ -408,7 +408,7 @@ def test_networks_post_fetch(webapp):
         action='fetch',
         rid=1,
     ))
-    assert out.json == {u'masklen': 24, u'ip_addr': u'10.66.2.0', u'name': u'production_net', u'token': u'5b60bae3fb2b9766'}
+    assert out.json == {u'masklen': 24, u'ip_addr': u'10.66.2.0', u'name': u'production_net', u'token': u'657ed9ec'}
 
 def test_networks_post_unknown_action(webapp):
     with raises(Exception):
@@ -500,7 +500,7 @@ def test_services_post_fetch(webapp):
         action='fetch',
         rid=1,
     ))
-    assert out.json == {u'token': u'3de877cfe8d38aaa', u'protocol': u'TCP', u'ports': u'80', u'name': u'HTTP'}
+    assert out.json == {u'token': u'89a7c78e', u'protocol': u'TCP', u'ports': u'80', u'name': u'HTTP'}
 
 def test_services_post_unknown_action(webapp):
     with raises(Exception):

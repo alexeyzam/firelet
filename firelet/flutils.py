@@ -11,6 +11,7 @@ from copy import deepcopy
 from datetime import datetime
 from optparse import OptionParser
 import base64
+import hashlib
 import hmac
 import json
 import os
@@ -67,8 +68,11 @@ class Bunch(object):
         return self.__dict__.keys()
 
     def _token(self):
-        """Generate a simple hash"""
-        return hex(abs(hash(str(self.__dict__))))[2:]
+        """Generate a simple hash to detect changes in the bunch attributes
+        """
+        h = hashlib.md5()
+        [h.update(k + str(v)) for k, v in sorted(self.__dict__.iteritems())]
+        return h.hexdigest()[:8]
 
     def validate_token(self, token):
         """Check if the given token matches the instance own token to ensure

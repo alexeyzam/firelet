@@ -24,7 +24,7 @@ import os
 import os.path
 import pytest
 
-import testingutils
+from . import testingutils
 
 from firelet.confreader import ConfReader
 from firelet.flcore import Host, HostGroup, Network, Service, Users
@@ -33,7 +33,7 @@ from firelet.flcore import clean, GitFireSet, DemoGitFireSet, savejson, loadjson
 from firelet.flcore import readcsv, savecsv, Hosts
 from firelet.flmap import draw_svg_map
 from firelet.flssh import SSHConnector, MockSSHConnector
-from firelet.flutils import flag, Bunch
+from firelet.flutils import Bunch
 from firelet.mailer import Mailer
 
 log = getLogger(__name__)
@@ -1504,43 +1504,3 @@ def test_bunch_hostgroup2():
 
 #    dicts = [{}, {}, {}]
 #    assert_raises(Exception, hg.flat, *dicts)
-
-
-# Basic Bunch class
-
-def test_bunch_set_get():
-    b = Bunch( c=42, a=3, b='44', _a=0)
-    assert b.c == 42
-    assert b['c'] == 42
-    b.c = 17
-    assert b.c == 17
-    b['c'] = 18
-    assert b.c == 18
-    assert 'c' in b
-
-def test_bunch_token():
-    b = Bunch( c=42, a=3, b='44', _a=0)
-    tok = b._token()
-    b.validate_token(tok)
-    with raises(Exception):
-        b.validate_token('123456')
-
-def test_bunch_update():
-    b = Bunch(c=42, a=3, b='44', _a=0)
-    d = dict(_a=1, a=2, b=3, c=4, extra=5)
-    b.update(d)
-    assert b.a == 2 and b.c == 4
-
-def test_flag_true():
-    for x in (1, True, '1', 'True', 'y', 'on' ):
-        assert flag(x) == '1'
-
-def test_flag_false():
-    for x in (0, False, '0', 'False', 'n', 'off', ''):
-        assert flag(x) == '0'
-
-def test_flag_raise():
-    for x in ('true', 'false'):
-        with raises(Exception):
-            flag(x)
-

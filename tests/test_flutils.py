@@ -1,10 +1,55 @@
 
-import pytest
-import os
 from datetime import datetime
+from pytest import raises
+import os
+import pytest
 
+from firelet.flutils import Bunch
 from firelet.flutils import encrypt_cookie, decrypt_cookie
+from firelet.flutils import flag
 from firelet.flutils import get_rss_channels
+
+# Basic Bunch class
+
+def test_bunch_set_get():
+    b = Bunch( c=42, a=3, b='44', _a=0)
+    assert b.c == 42
+    assert b['c'] == 42
+    b.c = 17
+    assert b.c == 17
+    b['c'] = 18
+    assert b.c == 18
+    assert 'c' in b
+
+def test_bunch_token():
+    b = Bunch(c=42, a=3, b='44', _a=0)
+    tok = b._token()
+    b.validate_token(tok)
+    assert tok == 'e4f4206e'
+    with raises(Exception):
+        b.validate_token('123456')
+
+def test_bunch_update():
+    b = Bunch(c=42, a=3, b='44', _a=0)
+    d = dict(_a=1, a=2, b=3, c=4, extra=5)
+    b.update(d)
+    assert b.a == 2 and b.c == 4
+
+
+# flag
+
+def test_flag_true():
+    for x in (1, True, '1', 'True', 'y', 'on' ):
+        assert flag(x) == '1'
+
+def test_flag_false():
+    for x in (0, False, '0', 'False', 'n', 'off', ''):
+        assert flag(x) == '0'
+
+def test_flag_raise():
+    for x in ('true', 'false'):
+        with raises(Exception):
+            flag(x)
 
 # RSS generation
 
