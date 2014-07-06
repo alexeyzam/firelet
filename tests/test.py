@@ -24,7 +24,7 @@ import os
 import os.path
 import pytest
 
-from . import testingutils
+import testingutils
 
 from firelet.confreader import ConfReader
 from firelet.flcore import Host, HostGroup, Network, Service, Users
