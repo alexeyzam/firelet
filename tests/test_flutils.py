@@ -84,26 +84,40 @@ def test_get_rss_deployments(rss_msg):
 
 # Crypto functions
 
+
 @pytest.fixture
 def mocked_os_urandom(monkeypatch):
     monkeypatch.setattr(os, 'urandom', lambda l: '9' * l)
 
-def test_encrypt_cookie(mocked_os_urandom):
-    key = 'MEOW' * 4
-    enc = encrypt_cookie(key, dict(a=1, b='two', c='\0'))
-    assert enc == 'OTk5OTk5OTk5OTk5OTk5OTWHb/EqDVqXyarPPnnDGhHF50T9tgJtokRp6NN2ZzQmcc6irwJwapko6mv+OLYq8LMlLTzlIy3y8hq2ygTeC2M='
+@pytest.fixture
+def key():
+    return 'MEOW' * 4
 
-def test_decrypt_cookie(mocked_os_urandom):
-    key = 'MEOW' * 4
-    enc = 'OTk5OTk5OTk5OTk5OTk5OTWHb/EqDVqXyarPPnnDGhHF50T9tgJtokRp6NN2ZzQmcc6irwJwapko6mv+OLYq8LMlLTzlIy3y8hq2ygTeC2M='
-    d = decrypt_cookie(key, enc)
+@pytest.fixture
+def encrypted_cookie():
+    return """OTk5OTk5OTk5OTk5OTk5OeYUGXZAWst/4Tlow/zH6Lxz6a/tjryoeu77gCufIDackwOjmC3qAys/7C6h8PixL/+npw=="""
+
+
+def test_encrypt_cookie(mocked_os_urandom, key, encrypted_cookie):
+    enc = encrypt_cookie(key, dict(a=1, b='two', c='\0'))
+    assert enc == encrypted_cookie
+
+def test_decrypt_cookie(mocked_os_urandom, key, encrypted_cookie):
+    d = decrypt_cookie(key, encrypted_cookie)
     assert d == dict(a=1, b='two', c='\0')
 
-def test_encrypt_then_decrypt(mocked_os_urandom):
-    key = 'MEOW' * 4
-    d = dict(longvalue="longstring" * 333)
+def test_encrypt_then_decrypt(mocked_os_urandom, key):
+    d = dict(longvalue="longstring" * 33, a=1, b=2, c=3)
 
     enc = encrypt_cookie(key, d)
     dec = decrypt_cookie(key, enc)
     assert d == dec
+
+def test_encrypt_then_decrypt_multi(mocked_os_urandom, key):
+    d = {'username': 'Ada', 'role': u'admin', 'expiration': 1404737752.972032}
+    for cnt in xrange(200):
+        d[str(cnt)] = cnt
+        enc = encrypt_cookie(key, d)
+        dec = decrypt_cookie(key, enc)
+        assert d == dec
 

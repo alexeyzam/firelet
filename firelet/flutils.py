@@ -164,39 +164,36 @@ def get_rss_channels(channel, url, msg_list=[]):
     return dict(c=c, items=items)
 
 
-
-
-
 def encrypt_cookie(key, data):
     """Generate encrypted and signed cookie content
     :returns: str
     """
     block_size = AES.block_size
 
-    # Convert to padded JSON
+    # Convert to JSON.
+    # Sort keys to have a deterministic behavior for testing.
     cleartext = json.dumps(data, sort_keys=True)
-    padding = ' ' * (block_size - len(cleartext) % block_size)
-    cleartext += padding
-    assert len(cleartext) % block_size == 0
 
-    # Encrypt using AES in CBC mode with random IV
+    # Encrypt using AES in CFB mode with random IV
     iv = os.urandom(block_size)
     assert len(iv) == block_size
-    aes = AES.new(key, AES.MODE_CBC, iv)
+    aes = AES.new(key, AES.MODE_CFB, iv)
     ciphertext = aes.encrypt(cleartext)
-    assert len(ciphertext) % block_size == 0
+    assert len(ciphertext) == len(cleartext)
 
     # Sign the ciphertext with HMAC
     sig = hmac.new(key, ciphertext).digest()
     assert len(sig) == block_size
 
     # Concatenate IV, signature, ciphertext
-    return base64.b64encode(iv + sig + ciphertext)
+    encoded = base64.b64encode(iv + sig + ciphertext)
+    assert len(encoded) <= 4093, "Cookie size exceeding 4093 bytes"
+    return encoded
 
 def decrypt_cookie(key, enc):
     """Decrypt cookie content and check signature
     """
-    block_size = 16
+    block_size = AES.block_size
 
     # Split string
     enc = base64.b64decode(enc)
@@ -211,12 +208,10 @@ def decrypt_cookie(key, enc):
     # http://bugs.python.org/issue15061
     sig_is_valid = hmac.compare_digest(sig, correct_sig)
     if not sig_is_valid:
-        log.debug('%r', sig)
-        log.debug('%r', correct_sig)
         raise Exception("Invalid signature")
 
     # Decrypt ciphertext
-    aes = AES.new(key, AES.MODE_CBC, iv)
+    aes = AES.new(key, AES.MODE_CFB, iv)
     cleartext = aes.decrypt(ciphertext)
 
     # Parse JSON contents
