@@ -171,10 +171,10 @@ def encrypt_cookie(key, data):
     """Generate encrypted and signed cookie content
     :returns: str
     """
-    block_size = 16
+    block_size = AES.block_size
 
     # Convert to padded JSON
-    cleartext = json.dumps(data)
+    cleartext = json.dumps(data, sort_keys=True)
     padding = ' ' * (block_size - len(cleartext) % block_size)
     cleartext += padding
     assert len(cleartext) % block_size == 0
