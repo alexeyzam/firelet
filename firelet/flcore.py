@@ -20,8 +20,6 @@ from itertools import product
 from logging import getLogger
 from netaddr import IPNetwork
 from random import choice
-from socket import inet_ntoa, inet_aton
-from struct import pack, unpack
 from subprocess import Popen, PIPE
 from time import time
 import csv
@@ -723,11 +721,6 @@ def net_addr(a, n):
     q = IPNetwork('%s/%d' % (a, n)).network
     return str(q)
 
-    addr = map(int, a.split('.'))
-    x  = unpack('!L', inet_aton(a))[0] & 2L ** (n + 1) - 1
-    return inet_ntoa(pack('L', x))
-
-
 
 class FireSet(object):
     """A container for the network objects.
@@ -767,7 +760,7 @@ class FireSet(object):
         assert table in self._table_names, "Incorrect table name."
         try:
             return self.__dict__[table][rid]
-        except Exception, e:
+        except Exception as e:
             Alert( "Unable to fetch item %d in table %s: %s" % (rid, table, e))
 
 
@@ -778,11 +771,11 @@ class FireSet(object):
         try:
             self.__dict__[table].pop(rid)
 
-        except IndexError, e:
+        except IndexError as e:
             raise Alert("The element n. %d is not present in table '%s'" % \
                 (rid, table))
 
-        except Exception, e:
+        except Exception as e:
             Alert("Unable to delete item %d in table %s: %s" % (rid, table, e))
 
 
@@ -1137,16 +1130,18 @@ class FireSet(object):
     def _remove_dup_spaces(self, s):
         return ' '.join(s.split())
 
-    def _build_ipt_restore_blocks(self, (hostname, b)):
+    def _build_ipt_restore_blocks(self, hostname_b):
         """Build a list of strings for each chain compatible with iptables-restore"""
+        hostname, b = hostname_b
         li = []
         for chain in ('INPUT', 'FORWARD', 'OUTPUT'):
             for rule in b[chain]:
                 li.append("-A %s %s"% (chain, rule))
         return li
 
-    def _build_ipt_restore(self, (hostname, b)):
+    def _build_ipt_restore(self, hostname_b):
         """Build a list of strings compatible with iptables-restore"""
+        hostname, b = hostname_b
         li = ['# Created by Firelet for host %s' % hostname, '*filter']
         li.extend(self._build_ipt_restore_blocks((hostname, b)))
         li.append('COMMIT')
@@ -1320,7 +1315,7 @@ in %s does not look valid" % id_rsa_fn
 
         cx = SSHConnector(targets={target:[target]}, username=username,
             password=password, ssh_key_autoadd=True)
-        print "Setting up SSH connection..."
+        print("Setting up SSH connection...")
         out = cx._execute(target, \
             "umask 077;" \
             "mkdir -p ~/.ssh ;" \
