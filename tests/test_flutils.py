@@ -11,9 +11,9 @@ from firelet.flutils import get_rss_channels
 @pytest.fixture
 def rss_msg():
     return [
-        ['success', datetime(2011,01,01,10,10,10), 'Blah'],
-        ['success', datetime(2011,01,01,10,10,20), 'Configuation saved: line'],
-        ['success', datetime(2011,01,01,10,10,30), 'Configuration deployed.'],
+        ['success', datetime(2011,1,1,10,10,10), 'Blah'],
+        ['success', datetime(2011,1,1,10,10,20), 'Configuation saved: line'],
+        ['success', datetime(2011,1,1,10,10,30), 'Configuration deployed.'],
     ]
 
 def test_get_rss_messages(rss_msg):

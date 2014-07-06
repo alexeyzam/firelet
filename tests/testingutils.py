@@ -90,18 +90,18 @@ def printout(lines, title=None):
     """Print out lines of text with an optional title
     """
     if title:
-        print "------ %s ------" % title
+        print("------ %s ------" % title)
         footer = '-' * (len(title) + 14)
 
     else:
         footer = '-' * 12
-        print footer
+        print(footer)
 
     if isinstance(lines, (tuple, list)):
         for x in lines:
-            print x.rstrip()
+            print(x.rstrip())
 
     else:
-        print lines.rstrip()
+        print(lines.rstrip())
 
-    print footer
+    print(footer)
