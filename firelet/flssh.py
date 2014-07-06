@@ -20,7 +20,7 @@ import paramiko
 from time import time
 from threading import Thread
 
-from flutils import Bunch
+from .flutils import Bunch
 
 log = logging.getLogger(__name__)
 
@@ -143,7 +143,7 @@ class SSHConnector(object):
                 # add the new connection to the connection pool
                 self._pool[hostname] = c
                 return True
-            except Exception, e:
+            except Exception as e:
                 log.info("Unable to connect to %s on %s: %s" % (hostname, ip_addr, e))
                 return False
 
@@ -180,7 +180,7 @@ class SSHConnector(object):
             try:
                 self._pool.pop(hn)
                 c.close()
-            except Exception, e:
+            except Exception as e:
                 log.info("Error while disconnecting from a host: %s" % e)
 
     #TODO: refactor the use of _connect_one
@@ -211,7 +211,7 @@ class SSHConnector(object):
                 out = stdout.readlines()
                 self._pool_status[hostname] = 'ok'
                 return map(str.rstrip, out)
-            except Exception, e:
+            except Exception as e:
                 #TODO: handle failed executions.
                 self._pool_status[hostname] = "%s" % e
             return None
@@ -285,7 +285,7 @@ class SSHConnector(object):
 
     def parse_iptables_save(self, li, hostname=None):
         """Parse iptables-save output and returns a dict:
-        
+
         :param li: iptables-save output
         :type li: list.
         :param hostname: hostname (optional)
@@ -503,7 +503,7 @@ class SSHConnector(object):
         Forker(self._cancel_auto_rollback, args)
         failed = set(self._targets) - set(status)
         if failed:
-            raise Exception, "Cancelling rollback failed on %s" % ', '.join(failed)
+            raise Exception("Cancelling rollback failed on %s" % ', '.join(failed))
         return status
 
 
@@ -588,8 +588,9 @@ class MockSSHConnector(SSHConnector):
             for i in ignored:
                 if i in s:
                     return []
+
             # Exception on unknown ones
-            raise NotImplementedError, s
+            raise NotImplementedError(s)
 
 
 
