@@ -25,11 +25,22 @@ setup(
     classifiers=CLASSIFIERS,
     setup_requires=['nose>=1.0'],
     install_requires = [
+        'argparse',
         'beaker',
         'bottle',
         'netaddr',
         'paramiko',
         'setproctitle',
+    ],
+    test_requires = [
+        'cov-core',
+        'mock',
+        'nose',
+        'pyquery',
+        'pytest',
+        'pytest-cov',
+        'pytest-xdist',
+        'webtest',
     ],
     packages = ["firelet"],
     platforms=['Linux'],
@@ -47,9 +58,6 @@ setup(
     scripts = ([]),
     test_suite='nose.collector',
     tests_require=['nose'],
-    data_files=[
-        ('/etc/firelet', ['firelet.ini']),
-    ],
 )
 
 
