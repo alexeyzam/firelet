@@ -13,6 +13,8 @@ before_install:
 install:
   - "python setup.py install"
   - pip install coveralls
+  - pip install pytest
+  - pip install pytest-cov
   - pip install tox
   - pip install -e .
 
