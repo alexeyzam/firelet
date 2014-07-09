@@ -10,6 +10,7 @@ from Crypto.Cipher import AES
 from copy import deepcopy
 from datetime import datetime
 from optparse import OptionParser
+from warnings import warn
 import base64
 import hashlib
 import hmac
@@ -18,6 +19,24 @@ import logging
 import os
 
 log = logging.getLogger(__name__)
+
+def compare_digest(a, b):
+    """Time-constant comparison. Less secure than hmac.compare_digest
+    See http://legacy.python.org/dev/peps/pep-0466/
+    """
+    if len(a) != len(b):
+        return False
+
+    flag = 0
+    for x, y in zip(a, b):
+        flag |= ord(x) ^ ord(y)
+
+    return flag == 0
+
+if not hasattr(hmac, 'compare_digest'):
+    warn("hmac.compare_digest is missing, using workaround.")
+    hmac.compare_digest = constant_time_compare
+
 
 def cli_args(args=None): # pragma: no cover
     """Parse command line arguments"""

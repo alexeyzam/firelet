@@ -10,8 +10,9 @@ from firelet.flutils import encrypt_cookie, decrypt_cookie
 from firelet.flutils import flag
 from firelet.flutils import get_rss_channels
 
-def test_check_for_compare_digest():
-    assert hasattr(hmac, 'compare_digest'), repr(hmac)
+# Disabled: a fallback function is put in place when compare_digest is missing
+#def test_check_for_compare_digest():
+#    assert hasattr(hmac, 'compare_digest'), repr(hmac)
 
 # Basic Bunch class
 
