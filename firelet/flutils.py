@@ -35,7 +35,7 @@ def compare_digest(a, b):
 
 if not hasattr(hmac, 'compare_digest'):
     warn("hmac.compare_digest is missing, using workaround.")
-    hmac.compare_digest = constant_time_compare
+    hmac.compare_digest = compare_digest
 
 
 def cli_args(args=None): # pragma: no cover
