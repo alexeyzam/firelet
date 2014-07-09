@@ -10,7 +10,6 @@ from Crypto.Cipher import AES
 from copy import deepcopy
 from datetime import datetime
 from optparse import OptionParser
-from warnings import warn
 import base64
 import hashlib
 import hmac
@@ -19,11 +18,6 @@ import logging
 import os
 
 log = logging.getLogger(__name__)
-
-if not hasattr(hmac, 'compare_digest'):
-    warn("hmac.compare_digest is missing. Using operator._compare_digest instead")
-    from operator import _compare_digest
-    hmac.compare_digest = _compare_digest
 
 def cli_args(args=None): # pragma: no cover
     """Parse command line arguments"""
