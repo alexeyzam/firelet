@@ -14,10 +14,14 @@ before_install:
 install:
   - "python setup.py install"
   - pip install coveralls
+  - pip install mock
+  - pip install nose
+  - pip install pyquery
   - pip install pytest
   - pip install pytest-cov
   - pip install pytest-xdist
   - pip install tox
+  - pip install webtest
   - pip install -e .
 
 script: tox
