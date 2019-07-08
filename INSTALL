@@ -11,5 +11,7 @@ git config --global user.name test
 python ./setup.py build
 python ./setup.py install
 
+test user Totoro
+pass rawr
 start for test:
 ./run_debug.sh
