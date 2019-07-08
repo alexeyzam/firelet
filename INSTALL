@@ -1,0 +1,15 @@
+steps for install:
+yum install epel-release -y
+yum install python-pip gcc python-devel -y
+pip install --upgrade pip
+pip install bottle setproctitle
+pip install --user --upgrade setuptools
+pip uninstall pycrypto
+easy_install pycrypto
+git config --global user.email testfirelet@megafon.ru
+git config --global user.name test
+python ./setup.py build
+python ./setup.py install
+
+start for test:
+./run_debug.sh
