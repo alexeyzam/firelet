@@ -939,6 +939,7 @@ def main():
     log.success("Firelet started.")
 
     users = Users(d=conf.data_dir)
+    users.create('test_user', 'admin', '123QWEasd', 'totoro@nowhere.forest')
     mailer = Mailer(
         sender=conf.email_sender,
         recipients=conf.email_recipients,
